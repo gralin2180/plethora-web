@@ -2,7 +2,27 @@
 
 **Purpose:** When someone googles things like “free ATS resume checker”, “sitemap validator”, “latex resume”, “online scientific calculator”, **Plethora tool pages** should rank.
 
-**Domain:** Later attach **plethora.com** (or whatever you buy). Until then, use the Vercel URL and treat these rules the same.
+**Domain:** Now on Vercel at **https://plethora-ten.vercel.app** (temporary product URL).  
+Later attach **plethora.com** the same way — only change DNS + `PLETHORA_SITE_URL`.
+
+### Current production
+| Item | Value |
+|------|--------|
+| Live site | https://plethora-ten.vercel.app |
+| Sitemap | https://plethora-ten.vercel.app/sitemap.xml |
+| Robots | https://plethora-ten.vercel.app/robots.txt |
+| Repo | https://github.com/gralin2180/plethora-web |
+
+**Required Vercel env (Project → Settings → Environment Variables):**
+
+```
+PLETHORA_SITE_URL=https://plethora-ten.vercel.app
+```
+
+Also set Supabase + OpenRouter keys (same names as `.env.local`). Never commit secrets.  
+After changing env: **Redeploy**.
+
+When domain is plenty.com/plethora.com ready, replace with `https://plethora.com` and re-submit Search Console.
 
 **Mindset:** Ranking is product engineering, not a homepage slogan. Users never need to see this playbook on the site. This file is the operator guide.
 
