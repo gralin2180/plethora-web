@@ -3,9 +3,9 @@ import { SiteShell } from "@/components/SiteShell";
 import { LearnAiPage } from "@/components/LearnAiPage";
 
 export const metadata: Metadata = {
-  title: "Learn how to use AI — everyday India · Plethora",
+  title: "Learn how to use AI · Plethora",
   description:
-    "Plain-language AI literacy for students, shops, job seekers, and families in India. Safety, prompts, daily life recipes. Free tools to practice.",
+    "Clear, practical AI guidance for students, professionals, and teams. Safety habits, four-line prompts, role-based paths, and free practice tools.",
 };
 
 export default function LearnRoutePage() {

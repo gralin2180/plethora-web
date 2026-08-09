@@ -68,6 +68,10 @@ import {
   Hammer,
   Inbox,
   CalendarDays,
+  Radar,
+  Gauge,
+  Globe2,
+  Network,
   type LucideIcon,
 } from "lucide-react";
 import { PLATFORM_TOOLS, TOOL_CATEGORIES, searchTools } from "@/lib/tools-registry";
@@ -141,6 +145,10 @@ const ICONS: Record<string, LucideIcon> = {
   Hammer,
   Inbox,
   CalendarDays,
+  Radar,
+  Gauge,
+  Globe2,
+  Network,
 };
 
 type SmartTab = "all" | "popular" | "recent" | "foryou";

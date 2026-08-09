@@ -29,6 +29,12 @@ import { MultiClockLab } from "@/components/MultiClockLab";
 import { AdvancedCalculator } from "@/components/AdvancedCalculator";
 import { BuildYourOwnTool, ToolRequestForm } from "@/components/BuildYourOwnTool";
 import { CalendarGenerator, DailyLifePlanner } from "@/components/LifePlannerTools";
+import {
+  DnsLookupLab,
+  MyIpLab,
+  PingTestLab,
+  SpeedTestLab,
+} from "@/components/NetworkTools";
 
 export type FreeRunnerKind =
   | "image-to-pdf"
@@ -54,6 +60,10 @@ export type FreeRunnerKind =
   | "sitemap-validator"
   | "sitemap-urls"
   | "robots-txt"
+  | "ping-test"
+  | "speed-test"
+  | "whats-my-ip"
+  | "dns-lookup"
   | "multi-clock"
   | "advanced-calculator"
   | "build-your-tool"
@@ -286,6 +296,10 @@ export function FreeToolRunner({ kind, title }: { kind: FreeRunnerKind; title: s
   if (kind === "sitemap-validator") return <SitemapValidator />;
   if (kind === "sitemap-urls") return <SitemapUrlExtractor />;
   if (kind === "robots-txt") return <RobotsTxtBuilder />;
+  if (kind === "ping-test") return <PingTestLab />;
+  if (kind === "speed-test") return <SpeedTestLab />;
+  if (kind === "whats-my-ip") return <MyIpLab />;
+  if (kind === "dns-lookup") return <DnsLookupLab />;
   if (kind === "multi-clock") return <MultiClockLab />;
   if (kind === "advanced-calculator") return <AdvancedCalculator />;
   if (kind === "build-your-tool") return <BuildYourOwnTool />;

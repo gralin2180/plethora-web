@@ -58,17 +58,15 @@ export function HomePage() {
             <Sparkles className="h-4 w-4" />
             Find it. Run it. One roof.
           </div>
-          <h1 className="text-4xl font-bold tracking-tight text-white sm:text-6xl">
-            Stop hunting 40 tabs
-            <span className="block bg-gradient-to-r from-violet-400 to-cyan-400 bg-clip-text text-transparent">
+          <h1 className="text-4xl font-semibold tracking-tight text-white sm:text-6xl sm:leading-[1.12]">
+            <span className="block pb-1">Stop hunting 40 tabs</span>
+            <span className="mt-1 block bg-gradient-to-r from-violet-300 via-violet-400 to-cyan-300 bg-clip-text pb-[0.18em] leading-[1.2] text-transparent sm:mt-2">
               We gather the tools for you
             </span>
           </h1>
-          <p className="mx-auto mt-6 max-w-2xl text-lg text-zinc-400">
-            Directories list apps. Converters live elsewhere. Prompts live somewhere else. Plethora is
-            the place that <strong className="font-medium text-zinc-200">gets you unstuck</strong> —
-            free utilities, Finder for the jungle, Local AI on your GPU. We don&apos;t cosplay Cursor
-            or Freebuff.
+          <p className="mx-auto mt-7 max-w-2xl text-lg leading-relaxed text-zinc-400">
+            Apps, converters, and prompts are scattered across the web. Plethora brings free utilities,
+            smart discovery, and local AI options into one clear place — so you finish work faster.
           </p>
           <div className="mt-10 flex flex-col items-center justify-center gap-4 sm:flex-row">
             <Link
@@ -80,7 +78,7 @@ export function HomePage() {
             </Link>
             <Link
               href="/learn"
-              className="flex items-center gap-2 rounded-xl border border-emerald-500/40 bg-emerald-500/10 px-8 py-3.5 font-medium text-emerald-100 hover:bg-emerald-500/20"
+              className="flex items-center gap-2 rounded-xl border border-white/15 bg-white/[0.03] px-8 py-3.5 font-medium text-zinc-100 hover:bg-white/[0.06]"
             >
               <BookOpen className="h-4 w-4" />
               Learn how to use AI
@@ -89,50 +87,49 @@ export function HomePage() {
         </div>
       </section>
 
-      {/* AI literacy drive */}
-      <section className="border-t border-white/10 bg-gradient-to-b from-emerald-500/10 to-transparent px-4 py-16 sm:px-6">
+      {/* Learn AI */}
+      <section className="border-t border-white/10 bg-gradient-to-b from-white/[0.03] to-transparent px-4 py-16 sm:px-6">
         <div className="mx-auto max-w-6xl">
           <div className="grid items-center gap-10 lg:grid-cols-2">
             <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.2em] text-emerald-400">
-                India · everyday leverage
+              <p className="text-[11px] font-medium uppercase tracking-[0.22em] text-zinc-500">
+                Guided learning
               </p>
-              <h2 className="mt-3 text-3xl font-bold text-white sm:text-4xl">
+              <h2 className="mt-3 text-3xl font-semibold tracking-tight text-white sm:text-4xl sm:leading-tight">
                 Learn how to use AI
               </h2>
               <p className="mt-4 text-base leading-relaxed text-zinc-400">
-                For the common man — students, shops, job seekers, parents, teachers — not just coders.
-                Plain language, free phone-first starts, safety for OTP/Aadhaar, and real copy-paste
-                recipes for study, WhatsApp business, and family life.
+                Clear, practical guidance for anyone — students, professionals, founders, and teams.
+                Short lessons, safe habits, and prompts you can reuse. No jargon required.
               </p>
               <div className="mt-6 flex flex-wrap gap-3">
                 <Link
                   href="/learn"
-                  className="inline-flex items-center gap-2 rounded-xl bg-emerald-600 px-5 py-2.5 text-sm font-medium text-white hover:bg-emerald-500"
+                  className="inline-flex items-center gap-2 rounded-xl bg-white px-5 py-2.5 text-sm font-medium text-zinc-900 hover:bg-zinc-200"
                 >
-                  Open the Learn drive <ArrowRight className="h-4 w-4" />
+                  Start learning <ArrowRight className="h-4 w-4" />
                 </Link>
                 <Link
                   href="/tools/life-planner"
                   className="inline-flex items-center gap-2 rounded-xl border border-white/15 px-5 py-2.5 text-sm text-zinc-300 hover:bg-white/5"
                 >
-                  Daily life planner
+                  Daily planner
                 </Link>
               </div>
             </div>
             <div className="grid gap-3 sm:grid-cols-2">
               {[
-                { t: "4-line prompt formula", d: "Who + what + details + style" },
-                { t: "Role tracks", d: "Student · job · shop · home" },
-                { t: "Family safety checklist", d: "Banking & scam sense" },
+                { t: "Four-line prompts", d: "Role, goal, details, format" },
+                { t: "Goal-based paths", d: "Study · career · business · home" },
+                { t: "Safety basics", d: "Protect accounts & private data" },
                 { t: "Practice tools", d: "Planner · calendar · chat" },
               ].map((c) => (
                 <div
                   key={c.t}
-                  className="rounded-2xl border border-emerald-500/20 bg-black/40 p-4"
+                  className="rounded-2xl border border-white/10 bg-black/30 p-4"
                 >
-                  <p className="font-medium text-white">{c.t}</p>
-                  <p className="mt-1 text-sm text-zinc-500">{c.d}</p>
+                  <p className="font-medium leading-snug text-white">{c.t}</p>
+                  <p className="mt-1.5 text-sm leading-relaxed text-zinc-500">{c.d}</p>
                 </div>
               ))}
             </div>
