@@ -39,6 +39,10 @@ export const ABOUT_FAQS: { q: string; a: string }[] = [
     q: "Can I connect Slack, Canva, Figma, Notion…?",
     a: "Yes — open /connect. Mark apps connected, optionally store personal tokens only in your browser, and follow MCP / Zapier bridges. Full multi-tenant OAuth for every brand is an enterprise-style build (you or we register each developer app).",
   },
+  {
+    q: "Devices & workspaces?",
+    a: "Accounts can attach workspaces and limited browser seats (about 3 free, more on paid). Manage at /workspaces after the SQL schema is applied.",
+  },
 ];
 
 /** Compact site knowledge block for chat system prompt */
