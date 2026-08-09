@@ -149,42 +149,144 @@ function whyForYou(tool: AiTool, task: string): string {
 
 function buildSkillPath(task: string): AgentPathStep[] {
   const t = normalize(task);
+  const internal = rankInternalTools(task).slice(0, 5);
+  const externalTop = rankAiTools(task, detectCategories(task))
+    .map((r) => r.tool)
+    .filter((x) => x.platform === "web" || x.platform === "ide")
+    .slice(0, 5);
+
+  const nicheBullets: string[] = [
+    ...internal.map(
+      (tool) =>
+        `In Plethora: ${tool.name} → ${
+          tool.slug === "prompt-assistant" || tool.slug === "ai-finder"
+            ? `/${tool.slug}`
+            : tool.slug === "chat"
+              ? "/chat"
+              : `/tools/${tool.slug}`
+        } — ${tool.actionHint || tool.description.slice(0, 80)}`
+    ),
+    ...externalTop.map(
+      (tool) =>
+        `External (optional original): ${tool.name}${tool.url ? ` — ${tool.url}` : ""} — ${tool.howToUse.slice(0, 100)}`
+    ),
+  ].slice(0, 6);
+
+  if (!nicheBullets.length) {
+    nicheBullets.push(
+      "In Plethora: Prompt Assistant → /prompt-assistant — turn this goal into a model-ready prompt",
+      "In Plethora: AI Finder already matched categories above — scroll to tool cards"
+    );
+  }
+
+  const tryFirst = internal[0];
+  const tryHref = tryFirst
+    ? tryFirst.slug === "prompt-assistant" || tryFirst.slug === "ai-finder"
+      ? `/${tryFirst.slug}`
+      : tryFirst.slug === "chat"
+        ? "/chat"
+        : `/tools/${tryFirst.slug}`
+    : "/prompt-assistant";
+
   const steps: AgentPathStep[] = [
     {
       order: 1,
-      title: "Get an AI agent (2 min)",
+      title: "Pick where the AI runs (exactly 1)",
       detail:
-        "If you have none: open Claude or ChatGPT free in the browser. No install required to start.",
-      href: "https://claude.ai",
+        "You need one model chat open. Prefer in-app first so you stay under one roof; use an external model only if you want their specific strengths.",
+      exactBullets: [
+        "Best first: Plethora Chat (/chat) — after free sign-in or BYOK at /settings/ai-keys connects OpenRouter → 100+ models (Claude, Gemini, DeepSeek, Llama, many Perplexity-routed free models when listed on OpenRouter).",
+        "Writing / long reasoning: Claude at claude.ai (paste the Ready-to-paste prompt from step 2).",
+        "Speed + web-style answers: pick a Perplexity or search-grounded model via OpenRouter BYOK, or use perplexity.ai in another tab with the same prompt.",
+        "Code projects: Cursor Agent at cursor.com with the build prompt.",
+      ],
+      tryHereHref: "/chat",
+      tryHereLabel: "Try chat here now",
+      actions: [
+        { label: "Plethora Chat", href: "/chat" },
+        { label: "AI keys (multi-model BYOK)", href: "/settings/ai-keys" },
+        { label: "Claude.ai", href: "https://claude.ai", external: true },
+        { label: "Perplexity", href: "https://www.perplexity.ai", external: true },
+      ],
     },
     {
       order: 2,
-      title: "Paste the ready-made expert prompt",
+      title: "Use the expert prompt (do this next)",
       detail:
-        "Scroll to “Ready-to-paste prompt” below. Copy → paste into Claude/ChatGPT. Fill any [BRACKETS] with your niche.",
-      href: "/prompt-assistant",
+        "Scroll to “Ready-to-paste prompt” on this page, click Copy, paste into the chat you opened in step 1. Replace every [BRACKET] with your niche. Do not invent steps — follow the prompt structure (role → goal → constraints → output format).",
+      exactBullets: [
+        "Model tip — Claude: keep long context, ask for section headers.",
+        "Model tip — Gemini/GPT family: keep instructions at the top; lists beat walls of text.",
+        "Model tip — local Llama/Qwen: shorter system rules, explicit “format as markdown”.",
+        "Or open Prompt Assistant for clarifying questions first if your goal is messy.",
+      ],
+      tryHereHref: "/prompt-assistant",
+      tryHereLabel: "Open Prompt Engineer here",
+      href: "#ready-prompt",
+      actions: [
+        { label: "Jump to ready prompt", href: "#ready-prompt" },
+        { label: "Prompt Assistant", href: "/prompt-assistant" },
+        { label: "Multi-model router", href: "/tools/multi-model-router" },
+      ],
     },
     {
       order: 3,
-      title: "Use the niche tools stack",
+      title: "Run these exact tools for your mission",
       detail:
-        "Open the linked apps (marketplaces, editors, research). Each card tells you exactly what to do next.",
+        "Not a vague “stack.” Open each item below. Prefer “Try in Plethora” first; use the external original only if you want that brand’s UI or credits.",
+      exactBullets: nicheBullets,
+      tryHereHref: tryHref,
+      tryHereLabel: tryFirst
+        ? `Try ${tryFirst.name} here now`
+        : "Try Prompt Assistant now",
+      actions: [
+        ...internal.slice(0, 3).map((tool) => ({
+          label: tool.name,
+          href:
+            tool.slug === "prompt-assistant" || tool.slug === "ai-finder"
+              ? `/${tool.slug}`
+              : tool.slug === "chat"
+                ? "/chat"
+                : `/tools/${tool.slug}`,
+        })),
+        { label: "Browse all tools", href: "/tools" },
+      ],
     },
     {
       order: 4,
-      title: "Optional: give your AI hands (MCP)",
+      title: "Optional: Plethora MCP (agent can call tools)",
       detail:
-        "Install Claude Desktop (easiest) or Cursor, then add MCP servers from MCP Hub so the agent can email, browse, and file for you.",
-      href: "/mcp",
+        "Install Plethora MCP in Claude Desktop or Cursor so the agent can search our catalog, captions, ping, trading math, etc. without you tab-hopping.",
+      exactBullets: [
+        "Open /mcp → copy Plethora MCP JSON into Claude Desktop or Cursor.",
+        "Or build a custom MCP with the builder at the top of MCP Hub.",
+      ],
+      tryHereHref: "/mcp#plethora-mcp",
+      tryHereLabel: "Install Plethora MCP",
+      href: "/mcp#plethora-mcp",
+      actions: [
+        { label: "Plethora MCP setup", href: "/mcp#plethora-mcp" },
+        { label: "Create own MCP", href: "/mcp#create-mcp" },
+      ],
     },
   ];
 
-  if (t.match(/code|app|website|saas/)) {
+  if (t.match(/code|app|website|saas|debug/)) {
     steps.splice(2, 0, {
-      order: 2,
-      title: "Install Cursor for build work",
-      detail: "Download Cursor → open a folder → Agent chat with the build prompt. Faster than chat-only for code.",
-      href: "https://cursor.com",
+      order: 0,
+      title: "For code: open Cursor on your folder",
+      detail:
+        "Download Cursor → File → Open folder with your project → Agent chat → paste the Ready-to-paste prompt. Use Plethora /tools/code-review-agent or cursor-rules inside the site for rules files.",
+      exactBullets: [
+        "cursor.com → install → open project folder",
+        "In Plethora: /tools/cursor-rules and /tools/code-review-agent",
+      ],
+      tryHereHref: "/tools/cursor-rules",
+      tryHereLabel: "Generate Cursor rules here",
+      actions: [
+        { label: "Cursor", href: "https://cursor.com", external: true },
+        { label: "Cursor rules tool", href: "/tools/cursor-rules" },
+      ],
     });
   }
 
@@ -279,7 +381,7 @@ export function recommendAiForTask(
 
   const dirs = directoriesForBudget(budget);
   const beginnerTip =
-    "Path: free web agent (Claude/ChatGPT) → paste prompt → niche apps → directories for more options → optional Claude Desktop + MCP. Local GPU: Settings → backends.";
+    "Exact path: (1) Pick chat: Plethora Chat or Claude/Perplexity tab (2) Copy Ready-to-paste prompt (3) Open the listed Plethora tools one by one (4) Optional Plethora MCP. Multi-model: OpenRouter BYOK reaches dozens of LLMs under one key — we route prompts, not host every vendor’s proprietary closed API without their terms.";
 
   return {
     taskSummary: task,

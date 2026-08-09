@@ -53,13 +53,15 @@ import {
   WordCounterLab,
 } from "@/components/DomainToolLabs";
 import {
-  BgRemoverLab,
   ExcelHubLab,
   PdfToDocLab,
   PdfToImagesLab,
   SlidesDeckLab,
   VideoConverterLab,
 } from "@/components/InBrowserToolLabs";
+import { BgRemoverLab } from "@/components/BgRemoverLab";
+import { CustomAssistantLab } from "@/components/CustomAssistantLab";
+import { FileExportDialog, useFileExport } from "@/components/FileExportDialog";
 
 export type FreeRunnerKind =
   | "image-to-pdf"
@@ -107,12 +109,23 @@ export type FreeRunnerKind =
   | "case-converter"
   | "json-formatter"
   | "uuid-generator"
-  | "percentage-calc";
+  | "percentage-calc"
+  | "custom-assistant";
 
 export function FreeToolRunner({ kind, title }: { kind: FreeRunnerKind; title: string }) {
   const [status, setStatus] = useState("");
   const [busy, setBusy] = useState(false);
   const [filesLabel, setFilesLabel] = useState("");
+  const { pending: exportFile, offerFile, close: closeExport } = useFileExport();
+
+  function offerDataUrl(dataUrl: string, name: string) {
+    fetch(dataUrl)
+      .then((r) => r.blob())
+      .then((blob) => offerFile(blob, name))
+      .catch(() => {
+        downloadDataUrl(dataUrl, name);
+      });
+  }
 
   async function track() {
     try {
@@ -148,8 +161,9 @@ export function FreeToolRunner({ kind, title }: { kind: FreeRunnerKind; title: s
         first = false;
         doc.addImage(dataUrl, "JPEG", (pageW - w) / 2, (pageH - h) / 2, w, h);
       }
-      doc.save("plethora-images.pdf");
-      setStatus("PDF downloaded · stayed in your browser");
+      const pdfBlob = doc.output("blob");
+      offerFile(pdfBlob, "plethora-images.pdf");
+      setStatus("PDF ready — preview / rename / download when you want");
       await track();
     } catch {
       setStatus("Could not convert — try smaller PNG/JPG files.");
@@ -176,8 +190,8 @@ export function FreeToolRunner({ kind, title }: { kind: FreeRunnerKind; title: s
       ctx.drawImage(img, 0, 0);
       const out = canvas.toDataURL(format, 0.92);
       const ext = format.split("/")[1];
-      downloadDataUrl(out, `converted.${ext === "jpeg" ? "jpg" : ext}`);
-      setStatus(`Saved as ${ext.toUpperCase()}`);
+      offerDataUrl(out, `converted.${ext === "jpeg" ? "jpg" : ext}`);
+      setStatus(`Ready as ${ext.toUpperCase()} — choose view / download`);
       await track();
     } catch {
       setStatus("Conversion failed.");
@@ -199,8 +213,8 @@ export function FreeToolRunner({ kind, title }: { kind: FreeRunnerKind; title: s
         pages.forEach((p) => merged.addPage(p));
       }
       const out = await merged.save();
-      downloadBlob(new Blob([new Uint8Array(out)], { type: "application/pdf" }), "merged.pdf");
-      setStatus("Merged PDF ready · local only");
+      offerFile(new Blob([new Uint8Array(out)], { type: "application/pdf" }), "merged.pdf");
+      setStatus("Merged PDF ready — preview / download");
       await track();
     } catch {
       setStatus("Merge failed (encrypted PDFs may not work).");
@@ -238,8 +252,8 @@ export function FreeToolRunner({ kind, title }: { kind: FreeRunnerKind; title: s
         }
       }
       const out = await work.save();
-      downloadBlob(new Blob([new Uint8Array(out)], { type: "application/pdf" }), "edited.pdf");
-      setStatus("Edited PDF downloaded");
+      offerFile(new Blob([new Uint8Array(out)], { type: "application/pdf" }), "edited.pdf");
+      setStatus("Edited PDF ready — preview / rename / download");
       await track();
     } catch {
       setStatus("Could not edit this PDF.");
@@ -249,7 +263,7 @@ export function FreeToolRunner({ kind, title }: { kind: FreeRunnerKind; title: s
 
   if (kind === "image-to-pdf") {
     return (
-      <ToolShell title={title} status={status} busy={busy} filesLabel={filesLabel}>
+      <ToolShell title={title} status={status} busy={busy} filesLabel={filesLabel} exportPending={exportFile} onExportClose={closeExport}>
         <DropZone
           accept="image/*"
           multiple
@@ -276,7 +290,7 @@ export function FreeToolRunner({ kind, title }: { kind: FreeRunnerKind; title: s
 
   if (kind === "pdf-merge") {
     return (
-      <ToolShell title={title} status={status} busy={busy} filesLabel={filesLabel}>
+      <ToolShell title={title} status={status} busy={busy} filesLabel={filesLabel} exportPending={exportFile} onExportClose={closeExport}>
         <DropZone
           accept="application/pdf"
           multiple
@@ -362,6 +376,7 @@ export function FreeToolRunner({ kind, title }: { kind: FreeRunnerKind; title: s
   if (kind === "advanced-calculator") return <AdvancedCalculator />;
   if (kind === "build-your-tool") return <BuildYourOwnTool />;
   if (kind === "request-tool") return <ToolRequestForm />;
+  if (kind === "custom-assistant") return <CustomAssistantLab />;
   if (kind === "life-planner") return <DailyLifePlanner />;
   if (kind === "calendar-generator") return <CalendarGenerator />;
 
@@ -1081,15 +1096,22 @@ function ToolShell({
   status,
   busy,
   filesLabel,
+  exportPending = null,
+  onExportClose,
 }: {
   title: string;
   children: React.ReactNode;
   status: string;
   busy: boolean;
   filesLabel: string;
+  exportPending?: import("@/components/FileExportDialog").PendingFile | null;
+  onExportClose?: () => void;
 }) {
   return (
     <div>
+      {exportPending != null && onExportClose ? (
+        <FileExportDialog pending={exportPending} onClose={onExportClose} />
+      ) : null}
       <h2 className="sr-only">{title}</h2>
       {filesLabel && (
         <p className="mb-2 text-xs text-zinc-500">

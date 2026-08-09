@@ -8,6 +8,7 @@ import { recommendAiForTask } from "./recommender";
 import { buildRefinedPrompt } from "./prompt-engine";
 import { loadPersonalContext, contextToPromptBlock } from "./personal-context";
 import { PLATFORM_TOOLS, searchTools } from "./tools-registry";
+import { ABOUT_FAQS, siteKnowledgeForAssistant } from "./about-content";
 import {
   getForYouTools,
   getPopularTools,
@@ -72,7 +73,7 @@ export function classifyChatIntent(text: string): ChatIntent {
   }
 
   if (
-    /\b(what is plethora|who are you|what do you do|personal context|privacy|pricing|hardcore|mcp hub|install hub|prompt assistant|middleman|under one roof)\b/.test(
+    /\b(what is plethora|who are you|what do you do|personal context|privacy|pricing|hardcore|mcp hub|install hub|prompt assistant|middleman|under one roof|how (do|does|to)|where (is|do)|sign in|login|api key|openrouter|workspace|device|about|faq|free limit|upgrade)\b/i.test(
       t
     )
   ) {
@@ -163,20 +164,52 @@ Talk about anything. Or **tour** for highlights. What’s up?`;
 }
 
 function appHelp(text: string): string {
+  const t = text.toLowerCase();
+
+  // FAQ keyword hits
+  for (const item of ABOUT_FAQS) {
+    const words = item.q
+      .toLowerCase()
+      .replace(/[?]/g, "")
+      .split(/\s+/)
+      .filter((w) => w.length > 3);
+    const hits = words.filter((w) => t.includes(w)).length;
+    if (hits >= 2 || t.includes(item.q.toLowerCase().slice(0, 20))) {
+      return `**${item.q}**\n\n${item.a}\n\nMore: /about · ask another product question anytime.`;
+    }
+  }
+
   if (/personal|privacy|leak|data|self.?learn/i.test(text)) {
     return `**Personal context** + **self-learn** stay on *your* device (localStorage). We track what tools *you* open to rank Recent / For you — not upload that to train a public model.
 
-Servers only see what you type into chat when a free LLM key is configured. Details: /settings/personal.`;
+Servers only see what you type into chat when a free LLM key is configured. Details: /settings/personal · /about.`;
   }
-  if (/pric|pro|hardcore|paid/i.test(text)) {
-    return `**Free core:** chat, utilities, templates, install/MCP maps, tool discovery. **Pro/Hardcore:** optional polish & power stacks. We stay the middleman either way — /pricing · /hardcore.`;
+  if (/pric|pro|hardcore|paid|subscription|free plan|upgrade/i.test(text)) {
+    return `**Free core:** chat (fair daily limit when signed in), utilities, templates, install/MCP maps, tool discovery. **Pro/Hardcore:** higher limits, seats, power stacks. Details: /pricing · /hardcore · /about.`;
   }
-  if (/who are you|what is plethora|what do you do|middleman|under one roof/i.test(text)) {
-    return `**Plethora** = the middleman. You shouldn’t need 30 tabs (TAAFT, Futurepedia, converter sites, prompt sites, MCP docs…).
+  if (/sign.?in|login|account|auth|email/i.test(text)) {
+    return `**Accounts:** /auth/signup or /auth/login with email. Needed for shared cloud AI fair-use and for workspaces/devices. Browser-only tools often work without an account. BYOK: /settings/ai-keys.`;
+  }
+  if (/api.?key|openrouter|byok|rate.?limit|quota/i.test(text)) {
+    return `**Keys:** Platform free chat uses our OpenRouter (or similar) key with per-user daily caps after login. Heavy use → paste **your** OpenRouter key at /settings/ai-keys (stored in this browser only). We cannot auto-mint free vendor keys per user.`;
+  }
+  if (/mcp|claude desktop|cursor/i.test(text)) {
+    return `**Plethora MCP:** Open /mcp — Create your own MCP at the top, then install Plethora MCP config into Claude Desktop or Cursor. Agents can search tools, captions, DNS, etc.`;
+  }
+  if (/workspace|device|seat/i.test(text)) {
+    return `**Workspaces & devices:** After sign-in, /workspaces. Free ~ few browser seats + limited workspaces; paid raises limits. SQL tables must exist in your Supabase project.`;
+  }
+  if (/who are you|what is plethora|what do you do|middleman|under one roof|about/i.test(text)) {
+    return `**Plethora** started as prompt engineering — now the middleman roof for prompts, free tools that run, Finder, Install/MCP, local AI, chat.
 
-We pull it under one roof: runnable free tools, Finder, Prompt Assistant, Install/MCP, chat. We send you to the best spot — inside here or a strong external option — honestly.`;
+Map: **/tools** · **/prompt-assistant** · **/ai-finder** · **/install** · **/mcp** · **/chat** · **/about**. Say **tour** for highlights.`;
   }
-  return `Middleman map: **/tools** (Popular · Recent · For you) · **/ai-finder** · **/prompt-assistant** · **/install** · **/mcp** · **/chat**. Say **tour** for highlights.`;
+  if (/how (do|to)|where (is|do)|what (is|does)|can i|help with/i.test(text) && t.length < 120) {
+    return `I answer product questions too. Try: “how do free limits work?”, “how install Plethora MCP?”, “where is prompt assistant?”
+
+Quick map: **/tools** · **/prompt-assistant** · **/ai-finder** · **/mcp** · **/about** (FAQ) · **/settings/ai-keys**.`;
+  }
+  return `Middleman map: **/tools** · **/ai-finder** · **/prompt-assistant** · **/install** · **/mcp** · **/chat** · **/about**. Ask anything about how Plethora works — accounts, MCP, pricing, tools.`;
 }
 
 function convertToolsReply(): string {
@@ -265,7 +298,8 @@ One thing you want next?`;
 
 export async function generateAssistantReply(
   userText: string,
-  history: ChatMessage[] = []
+  history: ChatMessage[] = [],
+  opts?: { adultConsent?: boolean }
 ): Promise<string> {
   const text = userText.trim();
   if (!text) return "I’m here. Drop a thought, a task, or pure chaos.";
@@ -278,6 +312,11 @@ export async function generateAssistantReply(
     }
   }
 
+  if (opts?.adultConsent || /\b(fuck me|sext|blowjob|cock|roleplay.*sex|nsfw)\b/i.test(text)) {
+    const llm = await tryLlm(text, history, { adultConsent: true });
+    if (llm) return llm;
+  }
+
   const intent = classifyChatIntent(text);
 
   if (intent === "tour") return websiteTour();
@@ -286,7 +325,7 @@ export async function generateAssistantReply(
     return banterReply(text);
   }
   if (intent === "mood") {
-    const llm = await tryLlm(text, history);
+    const llm = await tryLlm(text, history, opts);
     if (llm) return llm;
     return moodReply(text);
   }
@@ -305,7 +344,7 @@ export async function generateAssistantReply(
     return findToolsReply(text);
   }
 
-  const llm = await tryLlm(text, history);
+  const llm = await tryLlm(text, history, opts);
   if (llm) return llm;
   return smartOfflineGeneral(text);
 }
@@ -328,8 +367,18 @@ function learnerBundle(): string {
   return parts.join("\n");
 }
 
-async function tryLlm(text: string, history: ChatMessage[]): Promise<string | null> {
+async function tryLlm(
+  text: string,
+  history: ChatMessage[],
+  opts?: { adultConsent?: boolean }
+): Promise<string | null> {
   const learner = learnerBundle();
+  let byokKey: string | undefined;
+  try {
+    byokKey = localStorage.getItem("plethora.byok.openrouter") || undefined;
+  } catch {
+    /* ignore */
+  }
   try {
     const res = await fetch("/api/chat", {
       method: "POST",
@@ -337,16 +386,22 @@ async function tryLlm(text: string, history: ChatMessage[]): Promise<string | nu
       body: JSON.stringify({
         message: text,
         learnerContext: learner,
+        adultConsent: opts?.adultConsent,
+        byokKey,
         history: history.slice(-14).map((m) => ({
           role: m.role === "system" ? "assistant" : m.role,
           content: m.content,
         })),
       }),
     });
-    if (res.ok) {
-      const data = (await res.json()) as { reply?: string; ok?: boolean; source?: string };
-      if (data.reply?.trim()) return data.reply.trim();
-    }
+    const data = (await res.json()) as {
+      reply?: string;
+      ok?: boolean;
+      source?: string;
+      needsLogin?: boolean;
+      code?: string;
+    };
+    if (data.reply?.trim()) return data.reply.trim();
   } catch {
     /* fall through */
   }
@@ -358,7 +413,7 @@ async function tryLlm(text: string, history: ChatMessage[]): Promise<string | nu
         role: m.role === "system" ? "assistant" : m.role,
         content: m.content,
       })),
-      learner
+      { learnerContext: learner, adultMode: opts?.adultConsent }
     );
     if (r.ok && r.reply) return r.reply;
   }
@@ -366,14 +421,34 @@ async function tryLlm(text: string, history: ChatMessage[]): Promise<string | nu
   return null;
 }
 
+export type ServerChatOpts = {
+  adultMode?: boolean;
+  byok?: { apiKey: string; baseUrl?: string; model?: string };
+  customSystem?: string;
+};
+
 /** Server-side entry used by /api/chat */
 export async function generateAssistantReplyServer(
   userText: string,
   history: { role: "user" | "assistant"; content: string }[] = [],
-  learnerContext?: string
+  learnerContext?: string,
+  opts?: ServerChatOpts
 ): Promise<{ reply: string; source: string }> {
   const text = userText.trim();
   const intent = classifyChatIntent(text);
+  const adultMode = Boolean(opts?.adultMode);
+
+  // Adult / sexual intent always goes to LLM (after consent) — not banter shortcuts
+  if (adultMode || /\b(fuck me|sext|blowjob|cock|roleplay.*sex|nsfw)\b/i.test(text)) {
+    const llm = await freeChatCompletion(text, history, {
+      learnerContext,
+      adultMode: true,
+      byok: opts?.byok,
+      customSystem: opts?.customSystem,
+    });
+    if (llm.ok) return { reply: llm.reply, source: llm.provider };
+    return { reply: smartOfflineGeneral(text), source: "offline" };
+  }
 
   if (intent === "tour") return { reply: websiteTour(), source: "tour" };
   if (intent === "greeting") {
@@ -409,13 +484,20 @@ export async function generateAssistantReplyServer(
     };
   }
 
+  const chatOpts = {
+    learnerContext,
+    adultMode,
+    byok: opts?.byok,
+    customSystem: opts?.customSystem,
+  };
+
   if (intent === "mood") {
-    const llm = await freeChatCompletion(text, history, learnerContext);
+    const llm = await freeChatCompletion(text, history, chatOpts);
     if (llm.ok) return { reply: llm.reply, source: llm.provider };
     return { reply: moodReply(text), source: "offline-mood" };
   }
 
-  const llm = await freeChatCompletion(text, history, learnerContext);
+  const llm = await freeChatCompletion(text, history, chatOpts);
   if (llm.ok) return { reply: llm.reply, source: llm.provider };
 
   // Fall back if free models flinch on normal talk

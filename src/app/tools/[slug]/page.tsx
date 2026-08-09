@@ -7,6 +7,9 @@ import { getToolBySlug } from "@/lib/tools-registry";
 import { FreeToolRunner, type FreeRunnerKind } from "@/components/FreeToolRunner";
 import { PromptToolStudio } from "@/components/PromptToolStudio";
 import { ToolVisitTracker } from "@/components/ToolVisitTracker";
+import { ToolHowItWorks } from "@/components/ToolHowItWorks";
+import { NodeWorkflowCanvas } from "@/components/NodeWorkflowCanvas";
+import { NODE_GRAPH_SLUGS } from "@/lib/tool-how-it-works";
 
 type Props = { params: Promise<{ slug: string }> };
 
@@ -57,6 +60,7 @@ const FREE_RUNNERS = new Set<string>([
   "json-formatter",
   "uuid-generator",
   "percentage-calc",
+  "custom-assistant",
 ]);
 
 const APP_REDIRECTS: Record<string, string> = {
@@ -176,6 +180,12 @@ export default async function ToolPage({ params }: Props) {
               )}
             </div>
           </div>
+
+          {NODE_GRAPH_SLUGS.has(slug) && (
+            <NodeWorkflowCanvas slug={slug} toolName={tool.name} />
+          )}
+
+          <ToolHowItWorks slug={slug} name={tool.name} category={tool.category} />
         </div>
       </div>
     </SiteShell>

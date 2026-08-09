@@ -19,6 +19,7 @@ const PLANS = [
     features: [
       "Browse all tools & AI catalog",
       "Limited daily runs per tool",
+      "2 workspaces · up to 3 devices",
       "Prompt Assistant (10/day)",
       "AI Tool Finder (20/day)",
       "Local AI backend guides",
@@ -35,6 +36,7 @@ const PLANS = [
     desc: "Creators, marketers, power users",
     features: [
       "Unlimited tool runs",
+      "20 workspaces · 8 devices",
       "Advanced Prompt Assistant",
       "Saved prompt templates",
       "AI Workflow Builder",
@@ -52,7 +54,8 @@ const PLANS = [
     desc: "Agencies and small teams",
     features: [
       "Everything in Pro",
-      "5 team seats",
+      "5 team seats · 25 devices",
+      "100 workspaces",
       "Shared workflows & templates",
       "Usage analytics",
       "Custom MCP configs",

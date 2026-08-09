@@ -26,19 +26,20 @@ type NavItem = {
 /** Primary destinations — keep scannable */
 const PRIMARY: NavItem[] = [
   { href: "/tools", label: "Tools", tour: "nav-tools" },
-  { href: "/learn", label: "Learn", tour: "nav-learn" },
+  { href: "/prompt-assistant", label: "Prompts", tour: "nav-prompt" },
   { href: "/chat", label: "Chat", tour: "nav-chat" },
   { href: "/ai-finder", label: "Finder", tour: "nav-ai-finder" },
   { href: "/mcp", label: "MCP", tour: "nav-mcp" },
+  { href: "/about", label: "About", tour: "nav-about" },
   { href: "/pricing", label: "Pricing", tour: "nav-pricing" },
 ];
 
 const MORE: NavItem[] = [
   {
-    href: "/prompt-assistant",
-    label: "Prompt Assistant",
-    tour: "nav-prompt",
-    hint: "Messy idea → sharp prompt",
+    href: "/learn",
+    label: "Learn AI",
+    tour: "nav-learn",
+    hint: "Practical lessons for any level",
   },
   {
     href: "/install",
@@ -315,6 +316,11 @@ export function Footer() {
           <div>
             <p className="text-sm font-medium text-zinc-300">Explore</p>
             <ul className="mt-3 space-y-2 text-sm text-zinc-500">
+              <li>
+                <Link href="/about" className="hover:text-white">
+                  About & FAQ
+                </Link>
+              </li>
               <li>
                 <Link href="/learn" className="hover:text-white">
                   Learn how to use AI

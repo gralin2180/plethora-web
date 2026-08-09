@@ -2,6 +2,7 @@ import type { PlatformTool } from "./types";
 import { FREE_UTILITY_TOOLS } from "./free-utilities";
 import { AI_TOOL_TOOLS } from "./ai-tools";
 import { DOMAIN_EXTRA_TOOLS } from "./domain-tools";
+import { INDUSTRY_EXPANSION_TOOLS } from "./industry-tools";
 
 function t(partial: PlatformTool): PlatformTool {
   return { runner: partial.runner ?? "prompt-studio", ...partial };
@@ -671,6 +672,7 @@ export const PLATFORM_TOOLS: PlatformTool[] = [
     bestModels: ["Claude Sonnet", "GPT-4o"],
     runner: "prompt-studio",
   }),
+  ...INDUSTRY_EXPANSION_TOOLS.map((x) => t(x)),
 ];
 
 export const TOOL_CATEGORIES = [

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import Link from "next/link";
 import {
   classifyChatIntent,
   generateAssistantReply,
@@ -9,8 +10,19 @@ import {
 } from "@/lib/assistant-brain";
 import { appendPattern, loadPersonalContext } from "@/lib/personal-context";
 import { PersonalContextPanel } from "@/components/PersonalContextPanel";
+import { ContentWarningDialog } from "@/components/ContentWarningDialog";
+import { assessContentSafety, type SafetyAssessment } from "@/lib/content-safety";
+import { createAssistantDraft, upsertAssistant } from "@/lib/custom-assistants";
 import { startProductTour, TOUR_CHAT_OPENING } from "@/lib/product-tour";
-import { Loader2, Send, Sparkles, Compass, Wrench, MessageCircle } from "lucide-react";
+import {
+  Loader2,
+  Send,
+  Sparkles,
+  Compass,
+  Wrench,
+  MessageCircle,
+  Bot,
+} from "lucide-react";
 
 const HISTORY_KEY = "plethora.chat.history.v1";
 
@@ -24,15 +36,34 @@ const QUICK = [
 export function ChatMode({
   embedded = false,
   initialPrompt,
+  onClearHistory,
 }: {
   embedded?: boolean;
   initialPrompt?: string;
+  /** Called when user clears — parent can sync (floating header) */
+  onClearHistory?: () => void;
 }) {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
   const [llmReady, setLlmReady] = useState<boolean | null>(null);
+  const [signedIn, setSignedIn] = useState<boolean | null>(null);
+  const [pending, setPending] = useState<{
+    text: string;
+    assessment: SafetyAssessment;
+  } | null>(null);
+  const [lastUserText, setLastUserText] = useState("");
   const bottomRef = useRef<HTMLDivElement>(null);
+
+  function clearChat() {
+    setMessages([newMessage("assistant", "Clean slate. What’s on your mind?")]);
+    try {
+      localStorage.removeItem(HISTORY_KEY);
+    } catch {
+      /* ignore */
+    }
+    onClearHistory?.();
+  }
 
   useEffect(() => {
     try {
@@ -51,10 +82,14 @@ export function ChatMode({
     }
     void fetch("/api/chat")
       .then((r) => r.json())
-      .then((d: { openrouterConfigured?: boolean }) =>
-        setLlmReady(Boolean(d.openrouterConfigured))
-      )
-      .catch(() => setLlmReady(false));
+      .then((d: { openrouterConfigured?: boolean; signedIn?: boolean }) => {
+        setLlmReady(Boolean(d.openrouterConfigured));
+        setSignedIn(Boolean(d.signedIn));
+      })
+      .catch(() => {
+        setLlmReady(false);
+        setSignedIn(false);
+      });
   }, []);
 
   useEffect(() => {
@@ -66,23 +101,23 @@ export function ChatMode({
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
-  async function sendText(textRaw: string) {
-    const text = textRaw.trim();
+  async function runSend(text: string, adultConsent: boolean) {
     if (!text || loading) return;
     setInput("");
+    setLastUserText(text);
     const userMsg = newMessage("user", text);
     const next = [...messages, userMsg];
     setMessages(next);
     setLoading(true);
     try {
-      if (classifyChatIntent(text) === "tour") {
+      if (classifyChatIntent(text) === "tour" && !adultConsent) {
         startProductTour();
         setMessages((m) => [...m, newMessage("assistant", TOUR_CHAT_OPENING)]);
         setLoading(false);
         return;
       }
 
-      const reply = await generateAssistantReply(text, next);
+      const reply = await generateAssistantReply(text, next, { adultConsent });
       setMessages((m) => [...m, newMessage("assistant", reply)]);
       if (loadPersonalContext().enabled && text.length > 20) {
         appendPattern(`Talked about: ${text.slice(0, 120)}`);
@@ -96,8 +131,56 @@ export function ChatMode({
     setLoading(false);
   }
 
+  async function sendText(textRaw: string) {
+    const text = textRaw.trim();
+    if (!text || loading) return;
+
+    const safety = assessContentSafety(text);
+    if (safety.hardBlock) {
+      setPending({ text, assessment: safety });
+      return;
+    }
+    if (safety.needsWarning) {
+      setPending({ text, assessment: safety });
+      return;
+    }
+    await runSend(text, false);
+  }
+
+  function saveAsAssistant() {
+    const draft = createAssistantDraft(
+      lastUserText ||
+        messages
+          .filter((m) => m.role === "user")
+          .slice(-1)[0]
+          ?.content
+    );
+    upsertAssistant(draft);
+    setMessages((m) => [
+      ...m,
+      newMessage(
+        "assistant",
+        `Saved **${draft.name}** on this device (1 free included; upgrade for more). Open **/tools/custom-assistant** to rename, train with questions, or **export as a local HTML app**.`
+      ),
+    ]);
+  }
+
   return (
     <div className={embedded ? "flex h-full flex-col" : "mx-auto max-w-3xl"}>
+      {pending && (
+        <ContentWarningDialog
+          assessment={pending.assessment}
+          onCancel={() => setPending(null)}
+          onContinue={() => {
+            const t = pending.text;
+            setPending(null);
+            if (!pending.assessment.hardBlock) {
+              void runSend(t, true);
+            }
+          }}
+        />
+      )}
+
       {!embedded && (
         <div className="mb-6 overflow-hidden rounded-3xl border border-white/10 bg-gradient-to-br from-violet-600/20 via-[#12121c] to-[#0a0a12] p-6 sm:p-8">
           <div className="flex items-start gap-3">
@@ -107,7 +190,8 @@ export function ChatMode({
             <div>
               <h1 className="text-2xl font-bold tracking-tight text-white sm:text-3xl">Chat</h1>
               <p className="mt-1 text-sm text-zinc-400">
-                Sharp middleman — not a dumb FAQ bot. Learns what you use (on this device only).
+                Sharp middleman — not a dumb FAQ bot. Cloud AI needs sign-in (fair use) or your own
+                key.
               </p>
               {llmReady !== null && (
                 <span
@@ -117,7 +201,8 @@ export function ChatMode({
                       : "bg-amber-500/15 text-amber-300"
                   }`}
                 >
-                  {llmReady ? "Live model on" : "Offline replies (add OpenRouter key)"}
+                  {llmReady ? "Platform AI configured" : "Add platform key or BYOK"}
+                  {signedIn === false && " · sign in for free tier"}
                 </span>
               )}
             </div>
@@ -132,14 +217,17 @@ export function ChatMode({
             </button>
             <button
               type="button"
-              onClick={() => {
-                setMessages([newMessage("assistant", "Clean slate. What’s on your mind?")]);
-                localStorage.removeItem(HISTORY_KEY);
-              }}
+              onClick={clearChat}
               className="rounded-full border border-white/15 px-4 py-1.5 text-sm text-zinc-300 hover:bg-white/5"
             >
               Clear
             </button>
+            <Link
+              href="/settings/ai-keys"
+              className="rounded-full border border-white/15 px-4 py-1.5 text-sm text-zinc-300 hover:bg-white/5"
+            >
+              AI keys
+            </Link>
           </div>
           <div className="mt-4">
             <PersonalContextPanel />
@@ -153,25 +241,47 @@ export function ChatMode({
         }`}
       >
         <div className="flex-1 space-y-4 overflow-y-auto p-4 sm:p-5">
-          {messages.map((m) => (
-            <div
-              key={m.id}
-              className={`flex gap-2.5 ${m.role === "user" ? "justify-end" : "justify-start"}`}
-            >
-              {m.role !== "user" && (
-                <span className="mt-1 flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-violet-600/90">
-                  <Sparkles className="h-3.5 w-3.5 text-white" />
-                </span>
-              )}
+          {messages.map((m, idx) => (
+            <div key={m.id}>
               <div
-                className={`max-w-[min(100%,34rem)] rounded-2xl px-3.5 py-2.5 text-sm leading-relaxed ${
-                  m.role === "user"
-                    ? "rounded-br-md bg-violet-600 text-white"
-                    : "rounded-bl-md border border-white/8 bg-white/[0.04] text-zinc-200"
-                }`}
+                className={`flex gap-2.5 ${m.role === "user" ? "justify-end" : "justify-start"}`}
               >
-                <MessageBody text={m.content} />
+                {m.role !== "user" && (
+                  <span className="mt-1 flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-violet-600/90">
+                    <Sparkles className="h-3.5 w-3.5 text-white" />
+                  </span>
+                )}
+                <div
+                  className={`max-w-[min(100%,34rem)] rounded-2xl px-3.5 py-2.5 text-sm leading-relaxed ${
+                    m.role === "user"
+                      ? "rounded-br-md bg-violet-600 text-white"
+                      : "rounded-bl-md border border-white/8 bg-white/[0.04] text-zinc-200"
+                  }`}
+                >
+                  <MessageBody text={m.content} />
+                </div>
               </div>
+              {m.role === "assistant" &&
+                idx === messages.length - 1 &&
+                !loading &&
+                messages.some((x) => x.role === "user") && (
+                  <div className="mt-2 flex flex-wrap gap-2 pl-10">
+                    <button
+                      type="button"
+                      onClick={saveAsAssistant}
+                      className="inline-flex items-center gap-1 rounded-lg border border-violet-500/30 bg-violet-500/10 px-2 py-1 text-[11px] text-violet-200 hover:bg-violet-500/20"
+                    >
+                      <Bot className="h-3 w-3" />
+                      Create assistant from this
+                    </button>
+                    <Link
+                      href="/tools/custom-assistant"
+                      className="inline-flex items-center gap-1 rounded-lg border border-white/10 px-2 py-1 text-[11px] text-zinc-400 hover:text-white"
+                    >
+                      Modify assistants
+                    </Link>
+                  </div>
+                )}
             </div>
           ))}
           {loading && (
@@ -212,6 +322,18 @@ export function ChatMode({
         )}
 
         <div className="border-t border-white/10 bg-black/20 p-3">
+          {signedIn === false && (
+            <p className="mb-2 text-[11px] text-zinc-500">
+              <Link href="/auth/login?next=/chat" className="text-violet-400 hover:underline">
+                Sign in free
+              </Link>{" "}
+              for cloud AI, or set{" "}
+              <Link href="/settings/ai-keys" className="text-violet-400 hover:underline">
+                your own key
+              </Link>
+              .
+            </p>
+          )}
           <div className="flex items-end gap-2">
             <textarea
               value={input}
@@ -265,4 +387,14 @@ function MessageBody({ text }: { text: string }) {
       })}
     </div>
   );
+}
+
+export { clearChatHistory };
+
+function clearChatHistory() {
+  try {
+    localStorage.removeItem(HISTORY_KEY);
+  } catch {
+    /* ignore */
+  }
 }

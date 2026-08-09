@@ -104,13 +104,19 @@ export function buildPromptContext(
   const intent = detectIntent(rawInput, answers);
   const extraNotes: string[] = [];
 
-  // Audience hints from free text
+  // Audience hints from free text (Pew-style birth years; ages approx for 2026)
   let audience: string | undefined;
-  if (t.match(/genz|gen z|gen-z|young|18.?30|teen|college/)) {
-    audience = "Young adults (18–30), Gen Z";
+  if (t.match(/genz|gen z|gen-z|1997|2012|teens?|college/)) {
+    audience = "Gen Z (born ~1997–2012; ages roughly 14–29 as of 2026)";
   }
-  if (t.match(/millennial|30.?45|parents/)) {
-    audience = "Millennials / busy professionals and parents";
+  if (t.match(/millennial|gen y|1981|1996/)) {
+    audience = "Millennials (born ~1981–1996; ages roughly 30–45 as of 2026)";
+  }
+  if (t.match(/gen x|1965|1980/)) {
+    audience = "Generation X (born ~1965–1980; ages roughly 46–61 as of 2026)";
+  }
+  if (t.match(/parents|families|mom|dad/)) {
+    audience = "Parents / families";
   }
   if (t.match(/b2b|enterprise|saas|founders|c.?suite/)) {
     audience = "B2B decision-makers, founders, and operators";
@@ -192,14 +198,21 @@ export function buildPromptContext(
   const mappedTone = mapMulti(tone, toneMap, " + ");
   if (mappedTone) tone = mappedTone;
 
-  // Audience map (multi-select OK)
+  // Audience map (multi-select OK). Labels use Pew birth cohorts; ages ~2026.
   const audienceMap: Record<string, string> = {
-    "Gen Z (18–24)": "Gen Z (18–24), trend-aware, mobile-first",
-    "Young adults (18–30)": "Young adults (18–30), Gen Z / young millennial",
-    "Millennials (25–40)": "Millennials (25–40), value-conscious professionals",
+    "Gen Z (born 1997–2012 · ~14–29 in 2026)":
+      "Gen Z (born ~1997–2012; roughly ages 14–29 in 2026), mobile-first, trend-aware",
+    "Millennials (born 1981–1996 · ~30–45 in 2026)":
+      "Millennials (born ~1981–1996; roughly ages 30–45 in 2026), value-conscious professionals",
+    "Gen X (born 1965–1980 · ~46–61 in 2026)":
+      "Generation X (born ~1965–1980; roughly ages 46–61 in 2026)",
     "Parents / families": "Parents and families making practical purchase decisions",
     "B2B / professionals": "B2B buyers, operators, and professionals",
     "Mass market / general": "Broad mass-market consumers",
+    // legacy labels if old sessions still send them
+    "Gen Z (18–24)": "Gen Z (born ~1997–2012)",
+    "Young adults (18–30)": "Younger adults overlapping late Gen Z / early millennials — prefer precise birth-cohort labels",
+    "Millennials (25–40)": "Millennials (born ~1981–1996; ~30–45 in 2026)",
   };
   const mappedAudience = mapMulti(answers.audience, audienceMap, " · ");
   if (mappedAudience) {
@@ -280,15 +293,15 @@ export function generateClarifyingQuestions(input: string): ClarifyingQuestion[]
       placeholder: "e.g. premium hoodies, 1:1 fitness coaching, $29 meal-prep kit",
     });
 
-    if (!t.match(/genz|gen z|young|millennial|b2b|mom|parents|enterprise/)) {
+    if (!t.match(/genz|gen z|millennial|gen x|b2b|mom|parents|enterprise/)) {
       questions.push({
         id: "audience",
         question: "Who is the target buyer? (select all that apply)",
         multiSelect: true,
         options: [
-          "Gen Z (18–24)",
-          "Young adults (18–30)",
-          "Millennials (25–40)",
+          "Gen Z (born 1997–2012 · ~14–29 in 2026)",
+          "Millennials (born 1981–1996 · ~30–45 in 2026)",
+          "Gen X (born 1965–1980 · ~46–61 in 2026)",
           "Parents / families",
           "B2B / professionals",
           "Mass market / general",
@@ -366,9 +379,9 @@ export function generateClarifyingQuestions(input: string): ClarifyingQuestion[]
       question: "Who is this for? (select all that apply)",
       multiSelect: true,
       options: [
-        "Gen Z (18–24)",
-        "Young adults (18–30)",
-        "Millennials (25–40)",
+        "Gen Z (born 1997–2012 · ~14–29 in 2026)",
+        "Millennials (born 1981–1996 · ~30–45 in 2026)",
+        "Gen X (born 1965–1980 · ~46–61 in 2026)",
         "Parents / families",
         "B2B / professionals",
         "Mass market / general",

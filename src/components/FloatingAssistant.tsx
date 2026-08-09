@@ -6,8 +6,11 @@ import { MessageCircle, X } from "lucide-react";
 import { ChatMode } from "@/components/ChatMode";
 import { TOUR_EVENT } from "@/lib/product-tour";
 
+const HISTORY_KEY = "plethora.chat.history.v1";
+
 export function FloatingAssistant() {
   const [open, setOpen] = useState(false);
+  const [chatKey, setChatKey] = useState(0);
 
   // Clear the panel so tour highlights aren't buried under the chat card
   useEffect(() => {
@@ -15,6 +18,15 @@ export function FloatingAssistant() {
     window.addEventListener(TOUR_EVENT, onTour);
     return () => window.removeEventListener(TOUR_EVENT, onTour);
   }, []);
+
+  function clearChat() {
+    try {
+      localStorage.removeItem(HISTORY_KEY);
+    } catch {
+      /* ignore */
+    }
+    setChatKey((k) => k + 1);
+  }
 
   return (
     <>
@@ -26,6 +38,13 @@ export function FloatingAssistant() {
               <p className="text-[10px] text-zinc-500">One roof · tools · anything</p>
             </div>
             <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={clearChat}
+                className="text-[10px] text-zinc-400 hover:text-white hover:underline"
+              >
+                Clear
+              </button>
               <Link href="/chat" className="text-[10px] text-violet-400 hover:underline">
                 Full chat
               </Link>
@@ -39,7 +58,7 @@ export function FloatingAssistant() {
             </div>
           </div>
           <div className="min-h-0 flex-1 p-2">
-            <ChatMode embedded />
+            <ChatMode key={chatKey} embedded />
           </div>
         </div>
       )}

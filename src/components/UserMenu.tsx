@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
-import { User, LogOut, LayoutDashboard } from "lucide-react";
+import { User, LogOut, LayoutDashboard, FolderKanban } from "lucide-react";
 import type { User as SupabaseUser } from "@supabase/supabase-js";
 
 export function UserMenu({ user }: { user: SupabaseUser | null }) {
@@ -43,6 +43,14 @@ export function UserMenu({ user }: { user: SupabaseUser | null }) {
       >
         <LayoutDashboard className="h-4 w-4" />
         <span className="hidden sm:inline">Dashboard</span>
+      </Link>
+      <Link
+        href="/workspaces"
+        className="hidden items-center gap-1.5 rounded-lg border border-white/10 px-3 py-1.5 text-sm text-zinc-300 hover:bg-white/5 sm:flex"
+        title="Workspaces & devices"
+      >
+        <FolderKanban className="h-4 w-4" />
+        <span className="hidden lg:inline">Spaces</span>
       </Link>
       <div className="flex items-center gap-2 rounded-lg border border-white/10 px-3 py-1.5">
         <User className="h-4 w-4 text-zinc-400" />

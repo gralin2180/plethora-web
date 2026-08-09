@@ -20,6 +20,9 @@ export interface PlanCapabilities {
   multiLocalBackendProfiles: boolean;
   priorityDirectoryPacks: boolean;
   hardcoreTools: boolean;
+  /** Concurrent registered browsers / devices */
+  maxDevices: number;
+  maxWorkspaces: number;
 }
 
 export const PLAN_CAPABILITIES: Record<PlanId, PlanCapabilities> = {
@@ -35,6 +38,8 @@ export const PLAN_CAPABILITIES: Record<PlanId, PlanCapabilities> = {
     multiLocalBackendProfiles: false,
     priorityDirectoryPacks: false,
     hardcoreTools: false,
+    maxDevices: 3,
+    maxWorkspaces: 2,
   },
   pro: {
     id: "pro",
@@ -48,6 +53,8 @@ export const PLAN_CAPABILITIES: Record<PlanId, PlanCapabilities> = {
     multiLocalBackendProfiles: true,
     priorityDirectoryPacks: true,
     hardcoreTools: false,
+    maxDevices: 8,
+    maxWorkspaces: 20,
   },
   team: {
     id: "team",
@@ -61,6 +68,8 @@ export const PLAN_CAPABILITIES: Record<PlanId, PlanCapabilities> = {
     multiLocalBackendProfiles: true,
     priorityDirectoryPacks: true,
     hardcoreTools: false,
+    maxDevices: 25,
+    maxWorkspaces: 100,
   },
   hardcore: {
     id: "hardcore",
@@ -74,6 +83,8 @@ export const PLAN_CAPABILITIES: Record<PlanId, PlanCapabilities> = {
     multiLocalBackendProfiles: true,
     priorityDirectoryPacks: true,
     hardcoreTools: true,
+    maxDevices: 40,
+    maxWorkspaces: 200,
   },
 };
 

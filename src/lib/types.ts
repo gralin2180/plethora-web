@@ -53,8 +53,16 @@ export interface ToolPlaybookItem {
 export interface AgentPathStep {
   order: number;
   title: string;
+  /** Exact what to do — no vague “use the stack” */
   detail: string;
+  /** Primary external or internal link */
   href?: string;
+  /** Run inside Plethora */
+  tryHereHref?: string;
+  tryHereLabel?: string;
+  /** Concrete bullets (tool names + 1-line how) */
+  exactBullets?: string[];
+  actions?: { label: string; href: string; external?: boolean }[];
 }
 
 export interface PlatformTool {

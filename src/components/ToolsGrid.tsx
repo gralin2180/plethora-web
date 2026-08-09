@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import {
@@ -163,6 +163,11 @@ const ICONS: Record<string, LucideIcon> = {
   Hash,
   FlaskConical,
   TrendingUp,
+  Scale,
+  Heart,
+  PlayCircle,
+  Building2: Layout,
+  UserRound,
 };
 
 type SmartTab = "all" | "popular" | "recent" | "foryou";
@@ -185,6 +190,18 @@ export function ToolsGrid() {
   const [q, setQ] = useState("");
   const [tab, setTab] = useState<SmartTab>("all");
   const [tick, setTick] = useState(0);
+  const gridAnchorRef = useRef<HTMLDivElement>(null);
+
+  function selectCategory(cat: string) {
+    setCategory(cat);
+    setTab("all");
+    requestAnimationFrame(() => {
+      document.getElementById("tools-category-tabs")?.scrollIntoView({
+        behavior: "smooth",
+        block: "start",
+      });
+    });
+  }
 
   useEffect(() => {
     setTick((n) => n + 1);
@@ -284,7 +301,7 @@ export function ToolsGrid() {
               </div>
               <button
                 type="button"
-                onClick={() => setCategory("Free Utilities")}
+                onClick={() => selectCategory("Free Utilities")}
                 className="text-xs text-emerald-400 hover:underline"
               >
                 View all utilities
@@ -332,7 +349,7 @@ export function ToolsGrid() {
                 </Link>
                 <button
                   type="button"
-                  onClick={() => setCategory("AI Tools")}
+                  onClick={() => selectCategory("AI Tools")}
                   className="text-xs text-violet-300 hover:underline"
                 >
                   View all AI tools
@@ -366,12 +383,12 @@ export function ToolsGrid() {
         </>
       )}
 
-      <div className="mb-6 flex flex-wrap gap-2">
+      <div id="tools-category-tabs" ref={gridAnchorRef} className="mb-6 flex scroll-mt-24 flex-wrap gap-2">
         {TOOL_CATEGORIES.map((cat) => (
           <button
             key={cat}
             type="button"
-            onClick={() => setCategory(cat)}
+            onClick={() => selectCategory(cat)}
             className={`rounded-full px-4 py-1.5 text-sm transition ${
               category === cat
                 ? cat === "AI Tools"

@@ -204,8 +204,17 @@ export function TaskAiFinder() {
           <section>
             <h3 className="mb-4 flex items-center gap-2 text-lg font-semibold text-white">
               <Wrench className="h-5 w-5 text-cyan-400" />
-              Your path (noob → skilled)
+              Your path (exact steps)
             </h3>
+            <p className="mb-4 text-sm text-zinc-500">
+              Multi-model: one OpenRouter key under{" "}
+              <Link href="/settings/ai-keys" className="text-cyan-400 hover:underline">
+                AI keys
+              </Link>{" "}
+              can call many hosted models (Claude-class, Gemini, DeepSeek, Llama, some
+              Perplexity-routed models when listed). We cannot silently mint free vendor keys for every
+              company — BYOK or sign-in free tier is the sustainable path.
+            </p>
             <ol className="space-y-3">
               {result.skillPath.map((step) => (
                 <li
@@ -215,19 +224,58 @@ export function TaskAiFinder() {
                   <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-cyan-600/20 text-sm font-bold text-cyan-300">
                     {step.order}
                   </span>
-                  <div>
+                  <div className="min-w-0 flex-1">
                     <p className="font-medium text-white">{step.title}</p>
-                    <p className="mt-1 text-sm text-zinc-500">{step.detail}</p>
-                    {step.href && (
-                      <a
-                        href={step.href}
-                        target={step.href.startsWith("http") ? "_blank" : undefined}
-                        rel="noopener noreferrer"
-                        className="mt-2 inline-flex items-center gap-1 text-sm text-cyan-400 hover:text-cyan-300"
-                      >
-                        Open <ArrowRight className="h-3 w-3" />
-                      </a>
+                    <p className="mt-1 text-sm text-zinc-400">{step.detail}</p>
+                    {step.exactBullets && step.exactBullets.length > 0 && (
+                      <ul className="mt-2 list-disc space-y-1 pl-4 text-sm text-zinc-300">
+                        {step.exactBullets.map((b) => (
+                          <li key={b.slice(0, 48)}>{b}</li>
+                        ))}
+                      </ul>
                     )}
+                    <div className="mt-3 flex flex-wrap gap-2">
+                      {step.tryHereHref && (
+                        <Link
+                          href={step.tryHereHref}
+                          className="inline-flex items-center gap-1 rounded-lg bg-cyan-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-cyan-500"
+                        >
+                          {step.tryHereLabel || "Try here now"}
+                          <ArrowRight className="h-3 w-3" />
+                        </Link>
+                      )}
+                      {step.actions?.map((a) =>
+                        a.external || a.href.startsWith("http") ? (
+                          <a
+                            key={a.label + a.href}
+                            href={a.href}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-flex items-center gap-1 rounded-lg border border-white/15 px-3 py-1.5 text-xs text-zinc-300 hover:border-cyan-500/40 hover:text-white"
+                          >
+                            {a.label}
+                          </a>
+                        ) : (
+                          <Link
+                            key={a.label + a.href}
+                            href={a.href}
+                            className="inline-flex items-center gap-1 rounded-lg border border-white/15 px-3 py-1.5 text-xs text-zinc-300 hover:border-cyan-500/40 hover:text-white"
+                          >
+                            {a.label}
+                          </Link>
+                        )
+                      )}
+                      {step.href && !step.tryHereHref && (
+                        <a
+                          href={step.href}
+                          target={step.href.startsWith("http") ? "_blank" : undefined}
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center gap-1 text-sm text-cyan-400 hover:text-cyan-300"
+                        >
+                          Open <ArrowRight className="h-3 w-3" />
+                        </a>
+                      )}
+                    </div>
                   </div>
                 </li>
               ))}
@@ -276,7 +324,10 @@ export function TaskAiFinder() {
           </section>
 
           {result.refinedPromptSuggestion && (
-            <section className="rounded-2xl border border-emerald-500/30 bg-emerald-500/5 p-6">
+            <section
+              id="ready-prompt"
+              className="scroll-mt-24 rounded-2xl border border-emerald-500/30 bg-emerald-500/5 p-6"
+            >
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <div>
                   <h3 className="font-semibold text-emerald-300">Ready-to-paste prompt</h3>

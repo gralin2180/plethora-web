@@ -75,9 +75,14 @@ export function McpHubPage() {
         </div>
       </div>
 
+      {/* Create first so it is never missed — compact so hosts stay in first fold */}
+      <section id="create-mcp" className="mt-8 scroll-mt-24">
+        <McpBuilderLab compact />
+      </section>
+
       <section
         id="plethora-mcp"
-        className="mt-10 scroll-mt-24 rounded-3xl border border-violet-500/30 bg-gradient-to-br from-violet-500/15 to-emerald-500/5 p-6 sm:p-8"
+        className="mt-8 scroll-mt-24 rounded-3xl border border-violet-500/30 bg-gradient-to-br from-violet-500/15 to-emerald-500/5 p-6 sm:p-8"
       >
         <p className="text-[11px] font-medium uppercase tracking-[0.18em] text-violet-300">
           Official · sticky
@@ -306,11 +311,6 @@ export function McpHubPage() {
             </p>
           )}
         </div>
-      </section>
-
-      <section className="mt-14">
-        <h2 className="mb-4 text-xl font-semibold text-white">3. Create your own MCP</h2>
-        <McpBuilderLab />
       </section>
 
       <p className="mt-10 text-center text-sm text-zinc-600">

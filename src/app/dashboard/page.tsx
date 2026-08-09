@@ -118,6 +118,14 @@ export default async function DashboardPage() {
                 </li>
                 <li>
                   <Link
+                    href="/workspaces"
+                    className="flex items-center justify-between text-sm text-zinc-400 hover:text-white"
+                  >
+                    Workspaces & devices <ArrowRight className="h-3 w-3" />
+                  </Link>
+                </li>
+                <li>
+                  <Link
                     href="/onboarding"
                     className="flex items-center justify-between text-sm text-zinc-400 hover:text-white"
                   >

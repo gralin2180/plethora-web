@@ -57,7 +57,7 @@ export function StickyRails() {
           className="mt-3 inline-flex shrink-0 items-center gap-2 rounded-xl bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-500 sm:mt-0"
         >
           <Sparkles className="h-4 w-4" />
-          Install MCP
+          Install Plethora MCP
         </Link>
       </div>
     </div>

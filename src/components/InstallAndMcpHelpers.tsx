@@ -137,11 +137,12 @@ export function BackendInstallGuide({ backendId, name }: { backendId: string; na
   );
 }
 
-export function McpBuilderLab() {
+export function McpBuilderLab({ compact = false }: { compact?: boolean }) {
   const [name, setName] = useState("my-tools");
   const [usecase, setUsecase] = useState("Read project notes and answer questions about them");
   const [tools, setTools] = useState("list_notes, get_note, search_notes");
   const [lang, setLang] = useState<"ts" | "python">("ts");
+  const [expanded, setExpanded] = useState(!compact);
 
   const scaffold = useMemo(() => buildScaffold(name, usecase, tools, lang), [name, usecase, tools, lang]);
 
@@ -157,77 +158,92 @@ export function McpBuilderLab() {
   }
 
   return (
-    <div className="space-y-4 rounded-2xl border border-violet-500/25 bg-violet-500/5 p-5 sm:p-6">
-      <div>
-        <h2 className="text-lg font-semibold text-white">Create your own MCP</h2>
-        <p className="mt-1 text-sm leading-relaxed text-zinc-400">
-          Generate a local starter for a custom Model Context Protocol server. You run it on your PC;
-          Claude Desktop, Cursor, and other hosts can call your tools. Free to build — you control the code.
-        </p>
-      </div>
-
-      <div className="grid gap-3 sm:grid-cols-2">
-        <label className="block text-sm text-zinc-400">
-          Server name
-          <input
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            className="mt-1 w-full rounded-lg border border-white/10 bg-black/40 px-3 py-2 text-white"
-          />
-        </label>
-        <label className="block text-sm text-zinc-400">
-          Language
-          <select
-            value={lang}
-            onChange={(e) => setLang(e.target.value as "ts" | "python")}
-            className="mt-1 w-full rounded-lg border border-white/10 bg-black/40 px-3 py-2 text-white"
+    <div className="space-y-3 rounded-2xl border border-violet-500/25 bg-violet-500/5 p-4 sm:p-5">
+      <div className="flex flex-wrap items-start justify-between gap-2">
+        <div>
+          <p className="text-[11px] font-medium uppercase tracking-[0.16em] text-violet-300">
+            Start here
+          </p>
+          <h2 className="text-lg font-semibold text-white">Create your own MCP</h2>
+          <p className="mt-1 text-sm leading-relaxed text-zinc-400">
+            Local starter for a custom MCP server. Free to build — you run it; Claude Desktop / Cursor
+            call it.
+          </p>
+        </div>
+        {compact && (
+          <button
+            type="button"
+            onClick={() => setExpanded((e) => !e)}
+            className="rounded-lg border border-white/10 px-3 py-1.5 text-xs text-zinc-300 hover:bg-white/5"
           >
-            <option value="ts">TypeScript (Node)</option>
-            <option value="python">Python</option>
-          </select>
-        </label>
-      </div>
-      <label className="block text-sm text-zinc-400">
-        Use case
-        <input
-          value={usecase}
-          onChange={(e) => setUsecase(e.target.value)}
-          className="mt-1 w-full rounded-lg border border-white/10 bg-black/40 px-3 py-2 text-white"
-        />
-      </label>
-      <label className="block text-sm text-zinc-400">
-        Tool names (comma-separated)
-        <input
-          value={tools}
-          onChange={(e) => setTools(e.target.value)}
-          className="mt-1 w-full rounded-lg border border-white/10 bg-black/40 px-3 py-2 text-white"
-        />
-      </label>
-
-      <div className="flex flex-wrap gap-2">
-        <button
-          type="button"
-          onClick={download}
-          className="inline-flex items-center gap-2 rounded-xl bg-violet-600 px-4 py-2 text-sm font-medium text-white hover:bg-violet-500"
-        >
-          <Download className="h-4 w-4" /> Download starter pack
-        </button>
-        <CopyLine text={scaffold.config} />
+            {expanded ? "Collapse" : "Expand builder"}
+          </button>
+        )}
       </div>
 
-      <div>
-        <p className="text-xs text-zinc-500">Host config (Claude Desktop / Cursor)</p>
-        <pre className="mt-1 overflow-x-auto rounded-lg bg-black/50 p-3 text-[11px] text-zinc-300">
-          {scaffold.config}
-        </pre>
-      </div>
-      <div>
-        <p className="text-xs text-zinc-500">Scaffold preview</p>
-        <pre className="mt-1 max-h-64 overflow-auto rounded-lg bg-black/50 p-3 text-[11px] text-zinc-400 whitespace-pre-wrap">
-          {scaffold.code.slice(0, 3500)}
-          {scaffold.code.length > 3500 ? "\n…" : ""}
-        </pre>
-      </div>
+      {expanded && (
+        <>
+          <div className="grid gap-3 sm:grid-cols-2">
+            <label className="block text-sm text-zinc-400">
+              Server name
+              <input
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                className="mt-1 w-full rounded-lg border border-white/10 bg-black/40 px-3 py-2 text-white"
+              />
+            </label>
+            <label className="block text-sm text-zinc-400">
+              Language
+              <select
+                value={lang}
+                onChange={(e) => setLang(e.target.value as "ts" | "python")}
+                className="mt-1 w-full rounded-lg border border-white/10 bg-black/40 px-3 py-2 text-white"
+              >
+                <option value="ts">TypeScript (Node)</option>
+                <option value="python">Python</option>
+              </select>
+            </label>
+          </div>
+          <label className="block text-sm text-zinc-400">
+            Use case
+            <input
+              value={usecase}
+              onChange={(e) => setUsecase(e.target.value)}
+              className="mt-1 w-full rounded-lg border border-white/10 bg-black/40 px-3 py-2 text-white"
+            />
+          </label>
+          <label className="block text-sm text-zinc-400">
+            Tool names (comma-separated)
+            <input
+              value={tools}
+              onChange={(e) => setTools(e.target.value)}
+              className="mt-1 w-full rounded-lg border border-white/10 bg-black/40 px-3 py-2 text-white"
+            />
+          </label>
+
+          <div className="flex flex-wrap gap-2">
+            <button
+              type="button"
+              onClick={download}
+              className="rounded-xl bg-violet-600 px-4 py-2 text-sm font-medium text-white hover:bg-violet-500"
+            >
+              Download starter
+            </button>
+            <button
+              type="button"
+              onClick={() => void navigator.clipboard.writeText(scaffold.code)}
+              className="rounded-xl border border-white/10 px-4 py-2 text-sm text-zinc-300 hover:bg-white/5"
+            >
+              Copy code
+            </button>
+          </div>
+          {!compact && (
+            <pre className="max-h-48 overflow-auto rounded-xl bg-black/40 p-3 text-[11px] text-zinc-500">
+              {scaffold.code.slice(0, 2000)}
+            </pre>
+          )}
+        </>
+      )}
     </div>
   );
 }

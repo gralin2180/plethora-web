@@ -57,7 +57,7 @@ export const AI_TOOL_TOOLS: PlatformTool[] = [
     name: "Local & AI apps directory",
     slug: "local-ai-directory",
     description:
-      "Curated free, freemium, and paid AI apps — local GPU runtimes plus cloud Claude/ChatGPT.",
+      "Curated free, freemium, and paid AI apps — local GPU runtimes plus cloud models.",
     category: "AI Tools",
     icon: "Library",
     freeRunsPerDay: 100,

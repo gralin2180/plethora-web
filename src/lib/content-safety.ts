@@ -1,7 +1,6 @@
 /**
- * Content policy: warn, allow continue.
- * Hard block ONLY categories that are clearly illegal / platform-unsafe
- * (e.g. sexual content involving minors) — not adult content between adults.
+ * Expand adult detection so roleplay / slang gets a consent gate,
+ * not a silent hard skip. Hard block stays for illegal (minors, etc.).
  */
 
 export type SafetyFlag =
@@ -22,10 +21,14 @@ export interface SafetyAssessment {
 }
 
 const ADULT =
-  /\b(nsfw|porn|onlyfans|18\+|xxx|erotica|erotic|sexual|sex toy|fetish|nude|naked|bdsm|adult content|hentai)\b/i;
+  /\b(nsfw|porn|onlyfans|18\+|xxx|erotica|erotic|sexual|sex toy|fetish|nude|naked|bdsm|adult content|hentai|sext|roleplay sex|erp|cybersex)\b/i;
 
 const EXPLICIT =
-  /\b(explicit sex|hardcore porn|cum|blowjob|anal sex|genital|deepthroat)\b/i;
+  /\b(explicit sex|hardcore porn|cum|blowjob|anal sex|genital|deepthroat|suck(ing)? (my |your )?cock|dick|pussy|fuck me|fucking me|make (me )?(cum|orgasm)|handjob|titjob|rimjob|creampie|facial cum|jerk off|jerking)\b/i;
+
+/** Shorter sexual intent — still require 18+ consent */
+const SEXUAL_INTENT =
+  /\b(sex(t|ing)?|role\s*-?\s*play.*(sex|adult|nsfw)|be my (dom|sub|girlfriend|boyfriend).*(sex|nsfw)|dirty talk|phone sex)\b|suck(ing)?.*(cock|dick|pussy)|fuck (me|you|her|him)\b/i;
 
 const GRAPHIC =
   /\b(gore|dismember|torture scene|graphic violence|snuff)\b/i;
@@ -35,7 +38,7 @@ const HATE =
 
 /** Clear legal red lines — do not generate assistance */
 const HARD_BLOCK =
-  /\b(child porn|child pornography|csam|underage sex|sexual(ly)? (with |content (with |involving )?|abuse of )?minors?|loli(?!ta fashion)|pedophil)/i;
+  /\b(child porn|child pornography|csam|underage sex|sexual(ly)? (with |content (with |involving )?|abuse of )?minors?|loli(?!ta fashion)|pedophil|teen (sex|porn)|schoolgirl sex|age\s*play|barely legal)\b/i;
 
 export function assessContentSafety(text: string): SafetyAssessment {
   const flags: SafetyFlag[] = [];
@@ -52,9 +55,9 @@ export function assessContentSafety(text: string): SafetyAssessment {
     };
   }
 
-  if (ADULT.test(text) || EXPLICIT.test(text)) {
+  if (ADULT.test(text) || EXPLICIT.test(text) || SEXUAL_INTENT.test(text)) {
     flags.push("adult_18");
-    if (EXPLICIT.test(text)) flags.push("explicit_sexual");
+    if (EXPLICIT.test(text) || SEXUAL_INTENT.test(text)) flags.push("explicit_sexual");
   }
   if (GRAPHIC.test(text)) flags.push("graphic_violence");
   if (HATE.test(text)) flags.push("hate_or_extreme");
@@ -70,10 +73,10 @@ export function assessContentSafety(text: string): SafetyAssessment {
   let continueLabel = "I understand — continue";
 
   if (flags.includes("adult_18") || flags.includes("explicit_sexual")) {
-    title = "18+ / adult content warning";
+    title = "18+ adult content — confirm to continue";
     message =
-      "You appear to be requesting adult or explicit content. By continuing you confirm you are at least 18 years old (or the age of majority where you live), you will not use Plethora to create or seek illegal sexual content involving minors, and you accept that third-party models and tools may have their own rules. Plethora is software that helps you use AI tools — you are responsible for your use.";
-    continueLabel = "I am 18+ and want to continue";
+      "This looks like adult / sexual content. By continuing you confirm: (1) you are 18+ (or age of majority where you live), (2) everyone depicted is an adult, (3) you will not request illegal sexual content involving minors, real non-consent, or exploitation. We will generate consensual adult fiction after you confirm. Third-party models still have their own rules.";
+    continueLabel = "I am 18+ — generate";
   } else if (flags.includes("graphic_violence") || flags.includes("hate_or_extreme")) {
     title = "Sensitive / extreme content warning";
     message =

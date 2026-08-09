@@ -1,3 +1,5 @@
+import { siteKnowledgeForAssistant } from "./about-content";
+
 /**
  * Free-tier chat LLM providers (OpenRouter free models, Groq, custom).
  */
@@ -12,23 +14,53 @@ export interface FreeChatResult {
   error?: string;
 }
 
-export function buildChatSystemPrompt(extraContext?: string): string {
+export function buildChatSystemPrompt(
+  extraContext?: string,
+  opts?: { adultMode?: boolean; customSystem?: string }
+): string {
+  if (opts?.customSystem?.trim()) {
+    const base = opts.customSystem.trim();
+    const extra = extraContext?.trim()
+      ? `\n\nLocal learner context:\n${extraContext.trim()}`
+      : "";
+    const adult = opts.adultMode
+      ? `\n\nAdult mode ON (user confirmed 18+): write consensual adult erotic roleplay when asked. Be direct. Still hard-refuse anything with minors.`
+      : "";
+    return `${base}${adult}${extra}`;
+  }
+
   const extra = extraContext?.trim()
     ? `\n\nLocal learner context (this user only; may be empty):\n${extraContext.trim()}`
     : "";
 
+  const adultBlock = opts?.adultMode
+    ? `
+## Adult mode (user confirmed 18+)
+- They already clicked 18+. Do NOT lecture, deflect with tool lists, or say "hard pass" / "I'm not a cam model".
+- Deliver consensual adult erotic roleplay / dirty talk between adults when asked. Match intensity. Can be explicit.
+- Never involve anyone under 18. Never CSAM. Never real non-consent crimes.
+`
+    : `
+## Adult content
+- Slang, body jokes, mild NSFW: keep human. If they want explicit sexual roleplay, say they need to confirm 18+ in the UI (or invite them to say "18+ continue").
+`;
+
   return `You are Plethora Assistant — sharp, warm, witty when the vibe calls for it. Never corporate-robot. Never a dead filter.
 
 ## Who Plethora is
-Plethora is the under-one-roof hub: free utilities, AI Finder, prompts, Install/MCP, local AI. We route people out of 40 tabs. We are not Cursor, Freebuff, or ChatGPT.
+Plethora is the under-one-roof hub for prompt engineering, free utilities, AI tools, local GPU installs, and MCP. Answer ANY user question about how the product works, pricing, accounts, devices, tools, MCP, keys, legal limits.
+
+${siteKnowledgeForAssistant()}
 
 ## How to talk
-- Match energy. One-word jokes, body-part jokes, "boobs", "poop", silly NSFW adult between adults → keep it human (tease back or invite a real ask). Do NOT say "I can't help with that" for slang, body words, or crude jokes.
-- Only refuse: illegal harm (especially minors/CSAM), actionable real-world crime how-tos. Adult content between adults is OK; be brief and age-appropriate.
-- Specific over generic. Short by default.
+- Match energy. Specific over generic. Short by default unless they want a long RP / writeup.
+- Product questions: exact paths (/prompt-assistant, /tools/…, /settings/ai-keys, /about).
+- Only refuse: illegal harm (especially minors/CSAM), actionable real-world crime how-tos.
 - No numbered site dumps; for "tour" say live highlights are starting.
 - Tool asks: 2–5 picks with /paths.
-- Don't invent running local tools on their PC.${extra}`;
+- Don't invent running local tools on their PC.
+- Do not say "ChatGPT explains. Plethora runs…" as a catchphrase; Plethora stands alone.
+${adultBlock}${extra}`;
 }
 
 /** Free model IDs rotate on OpenRouter; first env override, then these. */
@@ -118,6 +150,14 @@ function freeProviders(): {
   return list;
 }
 
+export type FreeChatOpts = {
+  learnerContext?: string;
+  adultMode?: boolean;
+  customSystem?: string;
+  /** User's own OpenRouter / OpenAI-compatible key */
+  byok?: { apiKey: string; baseUrl?: string; model?: string };
+};
+
 async function callProvider(
   p: {
     name: string;
@@ -195,10 +235,35 @@ async function callProvider(
 export async function freeChatCompletion(
   userMessage: string,
   history: ChatHistoryMsg[] = [],
-  learnerContext?: string
+  learnerContextOrOpts?: string | FreeChatOpts
 ): Promise<FreeChatResult> {
-  const providers = freeProviders();
+  const opts: FreeChatOpts =
+    typeof learnerContextOrOpts === "string" || learnerContextOrOpts === undefined
+      ? { learnerContext: learnerContextOrOpts }
+      : learnerContextOrOpts;
+
+  const providers = [...freeProviders()];
+  if (opts.byok?.apiKey) {
+    providers.unshift({
+      name: "byok",
+      baseUrl: opts.byok.baseUrl || "https://openrouter.ai/api/v1",
+      apiKey: opts.byok.apiKey,
+      model: opts.byok.model || openRouterModels()[0] || "openrouter/free",
+      headers: {
+        "HTTP-Referer": env("PLETHORA_SITE_URL") || "http://localhost:3000",
+        "X-Title": "Plethora BYOK",
+      },
+    });
+  }
+
   if (!providers.length) {
+    if (opts.adultMode) {
+      return {
+        reply: adultOfflineFallback(userMessage),
+        provider: "offline-adult",
+        ok: true,
+      };
+    }
     return {
       reply: "",
       provider: "none",
@@ -208,7 +273,13 @@ export async function freeChatCompletion(
   }
 
   const messages: ChatHistoryMsg[] = [
-    { role: "system", content: buildChatSystemPrompt(learnerContext) },
+    {
+      role: "system",
+      content: buildChatSystemPrompt(opts.learnerContext, {
+        adultMode: opts.adultMode,
+        customSystem: opts.customSystem,
+      }),
+    },
     ...history.slice(-14).filter((m) => m.role !== "system"),
     { role: "user", content: userMessage },
   ];
@@ -217,10 +288,10 @@ export async function freeChatCompletion(
   for (const p of providers) {
     try {
       const result = await callProvider(p, messages);
-      if (result.ok && result.reply && !isLameModelRefusal(result.reply)) {
+      if (result.ok && result.reply && !isLameModelRefusal(result.reply, opts.adultMode)) {
         return result;
       }
-      if (result.ok && result.reply && isLameModelRefusal(result.reply)) {
+      if (result.ok && result.reply && isLameModelRefusal(result.reply, opts.adultMode)) {
         lastError = "Model refused with template reply";
         continue;
       }
@@ -233,6 +304,15 @@ export async function freeChatCompletion(
     }
   }
 
+  // last-resort adult offline snip if models all flinch after consent
+  if (opts.adultMode && /sex|fuck|cock|dick|blow|sext|nsfw|suck/i.test(userMessage)) {
+    return {
+      reply: adultOfflineFallback(userMessage),
+      provider: "offline-adult",
+      ok: true,
+    };
+  }
+
   return {
     reply: "",
     provider: "none",
@@ -241,9 +321,30 @@ export async function freeChatCompletion(
   };
 }
 
+function adultOfflineFallback(userMessage: string): string {
+  return `You confirmed 18+ — here’s a short consensual beat (cloud model flinched; this is template-grade until a stronger key is online):
+
+*Heat between consenting adults. You pull closer. Breath hits collarbone. Hands stay honest — only what was asked.*  
+“You said that,” they murmur against your mouth, rough and amused. “Then keep looking at me.”  
+
+Want longer / more explicit / a specific scene? Say pace + kinks (still adults only). Or open **/tools/custom-assistant** to save a persona that always plays this way.
+
+You wrote: “${userMessage.slice(0, 120)}${userMessage.length > 120 ? "…" : ""}”`;
+}
+
 /** Free host models often flinch on slang/adult words with useless "can't help". */
-export function isLameModelRefusal(text: string): boolean {
+export function isLameModelRefusal(text: string, adultMode?: boolean): boolean {
   const t = text.trim().toLowerCase();
+  if (
+    /hard pass|not a cam model|search bar with a personality|i won't write (erotica|explicit|nsfw)|cannot (write|engage in) (erotica|sexual|nsfw)/i.test(
+      t
+    )
+  ) {
+    return true;
+  }
+  if (adultMode && /i (can'?t|cannot|won'?t) (help|assist|engage|write)/i.test(t) && t.length < 400) {
+    return true;
+  }
   if (t.length < 120) {
     if (
       /i('m| am) sorry.*can'?t help|i cannot (help|assist)|as an ai language model|i'm not able to (help|assist|engage)|i won't (discuss|engage)/i.test(

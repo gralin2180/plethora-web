@@ -1,258 +1,117 @@
 import Link from "next/link";
 import {
   ArrowRight,
-  BookOpen,
-  Code,
-  Cpu,
-  HardDrive,
-  Megaphone,
+  MessageSquare,
   Plug,
   Search,
-  MessageSquare,
   Sparkles,
-  User,
   Zap,
 } from "lucide-react";
 import { PLATFORM_TOOLS } from "@/lib/tools-registry";
-import { HARDCORE_BUNDLE } from "@/lib/hardcore-bundle";
-import { SKILL_LEVELS } from "@/lib/skill-levels";
-import { DIFFERENTIATORS } from "@/lib/catalog";
 import { StickyRails } from "@/components/StickyRails";
 
 const FEATURES = [
   {
     icon: MessageSquare,
-    title: "Prompt Engineering Assistant",
-    desc: "Clarify a messy goal into a model-ready prompt — not a one-shot ChatGPT paste.",
+    title: "Prompt Assistant",
+    desc: "Messy goal → expert, model-ready prompt.",
     href: "/prompt-assistant",
-    color: "violet",
   },
   {
     icon: Search,
-    title: "AI Tool Finder",
-    desc: "Map the stack: free apps, local GPU, MCP, and installs for the job.",
+    title: "AI Finder",
+    desc: "Exact path: chat, tools, MCP for any job.",
     href: "/ai-finder",
-    color: "cyan",
   },
   {
     icon: Zap,
     title: "Tools that run",
-    desc: "Converters, SEO, trading math, captions — execute in the browser or on your machine.",
+    desc: "Converters, SEO, trading, captions — under one roof.",
     href: "/tools",
-    color: "amber",
   },
   {
     icon: Plug,
     title: "Plethora MCP",
-    desc: "Put our catalog inside Claude and Cursor so agents call real tools, not fantasies.",
+    desc: "Agents call our catalog from Claude or Cursor.",
     href: "/mcp#plethora-mcp",
-    color: "emerald",
   },
 ];
 
 export function HomePage() {
   return (
     <>
-      <section className="relative overflow-hidden px-4 pb-24 pt-16 sm:px-6 sm:pt-24">
+      <section className="relative overflow-hidden px-4 pb-12 pt-14 sm:px-6 sm:pb-16 sm:pt-20">
         <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_top,_rgba(124,58,237,0.25)_0%,_transparent_50%)]" />
-        <div className="relative mx-auto max-w-5xl text-center">
-          <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-violet-500/40 bg-violet-500/15 px-5 py-2 text-sm font-medium text-violet-200 sm:text-base">
+        <div className="relative mx-auto max-w-4xl text-center">
+          <div className="mb-5 inline-flex items-center gap-2 rounded-full border border-violet-500/40 bg-violet-500/15 px-4 py-1.5 text-sm font-medium text-violet-200">
             <Sparkles className="h-4 w-4" />
             Tools. AI. One place.
           </div>
-          <h1 className="text-4xl font-semibold tracking-tight text-white sm:text-6xl sm:leading-[1.12]">
-            <span className="block pb-1">Everything you need to ship,</span>
-            <span className="mt-1 block bg-gradient-to-r from-violet-300 via-violet-400 to-cyan-300 bg-clip-text pb-[0.2em] leading-[1.25] text-transparent sm:mt-2">
+          <h1 className="text-4xl font-semibold tracking-tight text-white sm:text-5xl sm:leading-[1.15]">
+            <span className="block">Everything you need to ship,</span>
+            <span className="mt-1 block bg-gradient-to-r from-violet-300 via-violet-400 to-cyan-300 bg-clip-text pb-[0.15em] leading-[1.25] text-transparent">
               without twenty open tabs
             </span>
           </h1>
-          <p className="mx-auto mt-7 max-w-2xl text-lg leading-relaxed text-zinc-400">
-            ChatGPT explains. Plethora <span className="text-zinc-200">runs the work</span> — free
-            utilities, AI studios, local GPU installs, and an MCP so your agents use these tools
-            every day.
+          <p className="mx-auto mt-5 max-w-xl text-base leading-relaxed text-zinc-400 sm:text-lg">
+            Prompt engineering first — then free utilities, AI studios, local GPU, and Plethora MCP so
+            your agents run the work.
           </p>
-          <div className="mt-10 flex flex-col items-center justify-center gap-4 sm:flex-row">
+          <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row">
             <Link
-              href="/tools"
-              className="flex items-center gap-2 rounded-xl bg-violet-600 px-8 py-3.5 font-medium text-white hover:bg-violet-500"
+              href="/prompt-assistant"
+              className="flex items-center gap-2 rounded-xl bg-violet-600 px-7 py-3 text-sm font-medium text-white hover:bg-violet-500"
             >
-              Browse tools
+              Prompt Assistant
               <ArrowRight className="h-4 w-4" />
             </Link>
             <Link
-              href="/mcp#plethora-mcp"
-              className="flex items-center gap-2 rounded-xl border border-emerald-500/40 bg-emerald-500/10 px-8 py-3.5 font-medium text-emerald-100 hover:bg-emerald-500/20"
+              href="/tools"
+              className="flex items-center gap-2 rounded-xl border border-white/15 px-7 py-3 text-sm font-medium text-zinc-100 hover:bg-white/[0.05]"
             >
-              <Plug className="h-4 w-4" />
-              Add Plethora MCP
+              Browse tools
             </Link>
             <Link
-              href="/settings/backends"
-              className="flex items-center gap-2 rounded-xl border border-white/15 bg-white/[0.03] px-8 py-3.5 font-medium text-zinc-100 hover:bg-white/[0.06]"
+              href="/about"
+              className="text-sm text-zinc-500 hover:text-zinc-300"
             >
-              Install local AI
+              About & FAQ →
             </Link>
           </div>
         </div>
       </section>
 
-      <section className="border-t border-white/10 px-4 py-10 sm:px-6">
+      <section className="px-4 pb-8 sm:px-6">
         <div className="mx-auto max-w-3xl">
           <StickyRails />
         </div>
       </section>
 
-      <section className="border-t border-white/10 px-4 py-16 sm:px-6">
-        <div className="mx-auto max-w-6xl">
-          <p className="text-center text-[11px] font-medium uppercase tracking-[0.22em] text-zinc-500">
-            Beyond chatbots
-          </p>
-          <h2 className="mt-3 text-center text-3xl font-semibold tracking-tight text-white">
-            Better than “just GPT”
-          </h2>
-          <p className="mx-auto mt-3 max-w-2xl text-center text-sm leading-relaxed text-zinc-500">
-            General chat models are great writers. They are weak runners. We focus on finishing
-            jobs and wiring your preferred AI to our catalog.
-          </p>
-          <div className="mt-10 grid gap-4 sm:grid-cols-2">
-            {DIFFERENTIATORS.map((d) => (
-              <div
-                key={d.title}
-                className="rounded-2xl border border-white/10 bg-white/[0.02] p-5"
-              >
-                <h3 className="font-medium text-white">{d.title}</h3>
-                <p className="mt-2 text-sm leading-relaxed text-zinc-400">{d.body}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* Learn AI */}
-      <section className="border-t border-white/10 bg-gradient-to-b from-white/[0.03] to-transparent px-4 py-16 sm:px-6">
-        <div className="mx-auto max-w-6xl">
-          <div className="grid items-center gap-10 lg:grid-cols-2">
-            <div>
-              <p className="text-[11px] font-medium uppercase tracking-[0.22em] text-zinc-500">
-                Guided learning
-              </p>
-              <h2 className="mt-3 text-3xl font-semibold tracking-tight text-white sm:text-4xl sm:leading-tight">
-                Learn how to use AI
-              </h2>
-              <p className="mt-4 text-base leading-relaxed text-zinc-400">
-                Clear, practical guidance for anyone — students, professionals, founders, and teams.
-                Short lessons, safe habits, and prompts you can reuse. No jargon required.
-              </p>
-              <div className="mt-6 flex flex-wrap gap-3">
-                <Link
-                  href="/learn"
-                  className="inline-flex items-center gap-2 rounded-xl bg-white px-5 py-2.5 text-sm font-medium text-zinc-900 hover:bg-zinc-200"
-                >
-                  Start learning <ArrowRight className="h-4 w-4" />
-                </Link>
-                <Link
-                  href="/tools/life-planner"
-                  className="inline-flex items-center gap-2 rounded-xl border border-white/15 px-5 py-2.5 text-sm text-zinc-300 hover:bg-white/5"
-                >
-                  Daily planner
-                </Link>
-              </div>
-            </div>
-            <div className="grid gap-3 sm:grid-cols-2">
-              {[
-                { t: "Four-line prompts", d: "Role, goal, details, format" },
-                { t: "Goal-based paths", d: "Study · career · business · home" },
-                { t: "Safety basics", d: "Protect accounts & private data" },
-                { t: "Practice tools", d: "Planner · calendar · chat" },
-              ].map((c) => (
-                <div
-                  key={c.t}
-                  className="rounded-2xl border border-white/10 bg-black/30 p-4"
-                >
-                  <p className="font-medium leading-snug text-white">{c.t}</p>
-                  <p className="mt-1.5 text-sm leading-relaxed text-zinc-500">{c.d}</p>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Local / personal — big, not footer-sized */}
-      <section className="border-y border-white/10 px-4 py-16 sm:px-6">
-        <div className="mx-auto max-w-6xl">
-          <p className="text-center text-xs font-semibold uppercase tracking-[0.2em] text-cyan-400">
-            Power features
-          </p>
-          <h2 className="mt-3 text-center text-3xl font-bold text-white sm:text-4xl">
-            Your machine. Your profile.
-          </h2>
-          <div className="mt-10 grid gap-6 lg:grid-cols-2">
-            <Link
-              href="/settings/backends"
-              className="group relative overflow-hidden rounded-3xl border-2 border-cyan-500/40 bg-gradient-to-br from-cyan-500/20 to-[#0b0b12] p-8 sm:p-10"
-            >
-              <HardDrive className="h-12 w-12 text-cyan-300" />
-              <h3 className="mt-5 text-2xl font-bold text-white sm:text-3xl">Local AI backends</h3>
-              <p className="mt-3 text-base text-zinc-300">
-                Wire Ollama, LM Studio, or any OpenAI-compatible endpoint. Free after install. Data
-                can stay off the cloud when you want it to.
-              </p>
-              <span className="mt-6 inline-flex items-center gap-2 text-lg font-semibold text-cyan-300 group-hover:gap-3">
-                Open backends <ArrowRight className="h-5 w-5" />
-              </span>
-            </Link>
-            <Link
-              href="/settings/personal"
-              className="group relative overflow-hidden rounded-3xl border-2 border-violet-500/40 bg-gradient-to-br from-violet-500/20 to-[#0b0b12] p-8 sm:p-10"
-            >
-              <User className="h-12 w-12 text-violet-300" />
-              <h3 className="mt-5 text-2xl font-bold text-white sm:text-3xl">Personal context</h3>
-              <p className="mt-3 text-base text-zinc-300">
-                Brand, tone, goals — stored locally so Finder and chat fit you. Not trained on by us
-                as a default upload.
-              </p>
-              <span className="mt-6 inline-flex items-center gap-2 text-lg font-semibold text-violet-300 group-hover:gap-3">
-                Set context <ArrowRight className="h-5 w-5" />
-              </span>
-            </Link>
-          </div>
-        </div>
-      </section>
-
-      <section className="border-b border-white/10 bg-white/[0.02] px-4 py-16 sm:px-6">
-        <div className="mx-auto grid max-w-6xl gap-6 sm:grid-cols-2 lg:grid-cols-4">
+      <section className="border-t border-white/10 px-4 py-10 sm:px-6">
+        <div className="mx-auto grid max-w-5xl gap-3 sm:grid-cols-2 lg:grid-cols-4">
           {FEATURES.map((f) => (
             <Link
               key={f.href}
               href={f.href}
-              className="group rounded-2xl border border-white/10 bg-[#0b0b12] p-6 transition hover:border-violet-500/40"
+              className="rounded-2xl border border-white/10 bg-white/[0.02] p-5 transition hover:border-violet-500/35"
             >
-              <f.icon className="mb-4 h-8 w-8 text-violet-400" />
-              <h3 className="font-semibold text-white group-hover:text-violet-200">
-                {f.title}
-              </h3>
-              <p className="mt-2 text-sm text-zinc-500">{f.desc}</p>
-              <span className="mt-4 inline-flex items-center gap-1 text-sm text-violet-400">
-                Explore <ArrowRight className="h-3 w-3" />
-              </span>
+              <f.icon className="mb-3 h-6 w-6 text-violet-400" />
+              <h2 className="font-semibold text-white">{f.title}</h2>
+              <p className="mt-1.5 text-sm text-zinc-500">{f.desc}</p>
             </Link>
           ))}
         </div>
       </section>
 
-      <section className="px-4 py-20 sm:px-6">
-        <div className="mx-auto max-w-6xl">
-          <div className="mb-10 flex items-end justify-between">
-            <div>
-              <h2 className="text-2xl font-bold text-white">Popular tools</h2>
-              <p className="mt-1 text-zinc-500">Try free — no account needed for first runs</p>
-            </div>
+      <section className="border-t border-white/10 px-4 py-10 sm:px-6">
+        <div className="mx-auto max-w-5xl">
+          <div className="mb-5 flex items-end justify-between gap-3">
+            <h2 className="text-lg font-semibold text-white">Popular tools</h2>
             <Link href="/tools" className="text-sm text-violet-400 hover:text-violet-300">
-              View all →
+              All tools →
             </Link>
           </div>
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
             {PLATFORM_TOOLS.slice(0, 6).map((tool) => (
               <Link
                 key={tool.id}
@@ -261,168 +120,41 @@ export function HomePage() {
                     ? `/${tool.slug}`
                     : `/tools/${tool.slug}`
                 }
-                className="rounded-xl border border-white/10 bg-white/[0.02] p-5 hover:border-white/20"
+                className="rounded-xl border border-white/10 bg-white/[0.02] px-4 py-3 hover:border-white/20"
               >
-                <div className="flex items-center justify-between">
-                  <h3 className="font-medium text-white">{tool.name}</h3>
-                  {tool.isPro && (
-                    <span className="rounded-full bg-amber-500/20 px-2 py-0.5 text-[10px] text-amber-300">
-                      PRO
-                    </span>
-                  )}
-                </div>
-                <p className="mt-2 text-sm text-zinc-500 line-clamp-2">{tool.description}</p>
-                <p className="mt-3 text-xs text-zinc-600">
-                  {tool.freeRunsPerDay} free runs/day · {tool.category}
-                </p>
+                <p className="font-medium text-white">{tool.name}</p>
+                <p className="mt-1 line-clamp-2 text-xs text-zinc-500">{tool.description}</p>
               </Link>
             ))}
           </div>
         </div>
       </section>
 
-      <section className="border-y border-white/10 bg-white/[0.02] px-4 py-16 sm:px-6">
-        <div className="mx-auto max-w-6xl">
-          <h2 className="text-center text-2xl font-bold text-white">
-            Built for every skill level
-          </h2>
-          <p className="mx-auto mt-2 max-w-xl text-center text-zinc-500">
-            From first-time AI users to terminal-running experts — the experience adapts to you.
+      <section className="border-t border-white/10 px-4 py-10 sm:px-6">
+        <div className="mx-auto flex max-w-3xl flex-col items-center gap-3 text-center sm:flex-row sm:justify-between sm:text-left">
+          <p className="text-sm text-zinc-500">
+            Questions on accounts, keys, MCP, free limits, or how tools work?
           </p>
-          <div className="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            {SKILL_LEVELS.map((level) => (
-              <div
-                key={level.id}
-                className={`rounded-xl border p-5 ${
-                  level.id === "expert"
-                    ? "border-red-500/30 bg-red-500/5"
-                    : "border-white/10 bg-[#0b0b12]"
-                }`}
-              >
-                <h3 className="font-semibold text-white">{level.label}</h3>
-                <p className="mt-1 text-xs text-violet-300/80">{level.tagline}</p>
-                <p className="mt-2 text-sm text-zinc-500">{level.description}</p>
-              </div>
-            ))}
-          </div>
-          <div className="mt-8 text-center">
+          <div className="flex flex-wrap justify-center gap-2">
             <Link
-              href="/auth/signup"
-              className="text-sm text-violet-400 hover:text-violet-300"
+              href="/chat"
+              className="rounded-xl bg-violet-600 px-4 py-2 text-sm font-medium text-white hover:bg-violet-500"
             >
-              Sign up free — we&apos;ll tailor tools to your level →
+              Ask the assistant
+            </Link>
+            <Link
+              href="/about"
+              className="rounded-xl border border-white/15 px-4 py-2 text-sm text-zinc-300 hover:bg-white/5"
+            >
+              About & FAQ
+            </Link>
+            <Link
+              href="/pricing"
+              className="rounded-xl border border-white/15 px-4 py-2 text-sm text-zinc-300 hover:bg-white/5"
+            >
+              Pricing
             </Link>
           </div>
-        </div>
-      </section>
-
-      <section className="border-t border-white/10 bg-gradient-to-b from-violet-950/20 to-transparent px-4 py-20 sm:px-6">
-        <div className="mx-auto max-w-4xl text-center">
-          <Megaphone className="mx-auto h-10 w-10 text-violet-400" />
-          <h2 className="mt-4 text-3xl font-bold text-white">
-            Not sure which AI to use?
-          </h2>
-          <p className="mt-4 text-zinc-400">
-            Tell us what you want to do. We&apos;ll suggest ChatGPT, Claude, Cursor,
-            Midjourney, local AI, MCP servers — everything that fits your task.
-          </p>
-          <Link
-            href="/ai-finder"
-            className="mt-8 inline-flex items-center gap-2 rounded-xl bg-cyan-600 px-8 py-3 font-medium text-white hover:bg-cyan-500"
-          >
-            <Search className="h-4 w-4" />
-            Find AI for any task
-          </Link>
-        </div>
-      </section>
-
-      <section className="px-4 py-20 sm:px-6">
-        <div className="mx-auto grid max-w-6xl gap-8 lg:grid-cols-3">
-          {[
-            {
-              icon: Sparkles,
-              title: "Creators & solopreneurs",
-              items: ["Ad copy & hooks", "Social captions", "Landing pages", "Content calendars"],
-            },
-            {
-              icon: Megaphone,
-              title: "Marketers & ad teams",
-              items: ["Campaign briefs", "Persona builder", "Ad creatives", "Competitor research"],
-            },
-            {
-              icon: Code,
-              title: "Developers & AI power users",
-              items: ["MCP setup guides", "Cursor rules", "Workflow automation", "Local AI (Ollama)"],
-            },
-          ].map((audience) => (
-            <div
-              key={audience.title}
-              className="rounded-2xl border border-white/10 p-6"
-            >
-              <audience.icon className="h-8 w-8 text-violet-400" />
-              <h3 className="mt-4 font-semibold text-white">{audience.title}</h3>
-              <ul className="mt-4 space-y-2">
-                {audience.items.map((item) => (
-                  <li key={item} className="text-sm text-zinc-500">• {item}</li>
-                ))}
-              </ul>
-            </div>
-          ))}
-        </div>
-      </section>
-
-      <section className="border-t border-white/10 px-4 py-20 sm:px-6">
-        <div className="mx-auto max-w-6xl">
-          <div className="grid gap-8 lg:grid-cols-2">
-            <div className="rounded-2xl border border-violet-500/30 bg-violet-500/10 p-8">
-              <Sparkles className="h-8 w-8 text-violet-400" />
-              <h2 className="mt-4 text-2xl font-bold text-white">For everyone else</h2>
-              <p className="mt-3 text-zinc-400">
-                Creators, marketers, beginners — try tools free, upgrade to Pro when you need more runs.
-              </p>
-              <Link
-                href="/pricing"
-                className="mt-6 inline-flex items-center gap-2 rounded-xl bg-violet-600 px-6 py-3 font-medium text-white hover:bg-violet-500"
-              >
-                See pricing
-                <ArrowRight className="h-4 w-4" />
-              </Link>
-            </div>
-            <div className="rounded-2xl border border-red-500/30 bg-red-500/10 p-8">
-              <Cpu className="h-8 w-8 text-red-400" />
-              <h2 className="mt-4 text-2xl font-bold text-white">Hardcore All-Access</h2>
-              <p className="mt-3 text-zinc-400">
-                Developers & AI power users — every tool, MCP configs, workflows, zero caps. One subscription.
-              </p>
-              <p className="mt-4 text-sm text-red-300/80">
-                {HARDCORE_BUNDLE.priceLabel}{HARDCORE_BUNDLE.period} · all tools included
-              </p>
-              <Link
-                href="/hardcore"
-                className="mt-6 inline-flex items-center gap-2 rounded-xl bg-red-600 px-6 py-3 font-medium text-white hover:bg-red-500"
-              >
-                Get All-Access
-                <ArrowRight className="h-4 w-4" />
-              </Link>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <section className="border-t border-white/10 px-4 py-20 sm:px-6">
-        <div className="mx-auto max-w-3xl rounded-2xl border border-violet-500/30 bg-violet-500/10 p-10 text-center">
-          <h2 className="text-2xl font-bold text-white">Start free. Upgrade when ready.</h2>
-          <p className="mt-3 text-zinc-400">
-            Basic tools free daily. Pro unlocks advanced workflows, MCP integrations,
-            and unlimited runs.
-          </p>
-          <Link
-            href="/pricing"
-            className="mt-6 inline-flex items-center gap-2 rounded-xl bg-white px-8 py-3 font-medium text-black hover:bg-zinc-200"
-          >
-            See pricing
-            <ArrowRight className="h-4 w-4" />
-          </Link>
         </div>
       </section>
     </>
