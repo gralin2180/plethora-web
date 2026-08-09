@@ -31,9 +31,9 @@ const FEATURES = [
   },
   {
     icon: Plug,
-    title: "Plethora MCP",
-    desc: "Agents call our catalog from Claude or Cursor.",
-    href: "/mcp#plethora-mcp",
+    title: "Connect & MCP",
+    desc: "Slack, Canva, Figma, Notion + Plethora MCP for agents.",
+    href: "/connect",
   },
 ];
 
@@ -76,6 +76,12 @@ export function HomePage() {
               className="text-sm text-zinc-500 hover:text-zinc-300"
             >
               About & FAQ →
+            </Link>
+            <Link
+              href="/connect"
+              className="text-sm text-zinc-500 hover:text-zinc-300"
+            >
+              Connect apps →
             </Link>
           </div>
         </div>

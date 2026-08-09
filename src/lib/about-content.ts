@@ -36,8 +36,8 @@ export const ABOUT_FAQS: { q: string; a: string }[] = [
     a: "Consensual adult content between adults is allowed after an 18+ confirm. Sexual content involving minors is hard-blocked. You stay responsible for what you generate.",
   },
   {
-    q: "Devices & workspaces?",
-    a: "Accounts can attach workspaces and limited browser seats (about 3 free, more on paid). Manage at /workspaces after the SQL schema is applied.",
+    q: "Can I connect Slack, Canva, Figma, Notion…?",
+    a: "Yes — open /connect. Mark apps connected, optionally store personal tokens only in your browser, and follow MCP / Zapier bridges. Full multi-tenant OAuth for every brand is an enterprise-style build (you or we register each developer app).",
   },
 ];
 
@@ -46,7 +46,7 @@ export function siteKnowledgeForAssistant(): string {
   return `## Product facts (answer user questions about Plethora accurately)
 ${ABOUT_FAQS.map((f) => `Q: ${f.q}\nA: ${f.a}`).join("\n\n")}
 
-Key routes: / · /about · /tools · /prompt-assistant · /ai-finder · /chat · /mcp · /install · /pricing · /learn · /settings/backends · /settings/ai-keys · /settings/personal · /workspaces · /dashboard · /hardcore · /legal/terms · /legal/privacy
+Key routes: / · /about · /connect · /tools · /prompt-assistant · /ai-finder · /chat · /mcp · /install · /pricing · /learn · /settings/backends · /settings/ai-keys · /settings/personal · /workspaces · /dashboard · /hardcore · /legal/terms · /legal/privacy
 
 When users ask how something on the site works, answer with exact paths and next clicks. Prefer internal /tools/... over sending them away. If unsure, say what you know and link /about or /chat for clarification.`;
 }

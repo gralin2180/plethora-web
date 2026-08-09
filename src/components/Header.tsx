@@ -36,6 +36,12 @@ const PRIMARY: NavItem[] = [
 
 const MORE: NavItem[] = [
   {
+    href: "/connect",
+    label: "Connect apps",
+    tour: "nav-connect",
+    hint: "Canva, Slack, Figma, Notion…",
+  },
+  {
     href: "/learn",
     label: "Learn AI",
     tour: "nav-learn",
@@ -316,6 +322,11 @@ export function Footer() {
           <div>
             <p className="text-sm font-medium text-zinc-300">Explore</p>
             <ul className="mt-3 space-y-2 text-sm text-zinc-500">
+              <li>
+                <Link href="/connect" className="hover:text-white">
+                  Connect apps
+                </Link>
+              </li>
               <li>
                 <Link href="/about" className="hover:text-white">
                   About & FAQ
