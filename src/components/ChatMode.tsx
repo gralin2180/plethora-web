@@ -52,6 +52,7 @@ export function ChatMode({
     text: string;
     assessment: SafetyAssessment;
   } | null>(null);
+  const [quotaNote, setQuotaNote] = useState<string | null>(null);
   const [lastUserText, setLastUserText] = useState("");
   const bottomRef = useRef<HTMLDivElement>(null);
 
@@ -82,10 +83,24 @@ export function ChatMode({
     }
     void fetch("/api/chat")
       .then((r) => r.json())
-      .then((d: { openrouterConfigured?: boolean; signedIn?: boolean }) => {
-        setLlmReady(Boolean(d.openrouterConfigured));
-        setSignedIn(Boolean(d.signedIn));
-      })
+      .then(
+        (d: {
+          openrouterConfigured?: boolean;
+          signedIn?: boolean;
+          guestDailyLimit?: number;
+          freeDailyLimit?: number;
+        }) => {
+          setLlmReady(Boolean(d.openrouterConfigured));
+          setSignedIn(Boolean(d.signedIn));
+          if (!d.signedIn && d.guestDailyLimit) {
+            setQuotaNote(
+              `Guest free AI: up to ${d.guestDailyLimit}/day · sign in for ~${d.freeDailyLimit ?? 40}/day · BYOK unlimited`
+            );
+          } else if (d.signedIn) {
+            setQuotaNote(`Signed in · free AI ~${d.freeDailyLimit ?? 40}/day (platform key)`);
+          }
+        }
+      )
       .catch(() => {
         setLlmReady(false);
         setSignedIn(false);
@@ -322,14 +337,18 @@ export function ChatMode({
         )}
 
         <div className="border-t border-white/10 bg-black/20 p-3">
+          {quotaNote && (
+            <p className="mb-2 text-[11px] text-zinc-500">{quotaNote}</p>
+          )}
           {signedIn === false && (
             <p className="mb-2 text-[11px] text-zinc-500">
+              Guests share free cloud models with a daily cap.{" "}
               <Link href="/auth/login?next=/chat" className="text-violet-400 hover:underline">
-                Sign in free
+                Sign in
               </Link>{" "}
-              for cloud AI, or set{" "}
+              for more, or{" "}
               <Link href="/settings/ai-keys" className="text-violet-400 hover:underline">
-                your own key
+                use your key
               </Link>
               .
             </p>

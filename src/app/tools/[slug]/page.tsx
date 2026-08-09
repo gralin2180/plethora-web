@@ -7,7 +7,6 @@ import { getToolBySlug } from "@/lib/tools-registry";
 import { FreeToolRunner, type FreeRunnerKind } from "@/components/FreeToolRunner";
 import { PromptToolStudio } from "@/components/PromptToolStudio";
 import { ToolVisitTracker } from "@/components/ToolVisitTracker";
-import { ToolHowItWorks } from "@/components/ToolHowItWorks";
 import { NodeWorkflowCanvas } from "@/components/NodeWorkflowCanvas";
 import { NODE_GRAPH_SLUGS } from "@/lib/tool-how-it-works";
 
@@ -184,8 +183,6 @@ export default async function ToolPage({ params }: Props) {
           {NODE_GRAPH_SLUGS.has(slug) && (
             <NodeWorkflowCanvas slug={slug} toolName={tool.name} />
           )}
-
-          <ToolHowItWorks slug={slug} name={tool.name} category={tool.category} />
         </div>
       </div>
     </SiteShell>

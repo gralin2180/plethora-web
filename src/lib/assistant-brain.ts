@@ -379,6 +379,17 @@ async function tryLlm(
   } catch {
     /* ignore */
   }
+
+  // Send prior turns only (exclude pure empty); keep last 20 messages for context
+  const prior = history
+    .filter((m) => m.role === "user" || m.role === "assistant")
+    .filter((m) => m.content?.trim())
+    .slice(-20)
+    .map((m) => ({
+      role: m.role as "user" | "assistant",
+      content: m.content.slice(0, 3500),
+    }));
+
   try {
     const res = await fetch("/api/chat", {
       method: "POST",
@@ -388,10 +399,7 @@ async function tryLlm(
         learnerContext: learner,
         adultConsent: opts?.adultConsent,
         byokKey,
-        history: history.slice(-14).map((m) => ({
-          role: m.role === "system" ? "assistant" : m.role,
-          content: m.content,
-        })),
+        history: prior,
       }),
     });
     const data = (await res.json()) as {
@@ -409,10 +417,7 @@ async function tryLlm(
   if (typeof window === "undefined" && hasFreeChatProvider()) {
     const r = await freeChatCompletion(
       text,
-      history.map((m) => ({
-        role: m.role === "system" ? "assistant" : m.role,
-        content: m.content,
-      })),
+      prior,
       { learnerContext: learner, adultMode: opts?.adultConsent }
     );
     if (r.ok && r.reply) return r.reply;

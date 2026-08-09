@@ -72,7 +72,14 @@ export function ProductTour() {
   useLayoutEffect(() => {
     if (!active) return;
     refresh();
-  }, [active, index, refresh]);
+    // Auto-skip targets that aren't on this page/layout so the tour never feels broken
+    if (!step?.target) return;
+    const el = queryTarget(step.target);
+    if (!el && index < total - 1) {
+      const t = window.setTimeout(() => setIndex((i) => i + 1), 50);
+      return () => clearTimeout(t);
+    }
+  }, [active, index, refresh, step, total]);
 
   useEffect(() => {
     if (!active) return;
@@ -185,11 +192,6 @@ export function ProductTour() {
           </button>
         </div>
         <p className="text-sm leading-relaxed text-zinc-300">{step.dialogue}</p>
-        {!rect && step.target && (
-          <p className="mt-2 text-xs text-amber-400/90">
-            That control is off-screen or on larger layouts — open the menu / widen the window, or keep going.
-          </p>
-        )}
         <div className="mt-4 flex items-center justify-between gap-2">
           <button
             type="button"
