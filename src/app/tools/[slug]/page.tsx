@@ -50,6 +50,13 @@ const FREE_RUNNERS = new Set<string>([
   "ai-summarizer",
   "meeting-notes-ai",
   "audio-transcribe",
+  "position-size",
+  "risk-reward",
+  "word-counter",
+  "case-converter",
+  "json-formatter",
+  "uuid-generator",
+  "percentage-calc",
 ]);
 
 const APP_REDIRECTS: Record<string, string> = {
@@ -137,8 +144,14 @@ export default async function ToolPage({ params }: Props) {
                   {tool.bestModels.join(" · ")}
                 </p>
               )}
-              <p className="mt-2 text-xs text-zinc-600">
-                {tool.freeRunsPerDay} free runs/day · {tool.category}
+              <p className="mt-2 text-xs leading-relaxed text-zinc-500">
+                <span className="text-zinc-400">{tool.freeRunsPerDay} free uses per day</span>
+                {" · "}
+                {tool.category}
+                {" · "}
+                on Free plan this is how many times you can run this tool each day (resets daily;
+                higher limits on paid plans). Browser-only tools still work offline when the page is
+                loaded.
               </p>
             </div>
             <div className="px-6 py-6 sm:px-8">

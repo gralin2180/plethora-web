@@ -7,11 +7,13 @@ import {
   ChevronDown,
   HardDrive,
   Menu,
+  Map,
   Sparkles,
   X,
 } from "lucide-react";
 import { UserMenu } from "@/components/UserMenu";
 import type { User as SupaUser } from "@supabase/supabase-js";
+import { startProductTour } from "@/lib/product-tour";
 
 type NavItem = {
   href: string;
@@ -21,16 +23,16 @@ type NavItem = {
   accent?: "local" | "hardcore";
 };
 
-/** Primary destinations — keep the bar short */
+/** Primary destinations — keep scannable */
 const PRIMARY: NavItem[] = [
   { href: "/tools", label: "Tools", tour: "nav-tools" },
   { href: "/learn", label: "Learn", tour: "nav-learn" },
   { href: "/chat", label: "Chat", tour: "nav-chat" },
   { href: "/ai-finder", label: "Finder", tour: "nav-ai-finder" },
+  { href: "/mcp", label: "MCP", tour: "nav-mcp" },
   { href: "/pricing", label: "Pricing", tour: "nav-pricing" },
 ];
 
-/** Everything else lives under More — no duplicates on the bar */
 const MORE: NavItem[] = [
   {
     href: "/prompt-assistant",
@@ -45,16 +47,10 @@ const MORE: NavItem[] = [
     hint: "Apps & local stack",
   },
   {
-    href: "/mcp",
-    label: "MCP Hub",
-    tour: "nav-mcp",
-    hint: "Servers for Cursor / Claude",
-  },
-  {
     href: "/settings/backends",
-    label: "Local AI",
+    label: "Local AI backends",
     tour: "nav-backends",
-    hint: "Your GPU & backends",
+    hint: "Install Ollama, OpenClaw, Odysseus…",
     accent: "local",
   },
   {
@@ -62,6 +58,18 @@ const MORE: NavItem[] = [
     label: "Personal context",
     tour: "nav-personal",
     hint: "What the assistant should know",
+  },
+  {
+    href: "/tools?category=Trading",
+    label: "Trading tools",
+    tour: "nav-trading",
+    hint: "Position size, journals, briefs",
+  },
+  {
+    href: "/tools?category=Marketing%20%26%20Ads",
+    label: "Marketing tools",
+    tour: "nav-marketing",
+    hint: "Ads, email, SEO, calendars",
   },
   {
     href: "/hardcore",
@@ -191,11 +199,21 @@ export function Header({ user = null }: { user?: SupaUser | null }) {
         </nav>
 
         <div className="ml-auto flex shrink-0 items-center gap-2">
+          <button
+            type="button"
+            data-tour="nav-tour"
+            onClick={() => startProductTour()}
+            className="hidden items-center gap-1.5 rounded-lg border border-white/10 px-2.5 py-1.5 text-sm text-zinc-300 hover:bg-white/5 sm:inline-flex"
+            title="Take a short tour"
+          >
+            <Map className="h-3.5 w-3.5" />
+            Tour
+          </button>
           <Link
             href="/settings/backends"
-            data-tour="link-backends"
-            className="hidden items-center gap-1.5 rounded-lg border border-cyan-500/35 bg-cyan-500/10 px-2.5 py-1.5 text-sm font-medium text-cyan-200 hover:bg-cyan-500/20 sm:inline-flex"
-            title="Local AI backends"
+            data-tour="nav-backends"
+            className="hidden items-center gap-1.5 rounded-lg border border-cyan-500/35 bg-cyan-500/10 px-2.5 py-1.5 text-sm font-medium text-cyan-200 hover:bg-cyan-500/20 lg:inline-flex"
+            title="Install and configure local AI"
           >
             <HardDrive className="h-3.5 w-3.5" />
             Local AI
@@ -233,6 +251,17 @@ export function Header({ user = null }: { user?: SupaUser | null }) {
             <p className="px-2 pb-1 pt-3 text-[10px] font-semibold uppercase tracking-wider text-zinc-600">
               More
             </p>
+            <button
+              type="button"
+              onClick={() => {
+                setMobileOpen(false);
+                startProductTour();
+              }}
+              className="flex w-full items-center gap-2 rounded-lg px-3 py-2.5 text-left text-sm text-zinc-300"
+            >
+              <Map className="h-4 w-4" />
+              Take a site tour
+            </button>
             {MORE.map((item) => (
               <Link
                 key={`m-${item.href}`}
@@ -263,7 +292,7 @@ export function Footer() {
           <div>
             <p className="font-semibold text-white">Plethora</p>
             <p className="mt-2 text-sm text-zinc-500">
-              Find it. Run it. One roof. Tools, prompts, local AI — stop tab-hopping.
+              Free utilities, AI, marketing, trading, MCP, and local installs — one roof.
             </p>
             <div className="mt-4 flex flex-col gap-2">
               <Link

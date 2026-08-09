@@ -2,24 +2,33 @@
 
 import { useMemo, useState } from "react";
 import Link from "next/link";
-import { Check, Copy, ExternalLink, Plug } from "lucide-react";
+import { Check, Copy, ExternalLink, Plug, Search } from "lucide-react";
 import {
   MCP_CATEGORIES,
   MCP_CLIENTS,
   MCP_SERVERS,
   type McpServer,
 } from "@/lib/mcp-registry";
+import { McpBuilderLab } from "@/components/InstallAndMcpHelpers";
 
 export function McpHubPage() {
   const [category, setCategory] = useState<string>("all");
   const [client, setClient] = useState(MCP_CLIENTS[0].id);
   const [copiedId, setCopiedId] = useState<string | null>(null);
+  const [q, setQ] = useState("");
 
   const activeClient = MCP_CLIENTS.find((c) => c.id === client) ?? MCP_CLIENTS[0];
 
   const servers = useMemo(() => {
-    return MCP_SERVERS.filter((s) => category === "all" || s.category === category);
-  }, [category]);
+    const base = MCP_SERVERS.filter((s) => category === "all" || s.category === category);
+    if (!q.trim()) return base;
+    const qq = q.trim().toLowerCase();
+    return base.filter((s) =>
+      `${s.name} ${s.description} ${s.whyUse} ${s.tags.join(" ")} ${s.taskKeywords.join(" ")}`
+        .toLowerCase()
+        .includes(qq)
+    );
+  }, [category, q]);
 
   async function copySnippet(server: McpServer) {
     if (!server.configSnippet) return;
@@ -33,21 +42,24 @@ export function McpHubPage() {
       <div className="flex items-center gap-3">
         <Plug className="h-8 w-8 text-emerald-400" />
         <div>
-          <h1 className="text-3xl font-bold text-white">MCP Hub</h1>
-          <p className="mt-1 text-zinc-500">
-            Model Context Protocol servers for every serious AI surface — Claude Desktop & web,
-            ChatGPT connectors, Cursor, terminal agents, and more. Tools should work{" "}
-            <span className="text-zinc-300">automatically once connected</span> (approve when asked).
+          <h1 className="text-3xl font-semibold tracking-tight text-white">MCP Hub</h1>
+          <p className="mt-1 text-sm leading-relaxed text-zinc-400">
+            Model Context Protocol (MCP) lets AI clients call external tools — files, browser,
+            Gmail, GitHub, databases, and more. Plethora lists{" "}
+            <span className="text-zinc-200">host apps</span>,{" "}
+            <span className="text-zinc-200">ready-made servers</span>, and a starter for{" "}
+            <span className="text-zinc-200">your own local MCP</span>. After a host is configured,
+            tools appear in chat (approve when asked).
           </p>
         </div>
       </div>
 
-      {/* Multi-client setup — Claude first */}
       <section className="mt-10">
-        <h2 className="text-xl font-semibold text-white">1. Pick where your AI lives</h2>
-        <p className="mt-1 text-sm text-zinc-500">
-          No Claude or ChatGPT yet? Start with Claude on the web (prompt only), then Claude Desktop
-          for full MCP. We do not lock you to Cursor.
+        <h2 className="text-xl font-semibold text-white">1. Choose an MCP host</h2>
+        <p className="mt-1 text-sm leading-relaxed text-zinc-500">
+          Pick any host you already use or want to install. Each option shows what Plethora provides
+          for that surface — setup steps, download link, and how tools load. Support for MCP varies
+          by product and plan; we document known paths rather than locking you to one vendor.
         </p>
         <div className="mt-4 flex flex-wrap gap-2">
           {MCP_CLIENTS.map((c) => (
@@ -78,10 +90,10 @@ export function McpHubPage() {
               rel="noopener noreferrer"
               className="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-500"
             >
-              Open download / app
+              Official site / download
             </a>
           </div>
-          <ol className="mt-5 list-decimal space-y-2 pl-5 text-sm text-zinc-400">
+          <ol className="mt-5 list-decimal space-y-2 pl-5 text-sm leading-relaxed text-zinc-400">
             {activeClient.steps.map((s) => (
               <li key={s}>{s}</li>
             ))}
@@ -89,25 +101,26 @@ export function McpHubPage() {
           <p className="mt-4 rounded-lg border border-emerald-500/20 bg-black/20 px-3 py-2 text-sm text-emerald-200/90">
             {activeClient.autoNote}
           </p>
-          {activeClient.id === "claude-web" && (
-            <p className="mt-3 text-sm text-zinc-500">
-              Still zero apps installed? Go to{" "}
-              <a href="https://claude.ai" className="text-emerald-400 hover:underline" target="_blank" rel="noopener noreferrer">
-                claude.ai
-              </a>
-              , sign up free, then return here when you want MCP tools via Desktop.
-            </p>
-          )}
         </div>
       </section>
 
-      {/* Server catalog */}
       <section className="mt-14">
         <h2 className="text-xl font-semibold text-white">2. Browse MCP servers</h2>
         <p className="mt-1 text-sm text-zinc-500">
-          {MCP_SERVERS.length}+ practical servers across automation, browser, data, design, and ops.
-          Add what matches your work — not only coding.
+          {MCP_SERVERS.length} servers across automation, browser, data, design, and ops. Copy
+          config snippets into your host where supported.
         </p>
+
+        <div className="relative mt-4">
+          <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-zinc-500" />
+          <input
+            value={q}
+            onChange={(e) => setQ(e.target.value)}
+            placeholder="Search servers — GitHub, browser, Gmail, Zapier…"
+            className="w-full rounded-xl border border-white/10 bg-black/40 py-2.5 pl-10 pr-3 text-sm text-white outline-none focus:border-emerald-500/40"
+          />
+        </div>
+
         <div className="mt-4 flex flex-wrap gap-2">
           {MCP_CATEGORIES.map((cat) => (
             <button
@@ -125,7 +138,12 @@ export function McpHubPage() {
           ))}
         </div>
 
-        <div className="mt-6 grid gap-4">
+        <p className="mt-3 text-xs text-zinc-600">
+          {servers.length} result{servers.length === 1 ? "" : "s"}
+          {q.trim() ? ` for “${q.trim()}”` : ""}
+        </p>
+
+        <div className="mt-4 grid gap-4">
           {servers.map((tool) => (
             <article
               key={tool.id}
@@ -136,19 +154,17 @@ export function McpHubPage() {
                   <h3 className="font-medium text-white">{tool.name}</h3>
                   <p className="mt-1 text-sm text-zinc-500">{tool.description}</p>
                 </div>
-                <div className="flex items-center gap-2">
-                  {tool.url && (
-                    <a
-                      href={tool.url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-zinc-500 hover:text-white"
-                      title="Docs / site"
-                    >
-                      <ExternalLink className="h-4 w-4" />
-                    </a>
-                  )}
-                </div>
+                {tool.url && (
+                  <a
+                    href={tool.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-zinc-500 hover:text-white"
+                    title="Docs / site"
+                  >
+                    <ExternalLink className="h-4 w-4" />
+                  </a>
+                )}
               </div>
               <p className="mt-3 text-sm text-zinc-300">
                 <span className="text-emerald-400/90">Why use it:</span> {tool.whyUse}
@@ -171,19 +187,11 @@ export function McpHubPage() {
                     {w}
                   </span>
                 ))}
-                {tool.tags.map((tag) => (
-                  <span
-                    key={tag}
-                    className="rounded-full border border-white/10 px-2 py-0.5 text-[10px] text-zinc-600"
-                  >
-                    {tag}
-                  </span>
-                ))}
               </div>
               {tool.configSnippet && (
                 <div className="mt-4">
                   <div className="mb-1 flex items-center justify-between">
-                    <span className="text-xs text-zinc-600">Example config (Claude Desktop / Cursor)</span>
+                    <span className="text-xs text-zinc-600">Example host config</span>
                     <button
                       type="button"
                       onClick={() => copySnippet(tool)}
@@ -204,31 +212,30 @@ export function McpHubPage() {
               )}
             </article>
           ))}
+          {servers.length === 0 && (
+            <p className="rounded-xl border border-white/10 px-4 py-6 text-center text-sm text-zinc-500">
+              No servers match that search. Try another keyword or category.
+            </p>
+          )}
         </div>
       </section>
 
-      <section className="mt-14 rounded-2xl border border-white/10 bg-white/[0.02] p-6">
-        <h2 className="text-lg font-semibold text-white">How “automatic” MCP works</h2>
-        <ul className="mt-3 space-y-2 text-sm text-zinc-400">
-          <li>
-            1. You connect a server once (Desktop / Cursor / ChatGPT connectors when available).
-          </li>
-          <li>
-            2. You paste a Plethora prompt or ask for a task. The model decides when a tool is needed.
-          </li>
-          <li>
-            3. You approve the tool call. After that, multi-step runs feel automatic — email, browser,
-            files, CRM — without you leaving the chat.
-          </li>
-          <li>
-            4. Web-only Claude or ChatGPT still work without MCP: use our{" "}
-            <Link href="/ai-finder" className="text-cyan-400 hover:underline">
-              AI Finder
-            </Link>{" "}
-            ready prompts until you install Desktop.
-          </li>
-        </ul>
+      <section className="mt-14">
+        <h2 className="mb-4 text-xl font-semibold text-white">3. Create your own MCP</h2>
+        <McpBuilderLab />
       </section>
+
+      <p className="mt-10 text-center text-sm text-zinc-600">
+        Need a different host path?{" "}
+        <Link href="/chat" className="text-violet-400 hover:underline">
+          Ask Chat
+        </Link>{" "}
+        or browse{" "}
+        <Link href="/install" className="text-violet-400 hover:underline">
+          Install Hub
+        </Link>
+        .
+      </p>
     </div>
   );
 }

@@ -11,6 +11,7 @@ import {
   type LocalBackendProfile,
 } from "@/lib/local-backends";
 import { costBadgeClass } from "@/lib/local-ai-catalog";
+import { BackendInstallGuide } from "@/components/InstallAndMcpHelpers";
 
 export function BackendsSettingsClient() {
   const [profile, setProfile] = useState<LocalBackendProfile>(DEFAULT_BACKEND_PROFILES[0]);
@@ -101,8 +102,13 @@ export function BackendsSettingsClient() {
         ))}
       </div>
 
+      {profile.kind !== "none" && profile.id !== "claude-cloud" && (
+        <BackendInstallGuide backendId={profile.id} name={profile.label} />
+      )}
+
       {profile.kind !== "none" && (
         <div className="mt-8 space-y-4 rounded-2xl border border-white/10 p-5">
+          <p className="text-sm font-medium text-white">Connection details (after install)</p>
           <label className="block text-sm text-zinc-400">
             Base URL
             <input

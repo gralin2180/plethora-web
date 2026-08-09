@@ -43,6 +43,15 @@ import {
   MeetingNotesLab,
   YoutubeCaptionsLab,
 } from "@/components/AiToolLabs";
+import {
+  CaseConverterLab,
+  JsonFormatterLab,
+  PercentageLab,
+  PositionSizeLab,
+  RiskRewardLab,
+  UuidLab,
+  WordCounterLab,
+} from "@/components/DomainToolLabs";
 
 export type FreeRunnerKind =
   | "image-to-pdf"
@@ -83,7 +92,14 @@ export type FreeRunnerKind =
   | "local-ai-directory"
   | "ai-summarizer"
   | "meeting-notes-ai"
-  | "audio-transcribe";
+  | "audio-transcribe"
+  | "position-size"
+  | "risk-reward"
+  | "word-counter"
+  | "case-converter"
+  | "json-formatter"
+  | "uuid-generator"
+  | "percentage-calc";
 
 export function FreeToolRunner({ kind, title }: { kind: FreeRunnerKind; title: string }) {
   const [status, setStatus] = useState("");
@@ -286,6 +302,13 @@ export function FreeToolRunner({ kind, title }: { kind: FreeRunnerKind; title: s
   if (kind === "ai-summarizer") return <AiSummarizerLab />;
   if (kind === "meeting-notes-ai") return <MeetingNotesLab />;
   if (kind === "audio-transcribe") return <AudioTranscribeLab />;
+  if (kind === "position-size") return <PositionSizeLab />;
+  if (kind === "risk-reward") return <RiskRewardLab />;
+  if (kind === "word-counter") return <WordCounterLab />;
+  if (kind === "case-converter") return <CaseConverterLab />;
+  if (kind === "json-formatter") return <JsonFormatterLab />;
+  if (kind === "uuid-generator") return <UuidLab />;
+  if (kind === "percentage-calc") return <PercentageLab />;
 
   if (kind === "doc-converter") {
     return (

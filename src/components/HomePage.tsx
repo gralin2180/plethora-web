@@ -56,32 +56,37 @@ export function HomePage() {
         <div className="relative mx-auto max-w-5xl text-center">
           <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-violet-500/40 bg-violet-500/15 px-5 py-2 text-sm font-medium text-violet-200 sm:text-base">
             <Sparkles className="h-4 w-4" />
-            Find it. Run it. One roof.
+            Tools. AI. One place.
           </div>
           <h1 className="text-4xl font-semibold tracking-tight text-white sm:text-6xl sm:leading-[1.12]">
-            <span className="block pb-1">Stop hunting 40 tabs</span>
-            <span className="mt-1 block bg-gradient-to-r from-violet-300 via-violet-400 to-cyan-300 bg-clip-text pb-[0.18em] leading-[1.2] text-transparent sm:mt-2">
-              We gather the tools for you
+            <span className="block pb-1">Everything you need to ship,</span>
+            <span className="mt-1 block bg-gradient-to-r from-violet-300 via-violet-400 to-cyan-300 bg-clip-text pb-[0.2em] leading-[1.25] text-transparent sm:mt-2">
+              without twenty open tabs
             </span>
           </h1>
           <p className="mx-auto mt-7 max-w-2xl text-lg leading-relaxed text-zinc-400">
-            Apps, converters, and prompts are scattered across the web. Plethora brings free utilities,
-            smart discovery, and local AI options into one clear place — so you finish work faster.
+            Run free utilities, marketing and trading helpers, AI studios, and local GPU installs
+            under one roof — plus MCP servers so your models can use tools, not just chat.
           </p>
           <div className="mt-10 flex flex-col items-center justify-center gap-4 sm:flex-row">
             <Link
               href="/tools"
               className="flex items-center gap-2 rounded-xl bg-violet-600 px-8 py-3.5 font-medium text-white hover:bg-violet-500"
             >
-              Browse all tools
+              Browse tools
               <ArrowRight className="h-4 w-4" />
             </Link>
             <Link
-              href="/learn"
+              href="/mcp"
               className="flex items-center gap-2 rounded-xl border border-white/15 bg-white/[0.03] px-8 py-3.5 font-medium text-zinc-100 hover:bg-white/[0.06]"
             >
-              <BookOpen className="h-4 w-4" />
-              Learn how to use AI
+              MCP Hub
+            </Link>
+            <Link
+              href="/settings/backends"
+              className="flex items-center gap-2 rounded-xl border border-cyan-500/30 bg-cyan-500/10 px-8 py-3.5 font-medium text-cyan-100 hover:bg-cyan-500/20"
+            >
+              Install local AI
             </Link>
           </div>
         </div>

@@ -12,7 +12,10 @@ export type McpClient =
   | "vscode"
   | "claude-code"
   | "cline"
-  | "continue";
+  | "continue"
+  | "zed"
+  | "gemini-cli"
+  | "raycast";
 
 export interface McpServer {
   id: string;
@@ -173,6 +176,45 @@ export const MCP_CLIENTS: {
       "Install Continue in VS Code or JetBrains.",
       "Edit config.yaml / JSON for models and tools.",
       "Reload and paste prompts in Continue chat.",
+    ],
+  },
+  {
+    id: "zed",
+    name: "Zed",
+    setupPriority: 10,
+    summary: "Fast editor with agent / MCP-oriented integrations (check current Zed docs for MCP).",
+    url: "https://zed.dev",
+    autoNote: "Follow Zed’s agent settings for external tools once configured.",
+    steps: [
+      "Install Zed from zed.dev.",
+      "Open Settings → Agents / integrations.",
+      "Add MCP or tool connections as documented for your version.",
+    ],
+  },
+  {
+    id: "gemini-cli",
+    name: "Gemini CLI / Google AI tools",
+    setupPriority: 11,
+    summary: "Google’s developer surfaces; MCP and tool support evolve by product.",
+    url: "https://ai.google.dev",
+    autoNote: "Use official Google docs for connectors available on your account.",
+    steps: [
+      "Open ai.google.dev or Gemini in the product you use.",
+      "Enable any available extensions or tools.",
+      "Where MCP or custom tools are supported, paste server configs per Google docs.",
+    ],
+  },
+  {
+    id: "raycast",
+    name: "Raycast AI",
+    setupPriority: 12,
+    summary: "macOS launcher with AI commands and extensions (not full Desktop MCP for all servers).",
+    url: "https://www.raycast.com",
+    autoNote: "Prefer Claude Desktop or Cursor when you need full MCP server JSON.",
+    steps: [
+      "Install Raycast (macOS).",
+      "Enable AI features / AI extensions you trust.",
+      "Use extensions marketplace for integrations; for classic MCP JSON hosts, use Desktop/Cursor.",
     ],
   },
 ];

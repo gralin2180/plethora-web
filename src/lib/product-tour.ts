@@ -1,5 +1,5 @@
 /**
- * Interactive, highlight-based product tour (not a markdown dump).
+ * Interactive, highlight-based product tour.
  */
 
 export const TOUR_EVENT = "plethora:start-tour";
@@ -7,7 +7,6 @@ export const TOUR_DONE_EVENT = "plethora:tour-done";
 
 export type TourStep = {
   id: string;
-  /** Matches data-tour on the target element */
   target: string | null;
   title: string;
   dialogue: string;
@@ -18,9 +17,25 @@ export const TOUR_STEPS: TourStep[] = [
   {
     id: "welcome",
     target: "logo",
-    title: "Welcome to Plethora",
+    title: "Plethora overview",
     dialogue:
-      "Quick live tour — I'll light up each spot and talk you through it. No walls of text. Next takes you on.",
+      "One hub for free utilities, AI tools, marketing/trading helpers, local AI installs, and MCP servers. Use Next to follow the main routes.",
+    placement: "bottom",
+  },
+  {
+    id: "tools",
+    target: "nav-tools",
+    title: "Tools library",
+    dialogue:
+      "Browse here first. Free Utilities (PDF, network, counters) are separate from AI Tools (captions, chat, local stacks). Use category chips for Marketing, Trading, and more.",
+    placement: "bottom",
+  },
+  {
+    id: "learn",
+    target: "nav-learn",
+    title: "Learn",
+    dialogue:
+      "Short lessons and copy-ready prompts if you want skills before tools — clear language, no jargon dump.",
     placement: "bottom",
   },
   {
@@ -28,39 +43,15 @@ export const TOUR_STEPS: TourStep[] = [
     target: "nav-chat",
     title: "Chat",
     dialogue:
-      "Talk about anything here — mood, ideas, homework, strategy. Not just \"tools\". Same brain as the purple button.",
+      "Ask anything about Plethora or your work. Good place to type “tour” again or “find a tool for …”",
     placement: "bottom",
   },
   {
-    id: "ai-finder",
+    id: "finder",
     target: "nav-ai-finder",
-    title: "AI Finder",
+    title: "Finder",
     dialogue:
-      "Got a concrete goal? Describe it and I'll stack tools, free repos, and how-tos — only when you want that mode.",
-    placement: "bottom",
-  },
-  {
-    id: "prompt",
-    target: "nav-prompt",
-    title: "Prompt Assistant",
-    dialogue:
-      "Messy goal in, expert-ready prompt out. Works for Claude, ChatGPT, or local models.",
-    placement: "bottom",
-  },
-  {
-    id: "tools",
-    target: "nav-tools",
-    title: "Tools",
-    dialogue:
-      "Free utilities: image→PDF, format convert, PDF merge in the browser, plus guides for the heavier local stuff.",
-    placement: "bottom",
-  },
-  {
-    id: "install",
-    target: "nav-install",
-    title: "Install Hub",
-    dialogue:
-      "Free GitHub installs — Ollama, scrapers, agent frameworks. Copy-friendly setup paths.",
+      "Describe a goal and get stacked recommendations — apps, free repos, and when MCP fits.",
     placement: "bottom",
   },
   {
@@ -68,7 +59,7 @@ export const TOUR_STEPS: TourStep[] = [
     target: "nav-mcp",
     title: "MCP Hub",
     dialogue:
-      "Plug tools into Claude Desktop, Cursor, and friends so your agents can actually do things.",
+      "Connect tool servers to AI hosts (Claude Desktop, Cursor, VS Code extensions, and more). Search servers or build a custom local MCP scaffold.",
     placement: "bottom",
   },
   {
@@ -76,7 +67,15 @@ export const TOUR_STEPS: TourStep[] = [
     target: "nav-backends",
     title: "Local AI",
     dialogue:
-      "Big deal: wire Ollama / LM Studio here. Free private models on your machine — not a tiny footer link.",
+      "Install Ollama, OpenClaw, Odysseus, LM Studio, and friends with copy-paste PC commands — then save localhost URLs here.",
+    placement: "bottom",
+  },
+  {
+    id: "prompt",
+    target: "nav-prompt",
+    title: "Prompt Assistant",
+    dialogue:
+      "Turn a messy goal into a model-ready prompt you can paste into Claude, ChatGPT, or a local model.",
     placement: "bottom",
   },
   {
@@ -84,47 +83,23 @@ export const TOUR_STEPS: TourStep[] = [
     target: "nav-pricing",
     title: "Pricing",
     dialogue:
-      "Free roof first. Pro, Team, Enterprise on-call, Hardcore for power users. Only pay when volume or humans matter.",
-    placement: "bottom",
-  },
-  {
-    id: "hardcore",
-    target: "nav-hardcore",
-    title: "Hardcore",
-    dialogue:
-      "When you're deep: full stack, scrapers, agents. Skip this forever if you're keeping it chill.",
+      "Free daily uses cover most exploration. Paid plans raise limits when you run tools harder.",
     placement: "bottom",
   },
   {
     id: "assistant",
     target: "fab-assistant",
-    title: "Your sidekick",
+    title: "Floating assistant",
     dialogue:
-      "This button opens me anywhere. Same chat, no tab switch. Perfect when you're mid-page.",
-    placement: "top",
-  },
-  {
-    id: "personal",
-    target: "link-personal",
-    title: "Personal context",
-    dialogue:
-      "Optional notes that stay on your device. Makes answers feel more \"you\" — we don't harvest that file.",
-    placement: "top",
-  },
-  {
-    id: "backends-footer",
-    target: "link-backends",
-    title: "Local backends (again)",
-    dialogue:
-      "Same Local AI path — also huge in the footer now so you can't miss it. GPU home base.",
+      "Open chat from any page without leaving. Same brain as /chat.",
     placement: "top",
   },
   {
     id: "done",
     target: null,
-    title: "You're set",
+    title: "You’re ready",
     dialogue:
-      "That's the map. Poke around, or just keep talking — I'm here for life stuff too, not only product tours.",
+      "Start with Tools → pick Free Utilities or AI Tools, or open Local AI if you own a GPU. Restart this tour anytime from the header or by asking Chat for a tour.",
     placement: "center",
   },
 ];
@@ -140,4 +115,4 @@ export function finishProductTour(): void {
 }
 
 export const TOUR_CHAT_OPENING =
-  "On it — live tour mode. Follow the highlights and short dialogues. Hit Next / Back, or Skip anytime.";
+  "Starting the guided tour — follow the highlights. Next / Back or Skip anytime. Arrow keys also work.";

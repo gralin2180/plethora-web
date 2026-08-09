@@ -1,6 +1,7 @@
 import type { PlatformTool } from "./types";
 import { FREE_UTILITY_TOOLS } from "./free-utilities";
 import { AI_TOOL_TOOLS } from "./ai-tools";
+import { DOMAIN_EXTRA_TOOLS } from "./domain-tools";
 
 function t(partial: PlatformTool): PlatformTool {
   return { runner: partial.runner ?? "prompt-studio", ...partial };
@@ -121,6 +122,7 @@ export const PLATFORM_TOOLS: PlatformTool[] = [
 
   ...FREE_UTILITY_TOOLS,
   ...AI_TOOL_TOOLS,
+  ...DOMAIN_EXTRA_TOOLS,
 
   // ——— Writer ———
   t({
@@ -675,9 +677,10 @@ export const TOOL_CATEGORIES = [
   "All",
   "Free Utilities",
   "AI Tools",
+  "Marketing & Ads",
+  "Trading",
   "Office",
   "Writer",
-  "Marketing & Ads",
   "Content",
   "Developer",
   "Automation",

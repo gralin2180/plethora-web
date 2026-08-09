@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import {
   BookOpen,
   Bot,
@@ -76,6 +77,8 @@ import {
   Cpu,
   Mic,
   FileStack,
+  Hash,
+  FlaskConical,
   type LucideIcon,
 } from "lucide-react";
 import { PLATFORM_TOOLS, TOOL_CATEGORIES, searchTools } from "@/lib/tools-registry";
@@ -157,6 +160,9 @@ const ICONS: Record<string, LucideIcon> = {
   Cpu,
   Mic,
   FileStack,
+  Hash,
+  FlaskConical,
+  TrendingUp,
 };
 
 type SmartTab = "all" | "popular" | "recent" | "foryou";
@@ -169,7 +175,13 @@ function toolHref(slug: string) {
 }
 
 export function ToolsGrid() {
-  const [category, setCategory] = useState<string>("All");
+  const searchParams = useSearchParams();
+  const initialCat = searchParams.get("category");
+  const [category, setCategory] = useState<string>(
+    initialCat && (TOOL_CATEGORIES as readonly string[]).includes(initialCat)
+      ? initialCat
+      : "All"
+  );
   const [q, setQ] = useState("");
   const [tab, setTab] = useState<SmartTab>("all");
   const [tick, setTick] = useState(0);
@@ -177,6 +189,11 @@ export function ToolsGrid() {
   useEffect(() => {
     setTick((n) => n + 1);
   }, []);
+
+  useEffect(() => {
+    const c = searchParams.get("category");
+    if (c && (TOOL_CATEGORIES as readonly string[]).includes(c)) setCategory(c);
+  }, [searchParams]);
 
   const filtered = useMemo(() => {
     let list: PlatformTool[];
@@ -428,7 +445,11 @@ export function ToolsGrid() {
                 )}
                 <div className="mt-auto flex items-center justify-between pt-4 text-[11px] text-zinc-600">
                   <span>{tool.category}</span>
-                  <span>{tool.freeRunsPerDay}/day</span>
+                  <span
+                    title={`${tool.freeRunsPerDay} free uses per day on the Free plan (resets daily). Paid plans raise this limit.`}
+                  >
+                    {tool.freeRunsPerDay}/day free
+                  </span>
                 </div>
               </Link>
             </div>
