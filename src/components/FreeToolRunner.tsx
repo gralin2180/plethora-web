@@ -35,6 +35,14 @@ import {
   PingTestLab,
   SpeedTestLab,
 } from "@/components/NetworkTools";
+import {
+  AiSummarizerLab,
+  AudioTranscribeLab,
+  LocalAiDirectoryLab,
+  LocalAiHardwareAdvisor,
+  MeetingNotesLab,
+  YoutubeCaptionsLab,
+} from "@/components/AiToolLabs";
 
 export type FreeRunnerKind =
   | "image-to-pdf"
@@ -45,6 +53,7 @@ export type FreeRunnerKind =
   | "pdf-to-doc"
   | "bg-remover"
   | "youtube-downloader"
+  | "youtube-to-captions"
   | "video-converter"
   | "doc-converter"
   | "image-to-prompt"
@@ -69,7 +78,12 @@ export type FreeRunnerKind =
   | "build-your-tool"
   | "request-tool"
   | "life-planner"
-  | "calendar-generator";
+  | "calendar-generator"
+  | "local-ai-hardware"
+  | "local-ai-directory"
+  | "ai-summarizer"
+  | "meeting-notes-ai"
+  | "audio-transcribe";
 
 export function FreeToolRunner({ kind, title }: { kind: FreeRunnerKind; title: string }) {
   const [status, setStatus] = useState("");
@@ -266,6 +280,12 @@ export function FreeToolRunner({ kind, title }: { kind: FreeRunnerKind; title: s
   if (kind === "youtube-downloader") {
     return <YoutubeDual title={title} track={track} />;
   }
+  if (kind === "youtube-to-captions") return <YoutubeCaptionsLab />;
+  if (kind === "local-ai-hardware") return <LocalAiHardwareAdvisor />;
+  if (kind === "local-ai-directory") return <LocalAiDirectoryLab />;
+  if (kind === "ai-summarizer") return <AiSummarizerLab />;
+  if (kind === "meeting-notes-ai") return <MeetingNotesLab />;
+  if (kind === "audio-transcribe") return <AudioTranscribeLab />;
 
   if (kind === "doc-converter") {
     return (

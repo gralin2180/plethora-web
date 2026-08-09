@@ -1,5 +1,6 @@
 import type { PlatformTool } from "./types";
 import { FREE_UTILITY_TOOLS } from "./free-utilities";
+import { AI_TOOL_TOOLS } from "./ai-tools";
 
 function t(partial: PlatformTool): PlatformTool {
   return { runner: partial.runner ?? "prompt-studio", ...partial };
@@ -12,7 +13,7 @@ export const PLATFORM_TOOLS: PlatformTool[] = [
     name: "Prompt Engineering Assistant",
     slug: "prompt-assistant",
     description: "Messy idea → expert prompt with clarifying questions.",
-    category: "AI Basics",
+    category: "AI Tools",
     icon: "MessageSquare",
     freeRunsPerDay: 10,
     isPro: false,
@@ -27,7 +28,7 @@ export const PLATFORM_TOOLS: PlatformTool[] = [
     name: "AI Tool Finder",
     slug: "ai-finder",
     description: "Describe a task → stack of tools, free repos, MCP ideas.",
-    category: "AI Basics",
+    category: "AI Tools",
     icon: "Search",
     freeRunsPerDay: 20,
     isPro: false,
@@ -40,7 +41,7 @@ export const PLATFORM_TOOLS: PlatformTool[] = [
     name: "Chat mode",
     slug: "chat",
     description: "Talk about anything — mood, strategy, random questions.",
-    category: "AI Basics",
+    category: "AI Tools",
     icon: "MessageCircle",
     freeRunsPerDay: 50,
     isPro: false,
@@ -54,7 +55,7 @@ export const PLATFORM_TOOLS: PlatformTool[] = [
     name: "AI glossary & cheat sheet",
     slug: "ai-glossary",
     description: "Tokens, context windows, RAG, agents — plain English.",
-    category: "AI Basics",
+    category: "AI Tools",
     icon: "BookOpen",
     freeRunsPerDay: 100,
     isPro: false,
@@ -68,7 +69,7 @@ export const PLATFORM_TOOLS: PlatformTool[] = [
     name: "Which model should I use?",
     slug: "model-picker",
     description: "Pick Claude vs GPT vs local vs free based on your task & budget.",
-    category: "AI Basics",
+    category: "AI Tools",
     icon: "Compass",
     freeRunsPerDay: 30,
     isPro: false,
@@ -82,7 +83,7 @@ export const PLATFORM_TOOLS: PlatformTool[] = [
     name: "System prompt builder",
     slug: "system-prompt-builder",
     description: "Build rock-solid system prompts for bots, GPTs, and agents.",
-    category: "AI Basics",
+    category: "AI Tools",
     icon: "Bot",
     freeRunsPerDay: 15,
     isPro: false,
@@ -96,7 +97,7 @@ export const PLATFORM_TOOLS: PlatformTool[] = [
     name: "Starter prompt library",
     slug: "prompt-library",
     description: "Copy-ready prompts for everyday work, study, and creative play.",
-    category: "AI Basics",
+    category: "AI Tools",
     icon: "Library",
     freeRunsPerDay: 50,
     isPro: false,
@@ -109,7 +110,7 @@ export const PLATFORM_TOOLS: PlatformTool[] = [
     name: "Safe AI use checklist",
     slug: "safe-ai-use",
     description: "What not to paste, secrets, copyright, and “verify before trust”.",
-    category: "AI Basics",
+    category: "AI Tools",
     icon: "Shield",
     freeRunsPerDay: 50,
     isPro: false,
@@ -119,6 +120,7 @@ export const PLATFORM_TOOLS: PlatformTool[] = [
   }),
 
   ...FREE_UTILITY_TOOLS,
+  ...AI_TOOL_TOOLS,
 
   // ——— Writer ———
   t({
@@ -672,7 +674,7 @@ export const PLATFORM_TOOLS: PlatformTool[] = [
 export const TOOL_CATEGORIES = [
   "All",
   "Free Utilities",
-  "AI Basics",
+  "AI Tools",
   "Office",
   "Writer",
   "Marketing & Ads",

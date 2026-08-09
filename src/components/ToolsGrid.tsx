@@ -72,6 +72,10 @@ import {
   Gauge,
   Globe2,
   Network,
+  Captions,
+  Cpu,
+  Mic,
+  FileStack,
   type LucideIcon,
 } from "lucide-react";
 import { PLATFORM_TOOLS, TOOL_CATEGORIES, searchTools } from "@/lib/tools-registry";
@@ -149,6 +153,10 @@ const ICONS: Record<string, LucideIcon> = {
   Gauge,
   Globe2,
   Network,
+  Captions,
+  Cpu,
+  Mic,
+  FileStack,
 };
 
 type SmartTab = "all" | "popular" | "recent" | "foryou";
@@ -189,6 +197,7 @@ export function ToolsGrid() {
   }, [category, q, tab, tick]);
 
   const freeUtils = PLATFORM_TOOLS.filter((t) => t.category === "Free Utilities");
+  const aiTools = PLATFORM_TOOLS.filter((t) => t.category === "AI Tools");
 
   const smartTabs: { id: SmartTab; label: string; icon: LucideIcon }[] = [
     { id: "all", label: "All", icon: Layers },
@@ -204,7 +213,7 @@ export function ToolsGrid() {
         <input
           value={q}
           onChange={(e) => setQ(e.target.value)}
-          placeholder="Search tools — PDF, resume, calendar, video…"
+          placeholder="Search tools — PDF, captions, local AI, resume…"
           className="w-full rounded-2xl border border-white/10 bg-white/[0.04] py-3.5 pl-11 pr-4 text-sm text-white placeholder:text-zinc-600 focus:border-violet-500/40 focus:outline-none"
         />
       </div>
@@ -246,35 +255,99 @@ export function ToolsGrid() {
         </p>
       )}
 
-      <div className="mb-8 overflow-hidden rounded-2xl border border-white/10 bg-white/[0.03] p-5">
-        <h2 className="font-semibold text-white">Free utilities</h2>
-        <p className="mt-1 text-sm text-zinc-500">
-          Run in the browser — no install for quick PDF, image, resume, calendar, and audit jobs.
-        </p>
-        <div className="mt-4 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
-          {freeUtils.map((t) => {
-            const Icon = ICONS[t.icon] ?? Zap;
-            return (
-              <Link
-                key={t.id}
-                href={toolHref(t.slug)}
-                onClick={() => trackToolUse(t.slug)}
-                className="flex items-center gap-3 rounded-xl border border-emerald-500/20 bg-black/30 px-3 py-3 text-sm text-emerald-100/90 transition hover:border-emerald-400/40 hover:bg-emerald-500/10"
+      {tab === "all" && !q.trim() && (
+        <>
+          <div className="mb-6 overflow-hidden rounded-2xl border border-white/10 bg-white/[0.03] p-5">
+            <div className="flex flex-wrap items-end justify-between gap-2">
+              <div>
+                <h2 className="font-semibold text-white">Free utilities</h2>
+                <p className="mt-1 text-sm text-zinc-500">
+                  Everyday converters &amp; utilities — PDFs, network checks, planners. No model required.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setCategory("Free Utilities")}
+                className="text-xs text-emerald-400 hover:underline"
               >
-                <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-emerald-500/15">
-                  <Icon className="h-4 w-4 text-emerald-300" />
-                </span>
-                <span className="min-w-0">
-                  <span className="block truncate font-medium">{t.name}</span>
-                  {t.actionHint && (
-                    <span className="block truncate text-[11px] text-zinc-500">{t.actionHint}</span>
-                  )}
-                </span>
-              </Link>
-            );
-          })}
-        </div>
-      </div>
+                View all utilities
+              </button>
+            </div>
+            <div className="mt-4 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+              {freeUtils.slice(0, 12).map((t) => {
+                const Icon = ICONS[t.icon] ?? Zap;
+                return (
+                  <Link
+                    key={t.id}
+                    href={toolHref(t.slug)}
+                    onClick={() => trackToolUse(t.slug)}
+                    className="flex items-center gap-3 rounded-xl border border-emerald-500/20 bg-black/30 px-3 py-3 text-sm text-emerald-100/90 transition hover:border-emerald-400/40 hover:bg-emerald-500/10"
+                  >
+                    <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-emerald-500/15">
+                      <Icon className="h-4 w-4 text-emerald-300" />
+                    </span>
+                    <span className="min-w-0">
+                      <span className="block truncate font-medium">{t.name}</span>
+                      {t.actionHint && (
+                        <span className="block truncate text-[11px] text-zinc-500">{t.actionHint}</span>
+                      )}
+                    </span>
+                  </Link>
+                );
+              })}
+            </div>
+          </div>
+
+          <div className="mb-8 overflow-hidden rounded-2xl border border-violet-500/25 bg-violet-500/[0.06] p-5">
+            <div className="flex flex-wrap items-end justify-between gap-2">
+              <div>
+                <h2 className="font-semibold text-white">AI tools</h2>
+                <p className="mt-1 text-sm text-zinc-500">
+                  Captions, local GPU stacks, summarizers, prompts, chat — separate from plain utilities.
+                </p>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                <Link
+                  href="/settings/backends"
+                  className="text-xs text-violet-300 hover:underline"
+                >
+                  Local AI backends
+                </Link>
+                <button
+                  type="button"
+                  onClick={() => setCategory("AI Tools")}
+                  className="text-xs text-violet-300 hover:underline"
+                >
+                  View all AI tools
+                </button>
+              </div>
+            </div>
+            <div className="mt-4 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+              {aiTools.slice(0, 12).map((t) => {
+                const Icon = ICONS[t.icon] ?? Sparkles;
+                return (
+                  <Link
+                    key={t.id}
+                    href={toolHref(t.slug)}
+                    onClick={() => trackToolUse(t.slug)}
+                    className="flex items-center gap-3 rounded-xl border border-violet-500/25 bg-black/30 px-3 py-3 text-sm text-violet-100/90 transition hover:border-violet-400/40 hover:bg-violet-500/10"
+                  >
+                    <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-violet-500/15">
+                      <Icon className="h-4 w-4 text-violet-300" />
+                    </span>
+                    <span className="min-w-0">
+                      <span className="block truncate font-medium">{t.name}</span>
+                      {t.actionHint && (
+                        <span className="block truncate text-[11px] text-zinc-500">{t.actionHint}</span>
+                      )}
+                    </span>
+                  </Link>
+                );
+              })}
+            </div>
+          </div>
+        </>
+      )}
 
       <div className="mb-6 flex flex-wrap gap-2">
         {TOOL_CATEGORIES.map((cat) => (
@@ -284,7 +357,11 @@ export function ToolsGrid() {
             onClick={() => setCategory(cat)}
             className={`rounded-full px-4 py-1.5 text-sm transition ${
               category === cat
-                ? "bg-violet-600 text-white"
+                ? cat === "AI Tools"
+                  ? "bg-violet-600 text-white"
+                  : cat === "Free Utilities"
+                    ? "bg-emerald-600 text-white"
+                    : "bg-violet-600 text-white"
                 : "border border-white/10 text-zinc-400 hover:border-white/20"
             }`}
           >
