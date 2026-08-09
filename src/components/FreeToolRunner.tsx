@@ -52,6 +52,14 @@ import {
   UuidLab,
   WordCounterLab,
 } from "@/components/DomainToolLabs";
+import {
+  BgRemoverLab,
+  ExcelHubLab,
+  PdfToDocLab,
+  PdfToImagesLab,
+  SlidesDeckLab,
+  VideoConverterLab,
+} from "@/components/InBrowserToolLabs";
 
 export type FreeRunnerKind =
   | "image-to-pdf"
@@ -297,7 +305,14 @@ export function FreeToolRunner({ kind, title }: { kind: FreeRunnerKind; title: s
     return <YoutubeDual title={title} track={track} />;
   }
   if (kind === "youtube-to-captions") return <YoutubeCaptionsLab />;
+  if (kind === "pdf-to-images") return <PdfToImagesLab />;
+  if (kind === "pdf-to-doc") return <PdfToDocLab />;
+  if (kind === "bg-remover") return <BgRemoverLab />;
+  if (kind === "video-converter") return <VideoConverterLab />;
+  if (kind === "slides-deck") return <SlidesDeckLab />;
+  if (kind === "excel-hub") return <ExcelHubLab />;
   if (kind === "local-ai-hardware") return <LocalAiHardwareAdvisor />;
+
   if (kind === "local-ai-directory") return <LocalAiDirectoryLab />;
   if (kind === "ai-summarizer") return <AiSummarizerLab />;
   if (kind === "meeting-notes-ai") return <MeetingNotesLab />;

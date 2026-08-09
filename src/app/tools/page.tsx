@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Suspense } from "react";
 import { SiteShell } from "@/components/SiteShell";
 import { ToolsGrid } from "@/components/ToolsGrid";
+import { StickyRails } from "@/components/StickyRails";
 
 export const metadata: Metadata = {
   title: "All Tools — Plethora",
@@ -19,6 +20,9 @@ export default function ToolsPage() {
             Free utilities and AI tools are listed separately. Categories cover marketing, trading,
             content, office, and developer work. Free uses/day are daily caps on the Free plan.
           </p>
+          <div className="mt-8">
+            <StickyRails />
+          </div>
           <div className="mt-10">
             <Suspense fallback={<p className="text-sm text-zinc-500">Loading tools…</p>}>
               <ToolsGrid />

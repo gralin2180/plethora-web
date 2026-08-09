@@ -221,6 +221,38 @@ export const MCP_CLIENTS: {
 
 export const MCP_SERVERS: McpServer[] = [
   {
+    id: "mcp-plethora",
+    name: "Plethora MCP (official)",
+    description:
+      "First-party server: search Plethora tools, recommend stacks, polish prompts, YouTube captions, ping, DNS, sitemaps, position size.",
+    whyUse:
+      "Makes Claude/Cursor sticky with real product actions—not generic internet search. Agents open exact /tools URLs and call live APIs.",
+    category: "devtools",
+    url: "/mcp#plethora-mcp",
+    installHint:
+      "Run packages/plethora-mcp (npm install && node src/index.js) or npx @plethora/mcp when published. Set PLETHORA_API_BASE to your site.",
+    tags: ["mcp", "plethora", "official", "tools"],
+    worksWith: ["claude-desktop", "cursor", "claude-code", "cline", "continue", "vscode"],
+    skillLevel: "beginner",
+    pricing: "free",
+    taskKeywords: [
+      "plethora mcp",
+      "use plethora tools",
+      "search tools",
+      "agent tools",
+      "sticky",
+    ],
+    configSnippet: `{
+  "mcpServers": {
+    "plethora": {
+      "command": "node",
+      "args": ["./packages/plethora-mcp/src/index.js"],
+      "env": { "PLETHORA_API_BASE": "https://plethora-ten.vercel.app" }
+    }
+  }
+}`,
+  },
+  {
     id: "mcp-zapier",
     name: "Zapier MCP",
     description: "Connect agents to 8,000+ apps (Gmail, Sheets, Slack, CRM, Notion…).",

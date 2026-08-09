@@ -16,34 +16,36 @@ import {
 import { PLATFORM_TOOLS } from "@/lib/tools-registry";
 import { HARDCORE_BUNDLE } from "@/lib/hardcore-bundle";
 import { SKILL_LEVELS } from "@/lib/skill-levels";
+import { DIFFERENTIATORS } from "@/lib/catalog";
+import { StickyRails } from "@/components/StickyRails";
 
 const FEATURES = [
   {
     icon: MessageSquare,
     title: "Prompt Engineering Assistant",
-    desc: "Bad at explaining? We read your message, ask smart questions, and deliver exactly what you meant.",
+    desc: "Clarify a messy goal into a model-ready prompt — not a one-shot ChatGPT paste.",
     href: "/prompt-assistant",
     color: "violet",
   },
   {
     icon: Search,
     title: "AI Tool Finder",
-    desc: "Describe any task — get every AI, MCP server, plugin, and local app that can help.",
+    desc: "Map the stack: free apps, local GPU, MCP, and installs for the job.",
     href: "/ai-finder",
     color: "cyan",
   },
   {
     icon: Zap,
-    title: "50+ Runnable Tools",
-    desc: "Ads, content, websites, automation — all under one roof. Try free, upgrade for more.",
+    title: "Tools that run",
+    desc: "Converters, SEO, trading math, captions — execute in the browser or on your machine.",
     href: "/tools",
     color: "amber",
   },
   {
     icon: Plug,
-    title: "MCP & Plugin Hub",
-    desc: "Connect Cursor, Claude, terminal AI, and local models like Ollama. Setup guides included.",
-    href: "/mcp",
+    title: "Plethora MCP",
+    desc: "Put our catalog inside Claude and Cursor so agents call real tools, not fantasies.",
+    href: "/mcp#plethora-mcp",
     color: "emerald",
   },
 ];
@@ -65,8 +67,9 @@ export function HomePage() {
             </span>
           </h1>
           <p className="mx-auto mt-7 max-w-2xl text-lg leading-relaxed text-zinc-400">
-            Run free utilities, marketing and trading helpers, AI studios, and local GPU installs
-            under one roof — plus MCP servers so your models can use tools, not just chat.
+            ChatGPT explains. Plethora <span className="text-zinc-200">runs the work</span> — free
+            utilities, AI studios, local GPU installs, and an MCP so your agents use these tools
+            every day.
           </p>
           <div className="mt-10 flex flex-col items-center justify-center gap-4 sm:flex-row">
             <Link
@@ -77,17 +80,50 @@ export function HomePage() {
               <ArrowRight className="h-4 w-4" />
             </Link>
             <Link
-              href="/mcp"
-              className="flex items-center gap-2 rounded-xl border border-white/15 bg-white/[0.03] px-8 py-3.5 font-medium text-zinc-100 hover:bg-white/[0.06]"
+              href="/mcp#plethora-mcp"
+              className="flex items-center gap-2 rounded-xl border border-emerald-500/40 bg-emerald-500/10 px-8 py-3.5 font-medium text-emerald-100 hover:bg-emerald-500/20"
             >
-              MCP Hub
+              <Plug className="h-4 w-4" />
+              Add Plethora MCP
             </Link>
             <Link
               href="/settings/backends"
-              className="flex items-center gap-2 rounded-xl border border-cyan-500/30 bg-cyan-500/10 px-8 py-3.5 font-medium text-cyan-100 hover:bg-cyan-500/20"
+              className="flex items-center gap-2 rounded-xl border border-white/15 bg-white/[0.03] px-8 py-3.5 font-medium text-zinc-100 hover:bg-white/[0.06]"
             >
               Install local AI
             </Link>
+          </div>
+        </div>
+      </section>
+
+      <section className="border-t border-white/10 px-4 py-10 sm:px-6">
+        <div className="mx-auto max-w-3xl">
+          <StickyRails />
+        </div>
+      </section>
+
+      <section className="border-t border-white/10 px-4 py-16 sm:px-6">
+        <div className="mx-auto max-w-6xl">
+          <p className="text-center text-[11px] font-medium uppercase tracking-[0.22em] text-zinc-500">
+            Beyond chatbots
+          </p>
+          <h2 className="mt-3 text-center text-3xl font-semibold tracking-tight text-white">
+            Better than “just GPT”
+          </h2>
+          <p className="mx-auto mt-3 max-w-2xl text-center text-sm leading-relaxed text-zinc-500">
+            General chat models are great writers. They are weak runners. We focus on finishing
+            jobs and wiring your preferred AI to our catalog.
+          </p>
+          <div className="mt-10 grid gap-4 sm:grid-cols-2">
+            {DIFFERENTIATORS.map((d) => (
+              <div
+                key={d.title}
+                className="rounded-2xl border border-white/10 bg-white/[0.02] p-5"
+              >
+                <h3 className="font-medium text-white">{d.title}</h3>
+                <p className="mt-2 text-sm leading-relaxed text-zinc-400">{d.body}</p>
+              </div>
+            ))}
           </div>
         </div>
       </section>

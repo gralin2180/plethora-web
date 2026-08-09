@@ -11,6 +11,30 @@ import {
 } from "@/lib/mcp-registry";
 import { McpBuilderLab } from "@/components/InstallAndMcpHelpers";
 
+const PLETHORA_MCP_CONFIG = `{
+  "mcpServers": {
+    "plethora": {
+      "command": "node",
+      "args": ["PATH/TO/plethora/packages/plethora-mcp/src/index.js"],
+      "env": {
+        "PLETHORA_API_BASE": "https://plethora-ten.vercel.app"
+      }
+    }
+  }
+}`;
+
+const PLETHORA_MCP_NPX = `{
+  "mcpServers": {
+    "plethora": {
+      "command": "npx",
+      "args": ["-y", "@plethora/mcp"],
+      "env": {
+        "PLETHORA_API_BASE": "https://plethora-ten.vercel.app"
+      }
+    }
+  }
+}`;
+
 export function McpHubPage() {
   const [category, setCategory] = useState<string>("all");
   const [client, setClient] = useState(MCP_CLIENTS[0].id);
@@ -44,15 +68,79 @@ export function McpHubPage() {
         <div>
           <h1 className="text-3xl font-semibold tracking-tight text-white">MCP Hub</h1>
           <p className="mt-1 text-sm leading-relaxed text-zinc-400">
-            Model Context Protocol (MCP) lets AI clients call external tools — files, browser,
-            Gmail, GitHub, databases, and more. Plethora lists{" "}
-            <span className="text-zinc-200">host apps</span>,{" "}
-            <span className="text-zinc-200">ready-made servers</span>, and a starter for{" "}
-            <span className="text-zinc-200">your own local MCP</span>. After a host is configured,
-            tools appear in chat (approve when asked).
+            Model Context Protocol (MCP) lets AI clients call external tools. Plethora provides a{" "}
+            <span className="text-zinc-200">first-party MCP</span>, a catalog of third-party
+            servers, host setup guides, and a builder for your own local MCP.
           </p>
         </div>
       </div>
+
+      <section
+        id="plethora-mcp"
+        className="mt-10 scroll-mt-24 rounded-3xl border border-violet-500/30 bg-gradient-to-br from-violet-500/15 to-emerald-500/5 p-6 sm:p-8"
+      >
+        <p className="text-[11px] font-medium uppercase tracking-[0.18em] text-violet-300">
+          Official · sticky
+        </p>
+        <h2 className="mt-2 text-2xl font-semibold text-white">Plethora MCP</h2>
+        <p className="mt-2 max-w-2xl text-sm leading-relaxed text-zinc-400">
+          Plug Claude Desktop, Cursor, Cline, Continue, or any MCP host into the full Plethora
+          catalog — search tools, polish prompts, YouTube captions, ping/DNS, sitemaps, recommend
+          stacks, open deep links. Your AI stops guessing and starts using tools that actually
+          exist here.
+        </p>
+        <ol className="mt-4 list-decimal space-y-1 pl-5 text-sm text-zinc-400">
+          <li>
+            Local package: <code className="text-zinc-300">packages/plethora-mcp</code> inside the
+            web repo → <code className="text-zinc-300">npm install && node src/index.js</code>
+          </li>
+          <li>Paste config into Claude Desktop / Cursor MCP settings (point args to that file).</li>
+          <li>
+            Set <code className="text-zinc-300">PLETHORA_API_BASE</code> to your live site URL.
+          </li>
+          <li>
+            Ask the host: “Search Plethora for youtube captions” or “Position size on $10k risk 1%”.
+          </li>
+        </ol>
+        <div className="mt-4 grid gap-3 lg:grid-cols-2">
+          <div>
+            <div className="mb-1 flex items-center justify-between">
+              <span className="text-xs text-zinc-500">Local path config</span>
+              <button
+                type="button"
+                className="text-xs text-violet-300"
+                onClick={() => void navigator.clipboard.writeText(PLETHORA_MCP_CONFIG)}
+              >
+                Copy
+              </button>
+            </div>
+            <pre className="overflow-x-auto rounded-xl bg-black/50 p-3 text-[11px] text-zinc-400">
+              {PLETHORA_MCP_CONFIG}
+            </pre>
+          </div>
+          <div>
+            <div className="mb-1 flex items-center justify-between">
+              <span className="text-xs text-zinc-500">Future npx (after npm publish)</span>
+              <button
+                type="button"
+                className="text-xs text-violet-300"
+                onClick={() => void navigator.clipboard.writeText(PLETHORA_MCP_NPX)}
+              >
+                Copy
+              </button>
+            </div>
+            <pre className="overflow-x-auto rounded-xl bg-black/50 p-3 text-[11px] text-zinc-400">
+              {PLETHORA_MCP_NPX}
+            </pre>
+          </div>
+        </div>
+        <p className="mt-3 text-xs text-zinc-600">
+          Example:{" "}
+          <code className="text-zinc-500">
+            …/plethora-web/packages/plethora-mcp/src/index.js
+          </code>
+        </p>
+      </section>
 
       <section className="mt-10">
         <h2 className="text-xl font-semibold text-white">1. Choose an MCP host</h2>
