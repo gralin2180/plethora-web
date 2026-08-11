@@ -53,6 +53,8 @@ export function ChatMode({
     assessment: SafetyAssessment;
   } | null>(null);
   const [quotaNote, setQuotaNote] = useState<string | null>(null);
+  const [softWarn, setSoftWarn] = useState<string | null>(null);
+  const [hasByok, setHasByok] = useState(false);
   const [lastUserText, setLastUserText] = useState("");
   const bottomRef = useRef<HTMLDivElement>(null);
 
@@ -67,6 +69,11 @@ export function ChatMode({
   }
 
   useEffect(() => {
+    try {
+      setHasByok(Boolean(localStorage.getItem("plethora.byok.openrouter")));
+    } catch {
+      /* */
+    }
     try {
       const raw = localStorage.getItem(HISTORY_KEY);
       if (raw) setMessages(JSON.parse(raw));
@@ -89,10 +96,22 @@ export function ChatMode({
           signedIn?: boolean;
           guestDailyLimit?: number;
           freeDailyLimit?: number;
+          entitlement?: {
+            routeLabel?: string;
+            softWarnMessage?: string;
+            premiumLimit?: number;
+            premiumUsed?: number;
+            freeDailyLimit?: number;
+          };
         }) => {
           setLlmReady(Boolean(d.openrouterConfigured));
           setSignedIn(Boolean(d.signedIn));
-          if (!d.signedIn && d.guestDailyLimit) {
+          if (d.entitlement?.softWarnMessage) {
+            setSoftWarn(d.entitlement.softWarnMessage);
+          }
+          if (d.entitlement?.routeLabel) {
+            setQuotaNote(d.entitlement.routeLabel);
+          } else if (!d.signedIn && d.guestDailyLimit) {
             setQuotaNote(
               `Guest free AI: up to ${d.guestDailyLimit}/day · sign in for ~${d.freeDailyLimit ?? 40}/day · BYOK unlimited`
             );
@@ -105,6 +124,23 @@ export function ChatMode({
         setLlmReady(false);
         setSignedIn(false);
       });
+  }, []);
+
+  useEffect(() => {
+    function onWarn(e: Event) {
+      const msg = (e as CustomEvent<string>).detail;
+      if (msg) setSoftWarn(msg);
+    }
+    function onQuota(e: Event) {
+      const msg = (e as CustomEvent<string>).detail;
+      if (msg) setQuotaNote(msg);
+    }
+    window.addEventListener("plethora:soft-warn", onWarn);
+    window.addEventListener("plethora:quota-label", onQuota);
+    return () => {
+      window.removeEventListener("plethora:soft-warn", onWarn);
+      window.removeEventListener("plethora:quota-label", onQuota);
+    };
   }, []);
 
   useEffect(() => {
@@ -239,11 +275,25 @@ export function ChatMode({
             </button>
             <Link
               href="/settings/ai-keys"
+              className="inline-flex items-center gap-1.5 rounded-full border border-amber-500/40 bg-amber-500/15 px-4 py-1.5 text-sm font-medium text-amber-100 hover:bg-amber-500/25"
+            >
+              {hasByok ? "BYOK on" : "Add your key (BYOK)"}
+            </Link>
+            <Link
+              href="/settings/billing"
               className="rounded-full border border-white/15 px-4 py-1.5 text-sm text-zinc-300 hover:bg-white/5"
             >
-              AI keys
+              Plan & packs
             </Link>
           </div>
+          {softWarn && (
+            <p className="mt-3 rounded-xl border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-xs text-amber-100">
+              {softWarn}
+            </p>
+          )}
+          {quotaNote && (
+            <p className="mt-2 text-xs text-zinc-500">{quotaNote}</p>
+          )}
           <div className="mt-4">
             <PersonalContextPanel />
           </div>

@@ -1,7 +1,9 @@
 import { siteKnowledgeForAssistant } from "./about-content";
+import { premiumModelList, primaryPremiumModel } from "./premium-models";
 
 /**
  * Free-tier chat LLM providers (OpenRouter free models, Groq, custom).
+ * Prefer premium when entitlement allows — auto-fallback to free.
  */
 
 export type ChatHistoryMsg = { role: "user" | "assistant" | "system"; content: string };
@@ -12,6 +14,8 @@ export interface FreeChatResult {
   model?: string;
   ok: boolean;
   error?: string;
+  /** true when a platform premium model answered */
+  usedPremium?: boolean;
 }
 
 export function buildChatSystemPrompt(
@@ -150,12 +154,44 @@ function freeProviders(): {
   return list;
 }
 
+function premiumProviders(): {
+  name: string;
+  baseUrl: string;
+  apiKey?: string;
+  model: string;
+  headers?: Record<string, string>;
+}[] {
+  const openrouter =
+    env("OPENROUTER_API_KEY") || env("PLETHORA_FREE_LLM_KEY") || env("TOOLHAVEN_FREE_LLM_KEY");
+  const paidKey = env("PLETHORA_PAID_LLM_KEY") || openrouter;
+  if (!paidKey) return [];
+
+  const baseUrl = env("PLETHORA_PAID_LLM_URL") || "https://openrouter.ai/api/v1";
+  const headers = {
+    "HTTP-Referer": env("PLETHORA_SITE_URL") || "http://localhost:3000",
+    "X-Title": "Plethora Premium",
+  };
+  const preferred = env("PLETHORA_PAID_LLM_MODEL") || primaryPremiumModel();
+  const models = [preferred, ...premiumModelList().filter((m) => m !== preferred)];
+  return models.map((model) => ({
+    name: "openrouter-premium",
+    baseUrl,
+    apiKey: paidKey,
+    model,
+    headers,
+  }));
+}
+
 export type FreeChatOpts = {
   learnerContext?: string;
   adultMode?: boolean;
   customSystem?: string;
   /** User's own OpenRouter / OpenAI-compatible key */
   byok?: { apiKey: string; baseUrl?: string; model?: string };
+  /** Prefer platform paid models when entitlement allows */
+  preferPremium?: boolean;
+  /** When load is hot, shorten free answers */
+  maxTokens?: number;
 };
 
 async function callProvider(
@@ -166,7 +202,8 @@ async function callProvider(
     model: string;
     headers?: Record<string, string>;
   },
-  messages: ChatHistoryMsg[]
+  messages: ChatHistoryMsg[],
+  maxTokens = 1200
 ): Promise<FreeChatResult> {
   const base = p.baseUrl.replace(/\/$/, "");
   const url = base.endsWith("/chat/completions") ? base : `${base}/chat/completions`;
@@ -181,7 +218,7 @@ async function callProvider(
     body: JSON.stringify({
       model: p.model,
       temperature: 0.85,
-      max_tokens: 1200,
+      max_tokens: maxTokens,
       messages,
     }),
   });
@@ -242,9 +279,18 @@ export async function freeChatCompletion(
       ? { learnerContext: learnerContextOrOpts }
       : learnerContextOrOpts;
 
-  const providers = [...freeProviders()];
+  type P = {
+    name: string;
+    baseUrl: string;
+    apiKey?: string;
+    model: string;
+    headers?: Record<string, string>;
+    usedPremium?: boolean;
+  };
+
+  const providers: P[] = [];
   if (opts.byok?.apiKey) {
-    providers.unshift({
+    providers.push({
       name: "byok",
       baseUrl: opts.byok.baseUrl || "https://openrouter.ai/api/v1",
       apiKey: opts.byok.apiKey,
@@ -254,6 +300,15 @@ export async function freeChatCompletion(
         "X-Title": "Plethora BYOK",
       },
     });
+  } else {
+    if (opts.preferPremium) {
+      for (const p of premiumProviders()) {
+        providers.push({ ...p, usedPremium: true });
+      }
+    }
+    for (const p of freeProviders()) {
+      providers.push({ ...p, usedPremium: false });
+    }
   }
 
   if (!providers.length) {
@@ -284,12 +339,13 @@ export async function freeChatCompletion(
     { role: "user", content: userMessage },
   ];
 
+  const maxTokens = opts.maxTokens ?? 1200;
   let lastError = "";
   for (const p of providers) {
     try {
-      const result = await callProvider(p, messages);
+      const result = await callProvider(p, messages, maxTokens);
       if (result.ok && result.reply && !isLameModelRefusal(result.reply, opts.adultMode)) {
-        return result;
+        return { ...result, usedPremium: Boolean(p.usedPremium) };
       }
       if (result.ok && result.reply && isLameModelRefusal(result.reply, opts.adultMode)) {
         lastError = "Model refused with template reply";

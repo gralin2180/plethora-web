@@ -184,12 +184,28 @@ export function HardcoreBundlePage() {
             </ul>
             <button
               type="button"
+              onClick={() => {
+                void fetch("/api/billing/checkout", {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({ sku: "hardcore" }),
+                })
+                  .then((r) => r.json())
+                  .then((d: { url?: string; error?: string; needsLogin?: boolean }) => {
+                    if (d.needsLogin) {
+                      window.location.href = "/auth/signup?next=/hardcore";
+                      return;
+                    }
+                    if (d.url) window.location.href = d.url;
+                    else alert(d.error || "Checkout not available");
+                  });
+              }}
               className="mt-8 w-full rounded-xl bg-red-600 py-3.5 font-medium text-white hover:bg-red-500"
             >
               {HARDCORE_BUNDLE.cta}
             </button>
             <p className="mt-4 text-center text-xs text-zinc-600">
-              Payment integration coming soon. Join waitlist to lock in launch pricing.
+              Stripe Checkout when configured · Manage at /settings/billing
             </p>
           </div>
         </div>

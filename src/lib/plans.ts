@@ -1,6 +1,6 @@
 /**
  * Free vs paid capability flags — single source of truth for gates.
- * Wire Stripe / Supabase plan later; until then client can pass "free" | "pro" | "hardcore".
+ * Subscription state is set only via Stripe webhook / service role.
  */
 
 export type PlanId = "free" | "pro" | "team" | "hardcore";
@@ -8,21 +8,26 @@ export type PlanId = "free" | "pro" | "team" | "hardcore";
 export interface PlanCapabilities {
   id: PlanId;
   name: string;
-  /** Template prompts always on for every plan */
   templatePrompts: true;
-  /** Free public/cheap model polish (rate limited) */
   freeApiPolish: boolean;
   freePolishDailyLimit: number;
-  /** Higher-quality hosted polish (owner-controlled provider) */
   paidLlmPolish: boolean;
   paidPolishDailyLimit: number | "unlimited";
   unlimitedToolRuns: boolean;
   multiLocalBackendProfiles: boolean;
   priorityDirectoryPacks: boolean;
   hardcoreTools: boolean;
-  /** Concurrent registered browsers / devices */
   maxDevices: number;
   maxWorkspaces: number;
+  /** Platform free-model chat msgs per day (not BYOK, not premium) */
+  freeAiDailyLimit: number;
+  /**
+   * Included premium-model messages per billing month on our key.
+   * After this, auto-fallback to free models (Cursor-style).
+   */
+  premiumAiMonthlyLimit: number;
+  /** Soft warn when used/limit >= this (0–1) */
+  softWarnRatio: number;
 }
 
 export const PLAN_CAPABILITIES: Record<PlanId, PlanCapabilities> = {
@@ -40,6 +45,9 @@ export const PLAN_CAPABILITIES: Record<PlanId, PlanCapabilities> = {
     hardcoreTools: false,
     maxDevices: 3,
     maxWorkspaces: 2,
+    freeAiDailyLimit: 40,
+    premiumAiMonthlyLimit: 0,
+    softWarnRatio: 0.8,
   },
   pro: {
     id: "pro",
@@ -55,6 +63,9 @@ export const PLAN_CAPABILITIES: Record<PlanId, PlanCapabilities> = {
     hardcoreTools: false,
     maxDevices: 8,
     maxWorkspaces: 20,
+    freeAiDailyLimit: 120,
+    premiumAiMonthlyLimit: 300,
+    softWarnRatio: 0.8,
   },
   team: {
     id: "team",
@@ -70,6 +81,9 @@ export const PLAN_CAPABILITIES: Record<PlanId, PlanCapabilities> = {
     hardcoreTools: false,
     maxDevices: 25,
     maxWorkspaces: 100,
+    freeAiDailyLimit: 200,
+    premiumAiMonthlyLimit: 900,
+    softWarnRatio: 0.8,
   },
   hardcore: {
     id: "hardcore",
@@ -85,6 +99,9 @@ export const PLAN_CAPABILITIES: Record<PlanId, PlanCapabilities> = {
     hardcoreTools: true,
     maxDevices: 40,
     maxWorkspaces: 200,
+    freeAiDailyLimit: 400,
+    premiumAiMonthlyLimit: 1500,
+    softWarnRatio: 0.8,
   },
 };
 
@@ -95,3 +112,6 @@ export function getPlanCapabilities(plan: PlanId = "free"): PlanCapabilities {
 export function canUsePaidPolish(plan: PlanId): boolean {
   return getPlanCapabilities(plan).paidLlmPolish;
 }
+
+/** Guest free stack — keeps shared free key alive under traffic. */
+export const GUEST_FREE_AI_DAILY = 12;

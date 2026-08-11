@@ -408,7 +408,29 @@ async function tryLlm(
       source?: string;
       needsLogin?: boolean;
       code?: string;
+      softWarnMessage?: string;
+      softWarn?: boolean;
+      usedPremium?: boolean;
+      quota?: { mode?: string; used?: number; limit?: number };
     };
+    if (typeof window !== "undefined" && data.softWarnMessage) {
+      window.dispatchEvent(
+        new CustomEvent("plethora:soft-warn", { detail: data.softWarnMessage })
+      );
+    }
+    if (typeof window !== "undefined" && data.quota?.mode === "premium" && data.quota.limit) {
+      window.dispatchEvent(
+        new CustomEvent("plethora:quota-label", {
+          detail: `Premium ${data.quota.used ?? "?"}/${data.quota.limit}`,
+        })
+      );
+    } else if (typeof window !== "undefined" && data.quota?.mode && data.quota.mode !== "byok") {
+      window.dispatchEvent(
+        new CustomEvent("plethora:quota-label", {
+          detail: `Free AI ${data.quota.used ?? "?"}/${data.quota.limit ?? "?"}`,
+        })
+      );
+    }
     if (data.reply?.trim()) return data.reply.trim();
   } catch {
     /* fall through */
@@ -430,6 +452,8 @@ export type ServerChatOpts = {
   adultMode?: boolean;
   byok?: { apiKey: string; baseUrl?: string; model?: string };
   customSystem?: string;
+  preferPremium?: boolean;
+  maxTokens?: number;
 };
 
 /** Server-side entry used by /api/chat */
@@ -438,7 +462,7 @@ export async function generateAssistantReplyServer(
   history: { role: "user" | "assistant"; content: string }[] = [],
   learnerContext?: string,
   opts?: ServerChatOpts
-): Promise<{ reply: string; source: string }> {
+): Promise<{ reply: string; source: string; usedPremium?: boolean }> {
   const text = userText.trim();
   const intent = classifyChatIntent(text);
   const adultMode = Boolean(opts?.adultMode);
@@ -450,8 +474,10 @@ export async function generateAssistantReplyServer(
       adultMode: true,
       byok: opts?.byok,
       customSystem: opts?.customSystem,
+      preferPremium: opts?.preferPremium,
+      maxTokens: opts?.maxTokens,
     });
-    if (llm.ok) return { reply: llm.reply, source: llm.provider };
+    if (llm.ok) return { reply: llm.reply, source: llm.provider, usedPremium: llm.usedPremium };
     return { reply: smartOfflineGeneral(text), source: "offline" };
   }
 
@@ -494,16 +520,18 @@ export async function generateAssistantReplyServer(
     adultMode,
     byok: opts?.byok,
     customSystem: opts?.customSystem,
+    preferPremium: opts?.preferPremium,
+    maxTokens: opts?.maxTokens,
   };
 
   if (intent === "mood") {
     const llm = await freeChatCompletion(text, history, chatOpts);
-    if (llm.ok) return { reply: llm.reply, source: llm.provider };
+    if (llm.ok) return { reply: llm.reply, source: llm.provider, usedPremium: llm.usedPremium };
     return { reply: moodReply(text), source: "offline-mood" };
   }
 
   const llm = await freeChatCompletion(text, history, chatOpts);
-  if (llm.ok) return { reply: llm.reply, source: llm.provider };
+  if (llm.ok) return { reply: llm.reply, source: llm.provider, usedPremium: llm.usedPremium };
 
   // Fall back if free models flinch on normal talk
   return { reply: smartOfflineGeneral(text), source: "offline" };

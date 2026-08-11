@@ -6,8 +6,17 @@ import { hasFreeChatProvider } from "@/lib/free-chat";
 import { createClient } from "@/lib/supabase/server";
 import { GUEST_AI_BLOCK, platformChatDailyLimit } from "@/lib/ai-quota";
 import { getPlanCapabilities, type PlanId } from "@/lib/plans";
+import { resolveAiEntitlement, softWarnAt, type EntitlementRow } from "@/lib/entitlements";
+import {
+  assertPlatformFreeCapacity,
+  freePlatformDailyHardCap,
+  withPlatformFreeSlot,
+} from "@/lib/free-tier-guard";
+import { recordPremiumUse } from "@/lib/billing-activate";
 
 const ANON_COOKIE = "Plethora_anon_id";
+const PROFILE_ENT_COLS =
+  "subscription_plan, subscription_status, premium_used_period, premium_period_start, self_limit_premium_month, trial_pack, trial_pack_ends_at, trial_pack_premium_used, trial_pack_premium_cap, stripe_customer_id";
 
 function getOrCreateAnonymousId(
   cookieStore: Awaited<ReturnType<typeof cookies>>
@@ -23,6 +32,16 @@ export async function GET() {
     data: { user },
   } = await supabase.auth.getUser();
 
+  let entitlement = resolveAiEntitlement(null, { isGuest: !user });
+  if (user) {
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select(PROFILE_ENT_COLS)
+      .eq("id", user.id)
+      .maybeSingle();
+    entitlement = resolveAiEntitlement((profile as EntitlementRow) || {});
+  }
+
   return NextResponse.json({
     ok: true,
     openrouterConfigured: hasFreeChatProvider(),
@@ -30,6 +49,18 @@ export async function GET() {
     requiresAuth: false,
     guestDailyLimit: platformChatDailyLimit("guest"),
     freeDailyLimit: platformChatDailyLimit("free"),
+    entitlement: {
+      plan: entitlement.plan,
+      premiumUsed: entitlement.premiumUsed,
+      premiumLimit: entitlement.premiumEffectiveLimit,
+      premiumAllowed: entitlement.premiumAllowed,
+      freeDailyLimit: entitlement.freeDailyLimit,
+      routeLabel: entitlement.routeLabel,
+      softWarn: entitlement.softWarn,
+      softWarnMessage: entitlement.softWarnMessage,
+      trialActive: entitlement.trialActive,
+      selfLimit: entitlement.selfLimit,
+    },
   });
 }
 
@@ -80,16 +111,24 @@ export async function POST(request: Request) {
     let plan: PlanId | "guest" = user ? "free" : "guest";
     let usedBefore = 0;
     let limit = platformChatDailyLimit("guest");
+    let entitlement = resolveAiEntitlement(null, { isGuest: !user });
+    let profileRow: EntitlementRow | null = null;
 
+    if (user) {
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select(PROFILE_ENT_COLS)
+        .eq("id", user.id)
+        .maybeSingle();
+      profileRow = (profile as EntitlementRow) || {};
+      entitlement = resolveAiEntitlement(profileRow);
+      plan = entitlement.plan;
+    }
+
+    // Free-path quota (BYOK skips platform free daily + global free guard)
     if (!byokKey) {
       if (user) {
-        const { data: profile } = await supabase
-          .from("profiles")
-          .select("subscription_plan")
-          .eq("id", user.id)
-          .single();
-        plan = (profile?.subscription_plan as PlanId) || "free";
-        limit = platformChatDailyLimit(plan);
+        limit = entitlement.freeDailyLimit;
         try {
           const { data: usageCount } = await supabase.rpc("get_usage_count", {
             p_user_id: user.id,
@@ -100,27 +139,23 @@ export async function POST(request: Request) {
           if (usedBefore >= limit) {
             return NextResponse.json(
               {
-                reply: `Daily free AI limit (${limit}) hit on ${getPlanCapabilities(plan).name}. Sign in doesn’t reset today — wait until tomorrow, upgrade, or Settings → AI keys for BYOK.`,
+                reply: `Daily free AI limit (${limit}) hit on ${getPlanCapabilities(plan === "guest" ? "free" : plan).name}. Premium budget uses a separate counter — if you've exhausted both free daily and premium, use Settings → AI keys (BYOK) or wait until tomorrow.`,
                 ok: false,
                 code: "quota",
                 needsUpgrade: true,
                 limit,
                 used: usedBefore,
+                entitlement: summarizeEnt(entitlement),
               },
               { status: 429 }
             );
           }
-          await supabase.rpc("increment_tool_usage", {
-            p_user_id: user.id,
-            p_anonymous_id: null,
-            p_tool_id: "chat-llm",
-            p_metadata: { source: "chat" },
-          });
+          // Only count against free daily when NOT using premium budget this turn.
+          // We increment after we know routing; mark later.
         } catch {
           /* RPC missing — soft allow */
         }
       } else {
-        // Guest free stack (shared platform free models)
         limit = platformChatDailyLimit("guest");
         try {
           const { data: usageCount } = await supabase.rpc("get_usage_count", {
@@ -142,19 +177,53 @@ export async function POST(request: Request) {
               { status: 429 }
             );
           }
-          await supabase.rpc("increment_tool_usage", {
-            p_user_id: null,
-            p_anonymous_id: anonymousId,
-            p_tool_id: "chat-llm",
-            p_metadata: { source: "chat-guest" },
-          });
         } catch {
           /* if usage tables missing, still allow guests so product works */
         }
       }
+
+      // Global free-pool choke protection (not for premium-entitled when we'll use premium path)
+      // For free routing (incl. premium-exhausted fallback) always apply
+      if (!entitlement.premiumAllowed) {
+        const gate = assertPlatformFreeCapacity();
+        if (!gate.ok) {
+          return NextResponse.json(
+            {
+              reply: gate.reason,
+              ok: false,
+              code: gate.code,
+              needsUpgrade: true,
+            },
+            { status: 429 }
+          );
+        }
+      }
+
+      // Global daily free ceiling (platform key budget)
+      try {
+        const { data: globalUsed } = await supabase.rpc("get_usage_count", {
+          p_user_id: null,
+          p_anonymous_id: "platform-free-pool",
+          p_tool_id: "chat-llm-global",
+        });
+        const g = typeof globalUsed === "number" ? globalUsed : 0;
+        if (!entitlement.premiumAllowed && g >= freePlatformDailyHardCap()) {
+          return NextResponse.json(
+            {
+              reply:
+                "The shared free AI pool is at capacity for today. Use BYOK (Settings → AI keys), a try pack, or Pro for premium capacity — utilities still work offline.",
+              ok: false,
+              code: "global_daily",
+              needsUpgrade: true,
+            },
+            { status: 429 }
+          );
+        }
+      } catch {
+        /* optional */
+      }
     }
 
-    // Context window for the model: last N turns
     const history = Array.isArray(body.history)
       ? body.history
           .filter(
@@ -168,7 +237,6 @@ export async function POST(request: Request) {
           .slice(-24)
       : [];
 
-    // Drop trailing user dupe if client already appended current message as last history item
     const histForModel =
       history.length &&
       history[history.length - 1]?.role === "user" &&
@@ -176,25 +244,109 @@ export async function POST(request: Request) {
         ? history.slice(0, -1)
         : history;
 
-    const result = await generateAssistantReplyServer(
-      message,
-      histForModel,
-      typeof body.learnerContext === "string" ? body.learnerContext.slice(0, 2000) : undefined,
-      {
-        adultMode,
-        byok: byokKey
-          ? {
-              apiKey: byokKey,
-              baseUrl:
-                typeof body.byokBaseUrl === "string" ? body.byokBaseUrl : undefined,
-            }
-          : undefined,
-        customSystem:
-          typeof body.customSystem === "string" ? body.customSystem.slice(0, 6000) : undefined,
-      }
-    );
+    const preferPremium = !byokKey && entitlement.premiumAllowed;
+    const freeLoadResult =
+      byokKey || preferPremium
+        ? ({ ok: true, load: "normal" } as const)
+        : assertPlatformFreeCapacity();
+    const maxTokens =
+      !byokKey && freeLoadResult.ok && freeLoadResult.load === "hot"
+        ? 600
+        : !byokKey && freeLoadResult.ok && freeLoadResult.load === "elevated"
+          ? 900
+          : 1200;
 
-    // Persist cloud transcript for signed-in users (best-effort)
+    const run = async () =>
+      generateAssistantReplyServer(
+        message,
+        histForModel,
+        typeof body.learnerContext === "string" ? body.learnerContext.slice(0, 2000) : undefined,
+        {
+          adultMode,
+          byok: byokKey
+            ? {
+                apiKey: byokKey,
+                baseUrl:
+                  typeof body.byokBaseUrl === "string" ? body.byokBaseUrl : undefined,
+              }
+            : undefined,
+          customSystem:
+            typeof body.customSystem === "string" ? body.customSystem.slice(0, 6000) : undefined,
+          preferPremium,
+          maxTokens,
+        }
+      );
+
+    const result =
+      !byokKey && !preferPremium
+        ? await withPlatformFreeSlot(run)
+        : await run();
+
+    // Usage accounting
+    if (!byokKey && result.reply) {
+      try {
+        if (result.usedPremium && user) {
+          await recordPremiumUse(supabase, user.id, {
+            trialActive: entitlement.trialActive,
+            planActive: entitlement.planActive,
+          });
+          // Refresh entitlement counters for response
+          entitlement = {
+            ...entitlement,
+            premiumUsed: entitlement.premiumUsed + 1,
+            premiumAllowed:
+              entitlement.premiumUsed + 1 < entitlement.premiumEffectiveLimit,
+          };
+        } else {
+          // free model path
+          if (user) {
+            await supabase.rpc("increment_tool_usage", {
+              p_user_id: user.id,
+              p_anonymous_id: null,
+              p_tool_id: "chat-llm",
+              p_metadata: { source: "chat", tier: "free" },
+            });
+          } else {
+            await supabase.rpc("increment_tool_usage", {
+              p_user_id: null,
+              p_anonymous_id: anonymousId,
+              p_tool_id: "chat-llm",
+              p_metadata: { source: "chat-guest", tier: "free" },
+            });
+          }
+          await supabase.rpc("increment_tool_usage", {
+            p_user_id: null,
+            p_anonymous_id: "platform-free-pool",
+            p_tool_id: "chat-llm-global",
+            p_metadata: { source: "global" },
+          });
+          usedBefore += 1;
+        }
+      } catch {
+        /* soft */
+      }
+    }
+
+    // Soft fre daily warn
+    const freeSoft =
+      !byokKey &&
+      !result.usedPremium &&
+      softWarnAt(usedBefore, limit, getPlanCapabilities(plan === "guest" ? "free" : plan).softWarnRatio);
+
+    let softWarnMessage = entitlement.softWarnMessage;
+    if (freeSoft) {
+      softWarnMessage = `Soft warning: free AI ${usedBefore}/${limit} today. When free daily ends you can still use BYOK, or Pro premium budget if you have it.`;
+    } else if (
+      entitlement.premiumEffectiveLimit > 0 &&
+      softWarnAt(
+        entitlement.premiumUsed,
+        entitlement.premiumEffectiveLimit,
+        getPlanCapabilities(entitlement.plan).softWarnRatio
+      )
+    ) {
+      softWarnMessage = `Soft warning: premium AI ${entitlement.premiumUsed}/${entitlement.premiumEffectiveLimit} this period. After the limit, replies stay on free models (Cursor-style).`;
+    }
+
     if (user && result.reply) {
       try {
         await supabase.from("chat_messages").insert([
@@ -207,7 +359,10 @@ export async function POST(request: Request) {
             user_id: user.id,
             role: "assistant",
             content: result.reply.slice(0, 12000),
-            metadata: { source: result.source },
+            metadata: {
+              source: result.source,
+              usedPremium: result.usedPremium,
+            },
           },
         ]);
       } catch {
@@ -222,9 +377,19 @@ export async function POST(request: Request) {
       needsWarning: safety.needsWarning && !adultMode,
       llmReady: hasFreeChatProvider() || Boolean(byokKey),
       plan,
+      usedPremium: Boolean(result.usedPremium),
+      softWarn: Boolean(softWarnMessage),
+      softWarnMessage,
       quota: byokKey
-        ? { mode: "byok" }
-        : { mode: plan, used: usedBefore + 1, limit },
+        ? { mode: "byok" as const }
+        : result.usedPremium
+          ? {
+              mode: "premium" as const,
+              used: entitlement.premiumUsed,
+              limit: entitlement.premiumEffectiveLimit,
+            }
+          : { mode: plan, used: usedBefore, limit },
+      entitlement: summarizeEnt(entitlement),
       contextTurns: histForModel.length,
     });
 
@@ -248,4 +413,17 @@ export async function POST(request: Request) {
       { status: 500 }
     );
   }
+}
+
+function summarizeEnt(e: ReturnType<typeof resolveAiEntitlement>) {
+  return {
+    plan: e.plan,
+    premiumUsed: e.premiumUsed,
+    premiumLimit: e.premiumEffectiveLimit,
+    premiumAllowed: e.premiumAllowed,
+    freeDailyLimit: e.freeDailyLimit,
+    routeLabel: e.routeLabel,
+    trialActive: e.trialActive,
+    selfLimit: e.selfLimit,
+  };
 }

@@ -21,7 +21,11 @@ export const ABOUT_FAQS: { q: string; a: string }[] = [
   },
   {
     q: "Free vs paid?",
-    a: "Free: daily caps per tool, limited devices & workspaces, limited free AI chat turns. Pro/Team/Hardcore raise limits, seats, custom assistants, and power stacks. See /pricing.",
+    a: "Free: fair daily free-model AI + utilities (global rate limits so thousands of users don't choke the free key). Pro ($19): unlimited tools, workspaces, ~300 premium AI msgs/mo then auto free-model fallback (Cursor-style). Team/Hardcore increase budgets. Try packs: 1h/$2, 24h/$5, 7d/$12. BYOK always at /settings/ai-keys. Billing at /settings/billing.",
+  },
+  {
+    q: "What happens when I use up Pro premium AI?",
+    a: "Chat keeps working on free models that day/month. Soft warn at ~80% of budget. Set a lower personal monthly limit under Billing. Your own OpenRouter key (BYOK) is never limited by us.",
   },
   {
     q: "What is Plethora MCP?",

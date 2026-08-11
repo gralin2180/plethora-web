@@ -36,6 +36,18 @@ const PRIMARY: NavItem[] = [
 
 const MORE: NavItem[] = [
   {
+    href: "/settings/billing",
+    label: "Billing & AI",
+    tour: "nav-billing",
+    hint: "Pro, try packs, usage limits",
+  },
+  {
+    href: "/settings/ai-keys",
+    label: "AI keys (BYOK)",
+    tour: "nav-byok",
+    hint: "Your OpenRouter key — unlimited",
+  },
+  {
     href: "/connect",
     label: "Connect apps",
     tour: "nav-connect",
