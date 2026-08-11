@@ -84,7 +84,15 @@ export async function POST(request: Request) {
 
     const byokKey =
       typeof body.byokKey === "string" && body.byokKey.trim().length > 20
-        ? body.byokKey.trim().slice(0, 200)
+        ? body.byokKey.trim().slice(0, 300)
+        : undefined;
+    const byokBaseUrl =
+      typeof body.byokBaseUrl === "string" && body.byokBaseUrl.startsWith("http")
+        ? body.byokBaseUrl.trim().slice(0, 300)
+        : undefined;
+    const byokModel =
+      typeof body.byokModel === "string" && body.byokModel.trim()
+        ? body.byokModel.trim().slice(0, 120)
         : undefined;
 
     const cookieStore = await cookies();
@@ -266,8 +274,8 @@ export async function POST(request: Request) {
           byok: byokKey
             ? {
                 apiKey: byokKey,
-                baseUrl:
-                  typeof body.byokBaseUrl === "string" ? body.byokBaseUrl : undefined,
+                baseUrl: byokBaseUrl,
+                model: byokModel,
               }
             : undefined,
           customSystem:

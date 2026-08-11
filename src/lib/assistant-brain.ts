@@ -374,8 +374,16 @@ async function tryLlm(
 ): Promise<string | null> {
   const learner = learnerBundle();
   let byokKey: string | undefined;
+  let byokBaseUrl: string | undefined;
+  let byokModel: string | undefined;
   try {
-    byokKey = localStorage.getItem("plethora.byok.openrouter") || undefined;
+    const { loadByok } = await import("./byok");
+    const b = loadByok();
+    if (b?.apiKey) {
+      byokKey = b.apiKey;
+      byokBaseUrl = b.baseUrl;
+      byokModel = b.model;
+    }
   } catch {
     /* ignore */
   }
@@ -399,6 +407,8 @@ async function tryLlm(
         learnerContext: learner,
         adultConsent: opts?.adultConsent,
         byokKey,
+        byokBaseUrl,
+        byokModel,
         history: prior,
       }),
     });

@@ -294,7 +294,7 @@ export async function freeChatCompletion(
       name: "byok",
       baseUrl: opts.byok.baseUrl || "https://openrouter.ai/api/v1",
       apiKey: opts.byok.apiKey,
-      model: opts.byok.model || openRouterModels()[0] || "openrouter/free",
+      model: opts.byok.model || "gpt-4o-mini",
       headers: {
         "HTTP-Referer": env("PLETHORA_SITE_URL") || "http://localhost:3000",
         "X-Title": "Plethora BYOK",

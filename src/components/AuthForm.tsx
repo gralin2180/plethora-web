@@ -6,6 +6,17 @@ import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { Loader2 } from "lucide-react";
 
+function emailRedirectUrl(nextPath: string) {
+  // Prefer configured production site URL so confirmation emails hit the right host
+  const configured =
+    (typeof process !== "undefined" && process.env.NEXT_PUBLIC_SITE_URL?.replace(/\/$/, "")) ||
+    (typeof process !== "undefined" && process.env.NEXT_PUBLIC_PLETHORA_SITE_URL?.replace(/\/$/, "")) ||
+    (typeof window !== "undefined" ? window.location.origin : "");
+  const base = configured || (typeof window !== "undefined" ? window.location.origin : "");
+  const next = encodeURIComponent(nextPath);
+  return `${base}/auth/callback?next=${next}`;
+}
+
 export function AuthForm({ mode }: { mode: "login" | "signup" }) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -20,15 +31,23 @@ export function AuthForm({ mode }: { mode: "login" | "signup" }) {
     setMessage(null);
 
     if (mode === "signup") {
-      const { error } = await supabase.auth.signUp({
+      const { data, error } = await supabase.auth.signUp({
         email,
         password,
-        options: { emailRedirectTo: `${window.location.origin}/auth/callback` },
+        options: {
+          emailRedirectTo: emailRedirectUrl("/dashboard"),
+        },
       });
       if (error) {
         setMessage(error.message);
+      } else if (data.session) {
+        // Email confirm disabled — already signed in
+        router.push("/onboarding");
+        router.refresh();
       } else {
-        setMessage("Check your email to confirm your account, or sign in if already confirmed.");
+        setMessage(
+          "Check your email to confirm. Open the link — it should bring you back to Plethora (not a blank or wrong site). Then sign in if needed."
+        );
       }
     } else {
       const { error } = await supabase.auth.signInWithPassword({ email, password });
@@ -66,7 +85,13 @@ export function AuthForm({ mode }: { mode: "login" | "signup" }) {
         />
       </div>
       {message && (
-        <p className={`text-sm ${message.includes("Check") ? "text-emerald-400" : "text-red-400"}`}>
+        <p
+          className={`text-sm ${
+            message.includes("Check your email") || message.includes("bring you back")
+              ? "text-emerald-400"
+              : "text-red-400"
+          }`}
+        >
           {message}
         </p>
       )}

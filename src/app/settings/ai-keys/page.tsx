@@ -3,8 +3,9 @@ import { SiteShell } from "@/components/SiteShell";
 import { AiKeysClient } from "@/components/AiKeysClient";
 
 export const metadata: Metadata = {
-  title: "AI keys — Plethora",
-  description: "Bring your own OpenRouter key for unlimited personal AI use.",
+  title: "AI keys (BYOK) — Plethora",
+  description:
+    "Bring your own OpenAI-compatible API key: OpenRouter, OpenAI, Groq, xAI, DeepSeek, or custom.",
 };
 
 export default function AiKeysPage() {

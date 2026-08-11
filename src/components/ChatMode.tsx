@@ -14,6 +14,7 @@ import { ContentWarningDialog } from "@/components/ContentWarningDialog";
 import { assessContentSafety, type SafetyAssessment } from "@/lib/content-safety";
 import { createAssistantDraft, upsertAssistant } from "@/lib/custom-assistants";
 import { startProductTour, TOUR_CHAT_OPENING } from "@/lib/product-tour";
+import { hasByok } from "@/lib/byok";
 import {
   Loader2,
   Send,
@@ -54,7 +55,7 @@ export function ChatMode({
   } | null>(null);
   const [quotaNote, setQuotaNote] = useState<string | null>(null);
   const [softWarn, setSoftWarn] = useState<string | null>(null);
-  const [hasByok, setHasByok] = useState(false);
+  const [byokOn, setByokOn] = useState(false);
   const [lastUserText, setLastUserText] = useState("");
   const bottomRef = useRef<HTMLDivElement>(null);
 
@@ -70,7 +71,7 @@ export function ChatMode({
 
   useEffect(() => {
     try {
-      setHasByok(Boolean(localStorage.getItem("plethora.byok.openrouter")));
+      setByokOn(hasByok());
     } catch {
       /* */
     }
@@ -277,7 +278,7 @@ export function ChatMode({
               href="/settings/ai-keys"
               className="inline-flex items-center gap-1.5 rounded-full border border-amber-500/40 bg-amber-500/15 px-4 py-1.5 text-sm font-medium text-amber-100 hover:bg-amber-500/25"
             >
-              {hasByok ? "BYOK on" : "Add your key (BYOK)"}
+              {byokOn ? "BYOK on" : "Add your key (BYOK)"}
             </Link>
             <Link
               href="/settings/billing"
