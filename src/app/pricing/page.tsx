@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { SiteShell } from "@/components/SiteShell";
 import { PricingClient } from "@/components/PricingClient";
 
 export const metadata: Metadata = {
@@ -8,5 +9,9 @@ export const metadata: Metadata = {
 };
 
 export default function PricingPage() {
-  return <PricingClient />;
+  return (
+    <SiteShell>
+      <PricingClient />
+    </SiteShell>
+  );
 }

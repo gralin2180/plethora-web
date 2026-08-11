@@ -2,10 +2,8 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { Check, KeyRound, Loader2 } from "lucide-react";
-import { SiteShell } from "@/components/SiteShell";
+import { Check, KeyRound, Loader2, Building2, Cpu, Phone, Shield } from "lucide-react";
 import { HARDCORE_BUNDLE, HARDCORE_FEATURES } from "@/lib/hardcore-bundle";
-import { Building2, Cpu, Phone, Shield } from "lucide-react";
 
 const FREE_FEATURES = [
   "Browse all tools & AI catalog",
@@ -72,7 +70,6 @@ export function PricingClient() {
   }
 
   return (
-    <SiteShell>
       <div className="px-4 py-12 sm:px-6">
         <div className="mx-auto max-w-5xl text-center">
           <h1 className="text-3xl font-bold text-white sm:text-4xl">Simple pricing</h1>
@@ -253,7 +250,6 @@ export function PricingClient() {
           </div>
         </div>
       </div>
-    </SiteShell>
   );
 }
 
