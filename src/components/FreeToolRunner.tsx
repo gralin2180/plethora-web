@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import { jsPDF } from "jspdf";
 import { PDFDocument, StandardFonts, rgb } from "pdf-lib";
 import Link from "next/link";
+import { VideoRecorderLab } from "@/components/VideoRecorderLab";
 import { EmailManagerLab } from "@/components/EmailManagerLab";
 import {
   Check,
@@ -86,6 +87,7 @@ export type FreeRunnerKind =
   | "ats-resume"
   | "message-automation"
   | "email-manager"
+  | "video-recorder"
   | "sitemap-finder"
   | "sitemap-validator"
   | "sitemap-urls"
@@ -367,6 +369,7 @@ export function FreeToolRunner({ kind, title }: { kind: FreeRunnerKind; title: s
   if (kind === "ats-resume") return <AtsResumeScanner />;
   if (kind === "message-automation") return <MessagingAutomationLab />;
   if (kind === "email-manager") return <EmailManagerLab />;
+  if (kind === "video-recorder") return <VideoRecorderLab />;
   if (kind === "sitemap-finder") return <SitemapFinder />;
   if (kind === "sitemap-validator") return <SitemapValidator />;
   if (kind === "sitemap-urls") return <SitemapUrlExtractor />;

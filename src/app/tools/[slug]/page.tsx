@@ -34,6 +34,7 @@ const FREE_RUNNERS = new Set<string>([
   "ats-resume",
   "message-automation",
   "email-manager",
+  "video-recorder",
   "sitemap-finder",
   "sitemap-validator",
   "sitemap-urls",

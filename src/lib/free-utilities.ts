@@ -259,6 +259,28 @@ export const FREE_UTILITY_TOOLS: PlatformTool[] = [
     runner: "free-utility",
   },
   {
+    id: "video-recorder",
+    name: "Screen & video recorder",
+    slug: "video-recorder",
+    description:
+      "Record screen or camera, drag-to-crop, screenshots — minimal UI, saves locally in browser.",
+    category: "Free Utilities",
+    icon: "Video",
+    freeRunsPerDay: 30,
+    isPro: false,
+    tags: ["screen record", "screenshot", "crop", "webcam", "capture"],
+    taskKeywords: [
+      "screen recorder",
+      "record screen",
+      "screenshot tool",
+      "crop video",
+      "webcam record",
+      "loom alternative",
+    ],
+    actionHint: "Screen or cam → crop → record or shot",
+    runner: "free-utility",
+  },
+  {
     id: "sitemap-finder",
     name: "Sitemap finder & checker",
     slug: "sitemap-finder",
