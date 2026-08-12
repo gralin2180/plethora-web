@@ -1,0 +1,17 @@
+{
+  "name": "Plethora",
+  "short_name": "Plethora",
+  "description": "AI tools, email manager, prompts — under one roof",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#080810",
+  "theme_color": "#7c3aed",
+  "icons": [
+    {
+      "src": "/globe.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ]
+}

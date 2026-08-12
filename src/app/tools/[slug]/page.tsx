@@ -33,6 +33,7 @@ const FREE_RUNNERS = new Set<string>([
   "latex-resume",
   "ats-resume",
   "message-automation",
+  "email-manager",
   "sitemap-finder",
   "sitemap-validator",
   "sitemap-urls",

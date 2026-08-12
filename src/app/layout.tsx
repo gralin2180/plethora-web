@@ -27,6 +27,11 @@ export const metadata: Metadata = {
     index: true,
     follow: true,
   },
+  manifest: "/manifest.json",
+  appleWebApp: {
+    capable: true,
+    title: "Plethora",
+  },
 };
 
 export default function RootLayout({
