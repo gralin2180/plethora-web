@@ -104,7 +104,12 @@ export async function POST(request: Request) {
         ? body.codexAccountId.trim().slice(0, 120)
         : undefined;
 
-    const usesOwnAi = Boolean(byokKey || codexAccessToken);
+    const copilotSessionToken =
+      typeof body.copilotSessionToken === "string" && body.copilotSessionToken.length > 20
+        ? body.copilotSessionToken.trim().slice(0, 8000)
+        : undefined;
+
+    const usesOwnAi = Boolean(byokKey || codexAccessToken || copilotSessionToken);
 
     const cookieStore = await cookies();
     const anonymousId = getOrCreateAnonymousId(cookieStore);
@@ -119,7 +124,7 @@ export async function POST(request: Request) {
       return NextResponse.json(
         {
           reply:
-            "No free cloud model is configured on the server yet (OpenRouter/Groq free key). Add OPENROUTER_API_KEY in Vercel env, connect ChatGPT Plus under Settings → Subscription AI, or paste your own key under Settings → AI keys.",
+            "No free cloud model is configured on the server yet. Connect your own AI under Get started (ChatGPT, Copilot, Perplexity…), add OPENROUTER_API_KEY, or paste a key under Settings → AI keys.",
           ok: false,
           code: "no_provider",
         },
@@ -292,6 +297,7 @@ export async function POST(request: Request) {
           codex: codexAccessToken
             ? { accessToken: codexAccessToken, accountId: codexAccountId }
             : undefined,
+          copilot: copilotSessionToken ? { sessionToken: copilotSessionToken } : undefined,
           customSystem:
             typeof body.customSystem === "string" ? body.customSystem.slice(0, 6000) : undefined,
           preferPremium,
@@ -402,7 +408,9 @@ export async function POST(request: Request) {
       usedPremium: Boolean(result.usedPremium),
       softWarn: Boolean(softWarnMessage),
       softWarnMessage,
-      quota: codexAccessToken
+      quota: copilotSessionToken
+        ? { mode: "subscription" as const, label: "GitHub Copilot" }
+        : codexAccessToken
         ? { mode: "subscription" as const }
         : byokKey
           ? { mode: "byok" as const }

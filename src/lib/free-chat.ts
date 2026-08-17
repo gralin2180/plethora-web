@@ -188,6 +188,8 @@ export type FreeChatOpts = {
   customSystem?: string;
   /** ChatGPT Plus/Pro subscription (Codex OAuth) — billed to user's OpenAI sub */
   codex?: { accessToken: string; accountId?: string };
+  /** GitHub Copilot session (user login) */
+  copilot?: { sessionToken: string };
   /** User's own OpenRouter / OpenAI-compatible key */
   byok?: { apiKey: string; baseUrl?: string; model?: string };
   /** Prefer platform paid models when entitlement allows */
@@ -316,6 +318,28 @@ export async function freeChatCompletion(
     } catch (e) {
       if (process.env.NODE_ENV === "development") {
         console.warn("[free-chat] codex error:", e);
+      }
+    }
+  }
+
+  if (opts.copilot?.sessionToken) {
+    try {
+      const { copilotChatCompletion } = await import("./copilot-chat");
+      const result = await copilotChatCompletion(
+        userMessage,
+        history,
+        systemPrompt,
+        opts.copilot.sessionToken
+      );
+      if (result.ok && result.reply) {
+        return { ...result, usedPremium: false };
+      }
+      if (process.env.NODE_ENV === "development") {
+        console.warn("[free-chat] copilot failed:", result.error);
+      }
+    } catch (e) {
+      if (process.env.NODE_ENV === "development") {
+        console.warn("[free-chat] copilot error:", e);
       }
     }
   }

@@ -106,10 +106,10 @@ export function ConnectAppsClient() {
             <Plug className="h-3 w-3" /> MCP Hub
           </Link>
           <Link
-            href="/settings/subscription-ai"
+            href="/get-started"
             className="inline-flex items-center gap-1 rounded-full border border-emerald-500/30 bg-emerald-500/10 px-3 py-1 text-emerald-200 hover:text-emerald-100"
           >
-            <Sparkles className="h-3 w-3" /> ChatGPT sub
+            <Sparkles className="h-3 w-3" /> Get started
           </Link>
           <Link
             href="/settings/ai-keys"

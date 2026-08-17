@@ -28,6 +28,12 @@ const PRIMARY: NavItem[] = [
   { href: "/tools", label: "Tools", tour: "nav-tools" },
   { href: "/prompt-assistant", label: "Prompts", tour: "nav-prompt" },
   { href: "/chat", label: "Chat", tour: "nav-chat" },
+  {
+    href: "/get-started",
+    label: "Get started",
+    tour: "nav-get-started",
+    hint: "Connect ChatGPT, Copilot, Perplexity…",
+  },
   { href: "/ai-finder", label: "Finder", tour: "nav-ai-finder" },
   { href: "/mcp", label: "MCP", tour: "nav-mcp" },
   { href: "/about", label: "About", tour: "nav-about" },
@@ -42,10 +48,10 @@ const MORE: NavItem[] = [
     hint: "Pro, try packs, usage limits",
   },
   {
-    href: "/settings/subscription-ai",
-    label: "ChatGPT subscription",
+    href: "/get-started",
+    label: "Get started / Connected",
     tour: "nav-subscription-ai",
-    hint: "Plus/Pro via browser OAuth (OpenCode-style)",
+    hint: "Your ChatGPT, Copilot, Perplexity, Gemini logins",
   },
   {
     href: "/settings/ai-keys",
@@ -118,14 +124,25 @@ function linkTone(href: string, pathname: string, accent?: NavItem["accent"]) {
 
 export function Header({ user = null }: { user?: SupaUser | null }) {
   const pathname = usePathname();
+  const pathForNav = pathname.startsWith("/settings/subscription-ai")
+    ? "/get-started"
+    : pathname;
   const [moreOpen, setMoreOpen] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [aiHubLabel, setAiHubLabel] = useState("Get started");
   const moreRef = useRef<HTMLDivElement>(null);
   const moreMenuId = useId();
 
   useEffect(() => {
     setMoreOpen(false);
     setMobileOpen(false);
+    try {
+      void import("@/lib/connected-ai").then((m) => {
+        setAiHubLabel(m.hasAnyConnectedAi() ? "Connected" : "Get started");
+      });
+    } catch {
+      /* */
+    }
   }, [pathname]);
 
   useEffect(() => {
@@ -172,9 +189,9 @@ export function Header({ user = null }: { user?: SupaUser | null }) {
               key={item.href}
               href={item.href}
               data-tour={item.tour}
-              className={`whitespace-nowrap rounded-lg px-3 py-1.5 text-sm transition ${linkTone(item.href, pathname)}`}
+              className={`whitespace-nowrap rounded-lg px-3 py-1.5 text-sm transition ${linkTone(item.href, pathForNav)}`}
             >
-              {item.label}
+              {item.href === "/get-started" ? aiHubLabel : item.label}
             </Link>
           ))}
 
@@ -268,9 +285,9 @@ export function Header({ user = null }: { user?: SupaUser | null }) {
                 key={`m-${item.href}`}
                 href={item.href}
                 data-tour={item.tour}
-                className={`block rounded-lg px-3 py-2.5 text-sm ${linkTone(item.href, pathname)}`}
+                className={`block rounded-lg px-3 py-2.5 text-sm ${linkTone(item.href, pathForNav)}`}
               >
-                {item.label}
+                {item.href === "/get-started" ? aiHubLabel : item.label}
               </Link>
             ))}
             <p className="px-2 pb-1 pt-3 text-[10px] font-semibold uppercase tracking-wider text-zinc-600">

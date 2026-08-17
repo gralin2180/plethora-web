@@ -21,7 +21,7 @@ const CORE: { path: string; changeFrequency: MetadataRoute.Sitemap[0]["changeFre
   { path: "/", changeFrequency: "weekly", priority: 1 },
   { path: "/tools", changeFrequency: "daily", priority: 0.95 },
   { path: "/learn", changeFrequency: "weekly", priority: 0.9 },
-  { path: "/chat", changeFrequency: "weekly", priority: 0.85 },
+  { path: "/get-started", changeFrequency: "weekly", priority: 0.9 },
   { path: "/ai-finder", changeFrequency: "weekly", priority: 0.85 },
   { path: "/prompt-assistant", changeFrequency: "weekly", priority: 0.85 },
   { path: "/pricing", changeFrequency: "monthly", priority: 0.8 },

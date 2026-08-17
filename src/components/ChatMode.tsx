@@ -15,7 +15,7 @@ import { assessContentSafety, type SafetyAssessment } from "@/lib/content-safety
 import { createAssistantDraft, upsertAssistant } from "@/lib/custom-assistants";
 import { startProductTour, TOUR_CHAT_OPENING } from "@/lib/product-tour";
 import { hasByok } from "@/lib/byok";
-import { hasCodexSubscription } from "@/lib/subscription-tokens";
+import { hasAnyConnectedAi } from "@/lib/connected-ai";
 import {
   Loader2,
   Send,
@@ -74,7 +74,7 @@ export function ChatMode({
   useEffect(() => {
     try {
       setByokOn(hasByok());
-      setSubscriptionOn(hasCodexSubscription());
+      setSubscriptionOn(hasAnyConnectedAi());
     } catch {
       /* */
     }
@@ -257,7 +257,7 @@ export function ChatMode({
                   }`}
                 >
                   {subscriptionOn
-                    ? "ChatGPT subscription connected"
+                    ? "Your AI login connected"
                     : byokOn
                       ? "BYOK connected"
                       : llmReady
@@ -284,10 +284,10 @@ export function ChatMode({
               Clear
             </button>
             <Link
-              href="/settings/subscription-ai"
+              href="/get-started"
               className="inline-flex items-center gap-1.5 rounded-full border border-emerald-500/40 bg-emerald-500/15 px-4 py-1.5 text-sm font-medium text-emerald-100 hover:bg-emerald-500/25"
             >
-              {subscriptionOn ? "ChatGPT on" : "Connect ChatGPT"}
+              {subscriptionOn ? "Connected" : "Get started"}
             </Link>
             <Link
               href="/settings/ai-keys"

@@ -378,26 +378,51 @@ async function tryLlm(
   let byokModel: string | undefined;
   let codexAccessToken: string | undefined;
   let codexAccountId: string | undefined;
+  let copilotSessionToken: string | undefined;
+  let usedConnected = false;
   try {
-    const { loadByok } = await import("./byok");
-    const b = loadByok();
-    if (b?.apiKey) {
-      byokKey = b.apiKey;
-      byokBaseUrl = b.baseUrl;
-      byokModel = b.model;
+    const { resolveConnectedChatAuth } = await import("./connected-ai");
+    const connected = await resolveConnectedChatAuth();
+    if (connected.codex) {
+      codexAccessToken = connected.codex.accessToken;
+      codexAccountId = connected.codex.accountId;
+      usedConnected = true;
+    }
+    if (connected.copilot?.sessionToken) {
+      copilotSessionToken = connected.copilot.sessionToken;
+      usedConnected = true;
+    }
+    if (connected.byok?.apiKey) {
+      byokKey = connected.byok.apiKey;
+      byokBaseUrl = connected.byok.baseUrl;
+      byokModel = connected.byok.model;
+      usedConnected = true;
     }
   } catch {
     /* ignore */
   }
-  try {
-    const { getValidCodexAuth } = await import("./subscription-tokens");
-    const c = await getValidCodexAuth();
-    if (c?.accessToken) {
-      codexAccessToken = c.accessToken;
-      codexAccountId = c.accountId;
+  if (!usedConnected) {
+    try {
+      const { loadByok } = await import("./byok");
+      const b = loadByok();
+      if (b?.apiKey) {
+        byokKey = b.apiKey;
+        byokBaseUrl = b.baseUrl;
+        byokModel = b.model;
+      }
+    } catch {
+      /* ignore */
     }
-  } catch {
-    /* ignore */
+    try {
+      const { getValidCodexAuth } = await import("./subscription-tokens");
+      const c = await getValidCodexAuth();
+      if (c?.accessToken) {
+        codexAccessToken = c.accessToken;
+        codexAccountId = c.accountId;
+      }
+    } catch {
+      /* ignore */
+    }
   }
 
   // Send prior turns only (exclude pure empty); keep last 20 messages for context
@@ -423,6 +448,7 @@ async function tryLlm(
         byokModel,
         codexAccessToken,
         codexAccountId,
+        copilotSessionToken,
         history: prior,
       }),
     });
@@ -451,7 +477,7 @@ async function tryLlm(
     } else if (typeof window !== "undefined" && data.quota?.mode === "subscription") {
       window.dispatchEvent(
         new CustomEvent("plethora:quota-label", {
-          detail: "ChatGPT subscription",
+          detail: (data.quota as { label?: string }).label || "Your AI login",
         })
       );
     } else if (typeof window !== "undefined" && data.quota?.mode && data.quota.mode !== "byok") {
@@ -481,6 +507,7 @@ async function tryLlm(
 export type ServerChatOpts = {
   adultMode?: boolean;
   codex?: { accessToken: string; accountId?: string };
+  copilot?: { sessionToken: string };
   byok?: { apiKey: string; baseUrl?: string; model?: string };
   customSystem?: string;
   preferPremium?: boolean;
@@ -504,6 +531,7 @@ export async function generateAssistantReplyServer(
       learnerContext,
       adultMode: true,
       codex: opts?.codex,
+      copilot: opts?.copilot,
       byok: opts?.byok,
       customSystem: opts?.customSystem,
       preferPremium: opts?.preferPremium,
@@ -551,6 +579,7 @@ export async function generateAssistantReplyServer(
     learnerContext,
     adultMode,
     codex: opts?.codex,
+    copilot: opts?.copilot,
     byok: opts?.byok,
     customSystem: opts?.customSystem,
     preferPremium: opts?.preferPremium,

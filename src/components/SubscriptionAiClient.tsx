@@ -29,6 +29,7 @@ import {
   tokensToStored,
   type StoredCodexAuth,
 } from "@/lib/subscription-tokens";
+import { setPreferredAi } from "@/lib/connected-ai";
 
 type DeviceSession = {
   deviceAuthId: string;
@@ -37,7 +38,7 @@ type DeviceSession = {
   verifyUrl: string;
 };
 
-export function SubscriptionAiClient() {
+export function SubscriptionAiClient({ compact = false }: { compact?: boolean }) {
   const [connected, setConnected] = useState<StoredCodexAuth | null>(null);
   const [device, setDevice] = useState<DeviceSession | null>(null);
   const [deviceStatus, setDeviceStatus] = useState<
@@ -59,6 +60,11 @@ export function SubscriptionAiClient() {
   const finishConnect = useCallback((tokens: CodexTokenResponse & { accountId?: string; email?: string }) => {
     const stored = tokensToStored(tokens);
     saveCodexAuth(stored);
+    try {
+      setPreferredAi("chatgpt");
+    } catch {
+      /* */
+    }
     setConnected(stored);
     setDevice(null);
     setDeviceStatus("done");
@@ -192,7 +198,8 @@ export function SubscriptionAiClient() {
   }
 
   return (
-    <div className="mx-auto max-w-2xl space-y-6 px-4 py-12 sm:px-6">
+    <div className={compact ? "space-y-6" : "mx-auto max-w-2xl space-y-6 px-4 py-12 sm:px-6"}>
+      {!compact && (
       <div className="rounded-2xl border border-emerald-500/40 bg-gradient-to-br from-emerald-500/15 to-transparent p-5">
         <div className="flex items-center gap-2">
           <Sparkles className="h-5 w-5 text-emerald-300" />
@@ -204,6 +211,7 @@ export function SubscriptionAiClient() {
           browser only.
         </p>
       </div>
+      )}
 
       {connected ? (
         <div className="rounded-2xl border border-emerald-500/30 bg-emerald-500/10 p-5">
@@ -327,6 +335,7 @@ export function SubscriptionAiClient() {
         </>
       )}
 
+      {!compact && (
       <section className="rounded-2xl border border-amber-500/20 bg-amber-500/5 p-5">
         <h2 className="text-sm font-semibold text-amber-200">Claude Pro / Max</h2>
         <p className="mt-2 text-sm text-zinc-400">
@@ -338,6 +347,7 @@ export function SubscriptionAiClient() {
           or OpenRouter. Terminal tools like OpenCode may still offer other subscription paths.
         </p>
       </section>
+      )}
 
       <p className="text-xs text-zinc-600">
         Personal/dev use with your own subscription. Plethora does not store OAuth tokens on our
