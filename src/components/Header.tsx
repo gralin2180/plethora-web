@@ -42,6 +42,12 @@ const MORE: NavItem[] = [
     hint: "Pro, try packs, usage limits",
   },
   {
+    href: "/settings/subscription-ai",
+    label: "ChatGPT subscription",
+    tour: "nav-subscription-ai",
+    hint: "Plus/Pro via browser OAuth (OpenCode-style)",
+  },
+  {
     href: "/settings/ai-keys",
     label: "AI keys (BYOK)",
     tour: "nav-byok",

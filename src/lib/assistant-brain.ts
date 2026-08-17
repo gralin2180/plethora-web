@@ -376,6 +376,8 @@ async function tryLlm(
   let byokKey: string | undefined;
   let byokBaseUrl: string | undefined;
   let byokModel: string | undefined;
+  let codexAccessToken: string | undefined;
+  let codexAccountId: string | undefined;
   try {
     const { loadByok } = await import("./byok");
     const b = loadByok();
@@ -383,6 +385,16 @@ async function tryLlm(
       byokKey = b.apiKey;
       byokBaseUrl = b.baseUrl;
       byokModel = b.model;
+    }
+  } catch {
+    /* ignore */
+  }
+  try {
+    const { getValidCodexAuth } = await import("./subscription-tokens");
+    const c = await getValidCodexAuth();
+    if (c?.accessToken) {
+      codexAccessToken = c.accessToken;
+      codexAccountId = c.accountId;
     }
   } catch {
     /* ignore */
@@ -409,6 +421,8 @@ async function tryLlm(
         byokKey,
         byokBaseUrl,
         byokModel,
+        codexAccessToken,
+        codexAccountId,
         history: prior,
       }),
     });
@@ -432,6 +446,12 @@ async function tryLlm(
       window.dispatchEvent(
         new CustomEvent("plethora:quota-label", {
           detail: `Premium ${data.quota.used ?? "?"}/${data.quota.limit}`,
+        })
+      );
+    } else if (typeof window !== "undefined" && data.quota?.mode === "subscription") {
+      window.dispatchEvent(
+        new CustomEvent("plethora:quota-label", {
+          detail: "ChatGPT subscription",
         })
       );
     } else if (typeof window !== "undefined" && data.quota?.mode && data.quota.mode !== "byok") {
@@ -460,6 +480,7 @@ async function tryLlm(
 
 export type ServerChatOpts = {
   adultMode?: boolean;
+  codex?: { accessToken: string; accountId?: string };
   byok?: { apiKey: string; baseUrl?: string; model?: string };
   customSystem?: string;
   preferPremium?: boolean;
@@ -482,6 +503,7 @@ export async function generateAssistantReplyServer(
     const llm = await freeChatCompletion(text, history, {
       learnerContext,
       adultMode: true,
+      codex: opts?.codex,
       byok: opts?.byok,
       customSystem: opts?.customSystem,
       preferPremium: opts?.preferPremium,
@@ -528,6 +550,7 @@ export async function generateAssistantReplyServer(
   const chatOpts = {
     learnerContext,
     adultMode,
+    codex: opts?.codex,
     byok: opts?.byok,
     customSystem: opts?.customSystem,
     preferPremium: opts?.preferPremium,

@@ -95,6 +95,17 @@ export async function POST(request: Request) {
         ? body.byokModel.trim().slice(0, 120)
         : undefined;
 
+    const codexAccessToken =
+      typeof body.codexAccessToken === "string" && body.codexAccessToken.length > 20
+        ? body.codexAccessToken.trim().slice(0, 8000)
+        : undefined;
+    const codexAccountId =
+      typeof body.codexAccountId === "string" && body.codexAccountId.trim()
+        ? body.codexAccountId.trim().slice(0, 120)
+        : undefined;
+
+    const usesOwnAi = Boolean(byokKey || codexAccessToken);
+
     const cookieStore = await cookies();
     const anonymousId = getOrCreateAnonymousId(cookieStore);
     const setAnonCookie = !cookieStore.get(ANON_COOKIE)?.value;
@@ -104,11 +115,11 @@ export async function POST(request: Request) {
       data: { user },
     } = await supabase.auth.getUser();
 
-    if (!hasFreeChatProvider() && !byokKey) {
+    if (!hasFreeChatProvider() && !usesOwnAi) {
       return NextResponse.json(
         {
           reply:
-            "No free cloud model is configured on the server yet (OpenRouter/Groq free key). Add OPENROUTER_API_KEY in Vercel env, or paste your own key under Settings → AI keys.",
+            "No free cloud model is configured on the server yet (OpenRouter/Groq free key). Add OPENROUTER_API_KEY in Vercel env, connect ChatGPT Plus under Settings → Subscription AI, or paste your own key under Settings → AI keys.",
           ok: false,
           code: "no_provider",
         },
@@ -133,8 +144,8 @@ export async function POST(request: Request) {
       plan = entitlement.plan;
     }
 
-    // Free-path quota (BYOK skips platform free daily + global free guard)
-    if (!byokKey) {
+    // Free-path quota (BYOK + ChatGPT subscription skip platform free daily + global free guard)
+    if (!usesOwnAi) {
       if (user) {
         limit = entitlement.freeDailyLimit;
         try {
@@ -252,15 +263,15 @@ export async function POST(request: Request) {
         ? history.slice(0, -1)
         : history;
 
-    const preferPremium = !byokKey && entitlement.premiumAllowed;
+    const preferPremium = !usesOwnAi && entitlement.premiumAllowed;
     const freeLoadResult =
-      byokKey || preferPremium
+      usesOwnAi || preferPremium
         ? ({ ok: true, load: "normal" } as const)
         : assertPlatformFreeCapacity();
     const maxTokens =
-      !byokKey && freeLoadResult.ok && freeLoadResult.load === "hot"
+      !usesOwnAi && freeLoadResult.ok && freeLoadResult.load === "hot"
         ? 600
-        : !byokKey && freeLoadResult.ok && freeLoadResult.load === "elevated"
+        : !usesOwnAi && freeLoadResult.ok && freeLoadResult.load === "elevated"
           ? 900
           : 1200;
 
@@ -278,6 +289,9 @@ export async function POST(request: Request) {
                 model: byokModel,
               }
             : undefined,
+          codex: codexAccessToken
+            ? { accessToken: codexAccessToken, accountId: codexAccountId }
+            : undefined,
           customSystem:
             typeof body.customSystem === "string" ? body.customSystem.slice(0, 6000) : undefined,
           preferPremium,
@@ -286,12 +300,12 @@ export async function POST(request: Request) {
       );
 
     const result =
-      !byokKey && !preferPremium
+      !usesOwnAi && !preferPremium
         ? await withPlatformFreeSlot(run)
         : await run();
 
     // Usage accounting
-    if (!byokKey && result.reply) {
+    if (!usesOwnAi && result.reply) {
       try {
         if (result.usedPremium && user) {
           await recordPremiumUse(supabase, user.id, {
@@ -337,7 +351,7 @@ export async function POST(request: Request) {
 
     // Soft fre daily warn
     const freeSoft =
-      !byokKey &&
+      !usesOwnAi &&
       !result.usedPremium &&
       softWarnAt(usedBefore, limit, getPlanCapabilities(plan === "guest" ? "free" : plan).softWarnRatio);
 
@@ -383,14 +397,16 @@ export async function POST(request: Request) {
       source: result.source,
       ok: true,
       needsWarning: safety.needsWarning && !adultMode,
-      llmReady: hasFreeChatProvider() || Boolean(byokKey),
+      llmReady: hasFreeChatProvider() || usesOwnAi,
       plan,
       usedPremium: Boolean(result.usedPremium),
       softWarn: Boolean(softWarnMessage),
       softWarnMessage,
-      quota: byokKey
-        ? { mode: "byok" as const }
-        : result.usedPremium
+      quota: codexAccessToken
+        ? { mode: "subscription" as const }
+        : byokKey
+          ? { mode: "byok" as const }
+          : result.usedPremium
           ? {
               mode: "premium" as const,
               used: entitlement.premiumUsed,

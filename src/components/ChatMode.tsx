@@ -15,6 +15,7 @@ import { assessContentSafety, type SafetyAssessment } from "@/lib/content-safety
 import { createAssistantDraft, upsertAssistant } from "@/lib/custom-assistants";
 import { startProductTour, TOUR_CHAT_OPENING } from "@/lib/product-tour";
 import { hasByok } from "@/lib/byok";
+import { hasCodexSubscription } from "@/lib/subscription-tokens";
 import {
   Loader2,
   Send,
@@ -56,6 +57,7 @@ export function ChatMode({
   const [quotaNote, setQuotaNote] = useState<string | null>(null);
   const [softWarn, setSoftWarn] = useState<string | null>(null);
   const [byokOn, setByokOn] = useState(false);
+  const [subscriptionOn, setSubscriptionOn] = useState(false);
   const [lastUserText, setLastUserText] = useState("");
   const bottomRef = useRef<HTMLDivElement>(null);
 
@@ -72,6 +74,7 @@ export function ChatMode({
   useEffect(() => {
     try {
       setByokOn(hasByok());
+      setSubscriptionOn(hasCodexSubscription());
     } catch {
       /* */
     }
@@ -248,13 +251,19 @@ export function ChatMode({
               {llmReady !== null && (
                 <span
                   className={`mt-2 inline-flex rounded-full px-2.5 py-0.5 text-[11px] ${
-                    llmReady
+                    llmReady || byokOn || subscriptionOn
                       ? "bg-emerald-500/15 text-emerald-300"
                       : "bg-amber-500/15 text-amber-300"
                   }`}
                 >
-                  {llmReady ? "Platform AI configured" : "Add platform key or BYOK"}
-                  {signedIn === false && " · sign in for free tier"}
+                  {subscriptionOn
+                    ? "ChatGPT subscription connected"
+                    : byokOn
+                      ? "BYOK connected"
+                      : llmReady
+                        ? "Platform AI configured"
+                        : "Add platform key, subscription, or BYOK"}
+                  {signedIn === false && !subscriptionOn && !byokOn && " · sign in for free tier"}
                 </span>
               )}
             </div>
@@ -274,6 +283,12 @@ export function ChatMode({
             >
               Clear
             </button>
+            <Link
+              href="/settings/subscription-ai"
+              className="inline-flex items-center gap-1.5 rounded-full border border-emerald-500/40 bg-emerald-500/15 px-4 py-1.5 text-sm font-medium text-emerald-100 hover:bg-emerald-500/25"
+            >
+              {subscriptionOn ? "ChatGPT on" : "Connect ChatGPT"}
+            </Link>
             <Link
               href="/settings/ai-keys"
               className="inline-flex items-center gap-1.5 rounded-full border border-amber-500/40 bg-amber-500/15 px-4 py-1.5 text-sm font-medium text-amber-100 hover:bg-amber-500/25"

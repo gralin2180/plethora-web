@@ -9,6 +9,7 @@ import {
   Link2,
   Plug,
   Search,
+  Sparkles,
   Unplug,
   Workflow,
 } from "lucide-react";
@@ -103,6 +104,12 @@ export function ConnectAppsClient() {
             className="inline-flex items-center gap-1 rounded-full border border-white/10 px-3 py-1 text-zinc-400 hover:text-white"
           >
             <Plug className="h-3 w-3" /> MCP Hub
+          </Link>
+          <Link
+            href="/settings/subscription-ai"
+            className="inline-flex items-center gap-1 rounded-full border border-emerald-500/30 bg-emerald-500/10 px-3 py-1 text-emerald-200 hover:text-emerald-100"
+          >
+            <Sparkles className="h-3 w-3" /> ChatGPT sub
           </Link>
           <Link
             href="/settings/ai-keys"

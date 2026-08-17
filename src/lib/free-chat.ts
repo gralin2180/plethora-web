@@ -186,6 +186,8 @@ export type FreeChatOpts = {
   learnerContext?: string;
   adultMode?: boolean;
   customSystem?: string;
+  /** ChatGPT Plus/Pro subscription (Codex OAuth) — billed to user's OpenAI sub */
+  codex?: { accessToken: string; accountId?: string };
   /** User's own OpenRouter / OpenAI-compatible key */
   byok?: { apiKey: string; baseUrl?: string; model?: string };
   /** Prefer platform paid models when entitlement allows */
@@ -288,6 +290,36 @@ export async function freeChatCompletion(
     usedPremium?: boolean;
   };
 
+  const systemPrompt = buildChatSystemPrompt(opts.learnerContext, {
+    adultMode: opts.adultMode,
+    customSystem: opts.customSystem,
+  });
+
+  if (opts.codex?.accessToken) {
+    try {
+      const { codexChatCompletion } = await import("./codex-chat");
+      const result = await codexChatCompletion(
+        userMessage,
+        history,
+        systemPrompt,
+        {
+          accessToken: opts.codex.accessToken,
+          accountId: opts.codex.accountId,
+        }
+      );
+      if (result.ok && result.reply) {
+        return { ...result, usedPremium: false };
+      }
+      if (process.env.NODE_ENV === "development") {
+        console.warn("[free-chat] codex failed:", result.error);
+      }
+    } catch (e) {
+      if (process.env.NODE_ENV === "development") {
+        console.warn("[free-chat] codex error:", e);
+      }
+    }
+  }
+
   const providers: P[] = [];
   if (opts.byok?.apiKey) {
     providers.push({
@@ -330,10 +362,7 @@ export async function freeChatCompletion(
   const messages: ChatHistoryMsg[] = [
     {
       role: "system",
-      content: buildChatSystemPrompt(opts.learnerContext, {
-        adultMode: opts.adultMode,
-        customSystem: opts.customSystem,
-      }),
+      content: systemPrompt,
     },
     ...history.slice(-14).filter((m) => m.role !== "system"),
     { role: "user", content: userMessage },
