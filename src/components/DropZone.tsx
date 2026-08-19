@@ -10,6 +10,7 @@ export function DropZone({
   hint,
   onFiles,
   disabled,
+  compact,
 }: {
   accept?: string;
   multiple?: boolean;
@@ -17,6 +18,7 @@ export function DropZone({
   hint?: string;
   onFiles: (files: FileList | File[]) => void;
   disabled?: boolean;
+  compact?: boolean;
 }) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [over, setOver] = useState(false);
@@ -47,18 +49,20 @@ export function DropZone({
         setOver(false);
         if (!disabled) take(e.dataTransfer.files);
       }}
-      className={`group relative flex min-h-[160px] cursor-pointer flex-col items-center justify-center rounded-2xl border-2 border-dashed px-4 py-8 text-center transition ${
+      className={`group relative flex cursor-pointer flex-col items-center justify-center rounded-2xl border-2 border-dashed px-4 text-center transition ${
+        compact ? "min-h-[112px] py-5" : "min-h-[160px] py-8"
+      } ${
         over
           ? "border-violet-400 bg-violet-500/15"
           : "border-white/15 bg-white/[0.03] hover:border-violet-500/50 hover:bg-violet-500/5"
       } ${disabled ? "pointer-events-none opacity-50" : ""}`}
     >
       <div
-        className={`mb-3 flex h-14 w-14 items-center justify-center rounded-2xl border border-white/10 bg-black/40 transition group-hover:border-violet-500/40 ${
-          over ? "scale-105 border-violet-400" : ""
-        }`}
+        className={`mb-3 flex items-center justify-center rounded-2xl border border-white/10 bg-black/40 transition group-hover:border-violet-500/40 ${
+          compact ? "h-10 w-10" : "h-14 w-14"
+        } ${over ? "scale-105 border-violet-400" : ""}`}
       >
-        <Plus className="h-7 w-7 text-violet-400" strokeWidth={2.25} />
+        <Plus className={compact ? "h-5 w-5 text-violet-400" : "h-7 w-7 text-violet-400"} strokeWidth={2.25} />
       </div>
       <p className="text-sm font-medium text-white">{label}</p>
       {hint && <p className="mt-1 max-w-xs text-xs text-zinc-500">{hint}</p>}

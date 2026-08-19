@@ -5,15 +5,7 @@
 
 import { hasCodexSubscription } from "./subscription-tokens";
 
-export type ConnectedAiId =
-  | "chatgpt"
-  | "github-copilot"
-  | "perplexity"
-  | "gemini"
-  | "groq"
-  | "grok"
-  | "claude"
-  | "openrouter";
+export type ConnectedAiId = string;
 
 export type ConnectedAiAccount = {
   id: ConnectedAiId;
@@ -40,11 +32,21 @@ export type StoredCopilotAuth = {
   connectedAt: number;
 };
 
+export type AiLoginMethod = {
+  id: "browser" | "headless" | "api-key";
+  title: string;
+  sub: string;
+};
+
 export type AiProviderDef = {
   id: ConnectedAiId;
   name: string;
   tagline: string;
+  group: "popular" | "other";
+  recommended?: boolean;
+  custom?: boolean;
   method: "oauth" | "api-key";
+  methods: AiLoginMethod[];
   loginUrl: string;
   keyUrl?: string;
   baseUrl?: string;
@@ -54,66 +56,149 @@ export type AiProviderDef = {
   oauthBlocked?: boolean;
 };
 
+function apiOnly(): AiLoginMethod[] {
+  return [{ id: "api-key", title: "API key", sub: "Browser" }];
+}
+
 export const AI_PROVIDERS: AiProviderDef[] = [
   {
     id: "chatgpt",
-    name: "ChatGPT (Plus / Pro / Free)",
-    tagline: "Log in with your OpenAI account — same idea as OpenCode.",
+    name: "OpenAI",
+    tagline: "ChatGPT Plus/Pro login or API key",
+    group: "popular",
+    recommended: true,
     method: "oauth",
+    methods: [
+      { id: "browser", title: "ChatGPT Pro/Plus", sub: "Browser" },
+      { id: "headless", title: "ChatGPT Pro/Plus", sub: "Headless" },
+      { id: "api-key", title: "API key", sub: "Browser" },
+    ],
     loginUrl: "https://chatgpt.com",
-    freeNote:
-      "Works best with Plus/Pro. Free ChatGPT logins may be limited by OpenAI.",
+    keyUrl: "https://platform.openai.com/api-keys",
+    baseUrl: "https://api.openai.com/v1",
+    defaultModel: "gpt-4o-mini",
+    placeholder: "sk-…",
+    freeNote: "Use the ChatGPT subscription you already pay for, or a platform API key.",
   },
   {
-    id: "github-copilot",
-    name: "GitHub Copilot",
-    tagline: "Log in with GitHub — Free, Pro, or Business Copilot.",
-    method: "oauth",
-    loginUrl: "https://github.com/login/device",
-    freeNote: "Copilot Free is enough for many coding tasks.",
-  },
-  {
-    id: "perplexity",
-    name: "Perplexity",
-    tagline: "Sign in on Perplexity, then paste your API key.",
+    id: "claude",
+    name: "Anthropic",
+    tagline: "Claude via API key (Pro login blocked)",
+    group: "popular",
     method: "api-key",
-    loginUrl: "https://www.perplexity.ai",
-    keyUrl: "https://www.perplexity.ai/settings/api",
-    baseUrl: "https://api.perplexity.ai",
-    defaultModel: "sonar",
-    placeholder: "pplx-…",
-    freeNote:
-      "Create a Perplexity account (free). API usage is billed to you, not Plethora.",
+    methods: apiOnly(),
+    loginUrl: "https://console.anthropic.com",
+    keyUrl: "https://console.anthropic.com/settings/keys",
+    baseUrl: "https://openrouter.ai/api/v1",
+    defaultModel: "anthropic/claude-sonnet-4",
+    placeholder: "sk-or-… or OpenRouter key",
+    oauthBlocked: true,
+    freeNote: "Claude.ai subscription login is blocked. Use OpenRouter or an Anthropic-compatible key.",
   },
   {
     id: "gemini",
-    name: "Google Gemini",
-    tagline: "Google login → AI Studio key (free quota).",
+    name: "Google",
+    tagline: "Gemini from AI Studio",
+    group: "popular",
     method: "api-key",
+    methods: apiOnly(),
     loginUrl: "https://aistudio.google.com",
     keyUrl: "https://aistudio.google.com/apikey",
     baseUrl: "https://generativelanguage.googleapis.com/v1beta/openai",
     defaultModel: "gemini-2.0-flash",
     placeholder: "AIza…",
-    freeNote: "Google account + free Gemini API quota in AI Studio.",
+    freeNote: "Google login → free Gemini quota in AI Studio.",
+  },
+  {
+    id: "github-copilot",
+    name: "GitHub Copilot",
+    tagline: "Log in with GitHub",
+    group: "popular",
+    recommended: true,
+    method: "oauth",
+    methods: [{ id: "headless", title: "GitHub Copilot", sub: "Device code" }],
+    loginUrl: "https://github.com/login/device",
+    freeNote: "Free Copilot is enough for many tasks.",
+  },
+  {
+    id: "opencode-zen",
+    name: "OpenCode Zen",
+    tagline: "Free models (Laguna, Nemotron, Hy3…)",
+    group: "popular",
+    recommended: true,
+    method: "api-key",
+    methods: apiOnly(),
+    loginUrl: "https://opencode.ai/auth",
+    keyUrl: "https://opencode.ai/auth",
+    baseUrl: "https://opencode.ai/zen/v1",
+    defaultModel: "laguna-s-2.1-free",
+    placeholder: "your Zen API key",
+    freeNote:
+      "Free models work in Chat with no key. Paste a Zen key only if you want paid Zen models billed to you.",
+  },
+  {
+    id: "openrouter",
+    name: "OpenRouter",
+    tagline: "One key, many models",
+    group: "popular",
+    method: "api-key",
+    methods: apiOnly(),
+    loginUrl: "https://openrouter.ai",
+    keyUrl: "https://openrouter.ai/keys",
+    baseUrl: "https://openrouter.ai/api/v1",
+    defaultModel: "openrouter/free",
+    placeholder: "sk-or-v1-…",
+    freeNote: "Free models if you pick :free ids.",
+  },
+  {
+    id: "vercel",
+    name: "Vercel AI Gateway",
+    tagline: "Route through Vercel",
+    group: "popular",
+    method: "api-key",
+    methods: apiOnly(),
+    loginUrl: "https://vercel.com/ai",
+    keyUrl: "https://vercel.com/account/ai",
+    baseUrl: "https://ai-gateway.vercel.sh/v1",
+    defaultModel: "openai/gpt-4o-mini",
+    placeholder: "vck_…",
+    freeNote: "Vercel login, then paste a gateway key.",
+  },
+  {
+    id: "perplexity",
+    name: "Perplexity",
+    tagline: "Search + answer models",
+    group: "popular",
+    method: "api-key",
+    methods: apiOnly(),
+    loginUrl: "https://www.perplexity.ai",
+    keyUrl: "https://www.perplexity.ai/settings/api",
+    baseUrl: "https://api.perplexity.ai",
+    defaultModel: "sonar",
+    placeholder: "pplx-…",
+    freeNote: "Sign in on Perplexity, then paste your key.",
   },
   {
     id: "groq",
     name: "Groq",
-    tagline: "Free-tier Llama after you sign up.",
+    tagline: "Fast free Llama",
+    group: "popular",
     method: "api-key",
+    methods: apiOnly(),
     loginUrl: "https://console.groq.com",
     keyUrl: "https://console.groq.com/keys",
     baseUrl: "https://api.groq.com/openai/v1",
     defaultModel: "llama-3.1-8b-instant",
     placeholder: "gsk_…",
-    freeNote: "Generous free rate limits after login.",
+    freeNote: "Free after signup.",
   },
   {
     id: "grok",
-    name: "xAI Grok",
-    tagline: "Sign in at xAI console, then paste a key.",
+    name: "xAI",
+    tagline: "Grok models",
+    group: "other",
     method: "api-key",
+    methods: apiOnly(),
     loginUrl: "https://console.x.ai",
     keyUrl: "https://console.x.ai",
     baseUrl: "https://api.x.ai/v1",
@@ -122,30 +207,115 @@ export const AI_PROVIDERS: AiProviderDef[] = [
     freeNote: "Billed to your xAI account.",
   },
   {
-    id: "claude",
-    name: "Claude (Anthropic)",
-    tagline: "Claude.ai Pro login is blocked for third-party apps.",
+    id: "deepseek",
+    name: "DeepSeek",
+    tagline: "Cheap coding + chat",
+    group: "other",
     method: "api-key",
-    loginUrl: "https://console.anthropic.com",
-    keyUrl: "https://console.anthropic.com/settings/keys",
-    baseUrl: "https://api.anthropic.com/v1",
-    defaultModel: "claude-sonnet-4-20250514",
-    placeholder: "sk-ant-…",
-    oauthBlocked: true,
-    freeNote:
-      "Use an Anthropic API key or OpenRouter. Claude.ai subscription OAuth is not available.",
+    methods: apiOnly(),
+    loginUrl: "https://platform.deepseek.com",
+    keyUrl: "https://platform.deepseek.com/api_keys",
+    baseUrl: "https://api.deepseek.com",
+    defaultModel: "deepseek-chat",
+    placeholder: "sk-…",
+    freeNote: "Sign in, then paste a key.",
   },
   {
-    id: "openrouter",
-    name: "OpenRouter",
-    tagline: "One login, many models (including free ones).",
+    id: "together",
+    name: "Together AI",
+    tagline: "Open models",
+    group: "other",
     method: "api-key",
-    loginUrl: "https://openrouter.ai",
-    keyUrl: "https://openrouter.ai/keys",
-    baseUrl: "https://openrouter.ai/api/v1",
-    defaultModel: "openrouter/free",
-    placeholder: "sk-or-v1-…",
-    freeNote: "Sign up free. Pick :free models so you aren’t billed.",
+    methods: apiOnly(),
+    loginUrl: "https://api.together.xyz",
+    keyUrl: "https://api.together.xyz/settings/api-keys",
+    baseUrl: "https://api.together.xyz/v1",
+    defaultModel: "meta-llama/Meta-Llama-3.1-70B-Instruct-Turbo",
+    placeholder: "…",
+    freeNote: "Pay as you go after login.",
+  },
+  {
+    id: "fireworks",
+    name: "Fireworks AI",
+    tagline: "Hosted open models",
+    group: "other",
+    method: "api-key",
+    methods: apiOnly(),
+    loginUrl: "https://fireworks.ai",
+    keyUrl: "https://fireworks.ai/account/api-keys",
+    baseUrl: "https://api.fireworks.ai/inference/v1",
+    defaultModel: "accounts/fireworks/models/llama-v3p1-8b-instruct",
+    placeholder: "fw_…",
+    freeNote: "Sign in at Fireworks.",
+  },
+  {
+    id: "cerebras",
+    name: "Cerebras",
+    tagline: "Very fast inference",
+    group: "other",
+    method: "api-key",
+    methods: apiOnly(),
+    loginUrl: "https://cloud.cerebras.ai",
+    keyUrl: "https://cloud.cerebras.ai",
+    baseUrl: "https://api.cerebras.ai/v1",
+    defaultModel: "llama-3.3-70b",
+    placeholder: "csk-…",
+    freeNote: "Sign in at Cerebras Cloud.",
+  },
+  {
+    id: "mistral",
+    name: "Mistral",
+    tagline: "Mistral API",
+    group: "other",
+    method: "api-key",
+    methods: apiOnly(),
+    loginUrl: "https://console.mistral.ai",
+    keyUrl: "https://console.mistral.ai/api-keys",
+    baseUrl: "https://api.mistral.ai/v1",
+    defaultModel: "mistral-small-latest",
+    placeholder: "…",
+    freeNote: "Console login + API key.",
+  },
+  {
+    id: "huggingface",
+    name: "Hugging Face",
+    tagline: "Inference API",
+    group: "other",
+    method: "api-key",
+    methods: apiOnly(),
+    loginUrl: "https://huggingface.co",
+    keyUrl: "https://huggingface.co/settings/tokens",
+    baseUrl: "https://router.huggingface.co/v1",
+    defaultModel: "meta-llama/Llama-3.1-8B-Instruct",
+    placeholder: "hf_…",
+    freeNote: "HF token after login.",
+  },
+  {
+    id: "ollama",
+    name: "Ollama",
+    tagline: "Local models on your machine",
+    group: "other",
+    method: "api-key",
+    methods: apiOnly(),
+    loginUrl: "https://ollama.com",
+    baseUrl: "http://localhost:11434/v1",
+    defaultModel: "llama3.1",
+    placeholder: "ollama (any)",
+    freeNote: "Runs on your PC. Paste ollama as key if required.",
+  },
+  {
+    id: "custom",
+    name: "Custom OpenAI-compatible",
+    tagline: "Any /v1/chat/completions endpoint",
+    group: "other",
+    custom: true,
+    method: "api-key",
+    methods: apiOnly(),
+    loginUrl: "https://opencode.ai/docs/providers/",
+    baseUrl: "https://api.openai.com/v1",
+    defaultModel: "gpt-4o-mini",
+    placeholder: "your-api-key",
+    freeNote: "Paste base URL + key for any compatible host.",
   },
 ];
 
@@ -176,6 +346,14 @@ export function saveConnectedAi(store: ConnectedAiStore) {
 export function setPreferredAi(id: ConnectedAiId | null) {
   const store = loadConnectedAi();
   store.preferred = id;
+  saveConnectedAi(store);
+}
+
+export function setConnectedAccountModel(id: ConnectedAiId, model: string) {
+  const store = loadConnectedAi();
+  const acc = store.accounts[id];
+  if (!acc) return;
+  store.accounts[id] = { ...acc, model };
   saveConnectedAi(store);
 }
 

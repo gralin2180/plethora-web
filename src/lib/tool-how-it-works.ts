@@ -91,6 +91,15 @@ const CUSTOM: Record<string, ToolHowDoc> = {
       { id: "3", label: "Stack advice + install path" },
     ],
   },
+  "latex-resume": {
+    summary: "Build a single-column ATS resume from a drop or fill-in steps, then export Word, PDF, or LaTeX.",
+    steps: [
+      { id: "1", label: "Drop an old resume", detail: "PDF, Word, or text fills the blanks." },
+      { id: "2", label: "Edit + ATS Solver", detail: "Match a job post and optional custom prompt." },
+      { id: "3", label: "Download", detail: "Word .docx, PDF, or .tex — stays in your browser." },
+    ],
+    privacyNote: "Files are parsed in the browser. Optional Solver may use chat if you have a custom prompt.",
+  },
   "pdf-merge": {
     summary: "Combine PDFs in-browser where supported.",
     steps: [

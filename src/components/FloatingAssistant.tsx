@@ -31,7 +31,7 @@ export function FloatingAssistant() {
   return (
     <>
       {open && (
-        <div className="fixed bottom-24 right-4 z-[90] flex h-[min(560px,70vh)] w-[min(400px,calc(100vw-2rem))] flex-col overflow-hidden rounded-2xl border border-violet-500/40 bg-[#0b0b12] shadow-2xl shadow-violet-950/50">
+        <div className="fixed bottom-24 right-4 z-[90] flex h-[min(560px,70vh)] w-[min(400px,calc(100vw-2rem))] flex-col overflow-hidden rounded-2xl border border-violet-500/40 bg-[#0b0b12] print:hidden">
           <div className="flex items-center justify-between border-b border-white/10 px-3 py-2">
             <div>
               <p className="text-sm font-semibold text-white">Plethora Assistant</p>
@@ -67,7 +67,7 @@ export function FloatingAssistant() {
         type="button"
         data-tour="fab-assistant"
         onClick={() => setOpen((o) => !o)}
-        className="fixed bottom-5 right-5 z-[90] flex h-14 w-14 items-center justify-center rounded-full bg-violet-600 text-white shadow-lg shadow-violet-900/40 hover:bg-violet-500"
+        className="fixed bottom-5 right-5 z-[90] flex h-14 w-14 items-center justify-center rounded-full bg-violet-600 text-white hover:bg-violet-500 print:hidden"
         aria-label="Open Plethora assistant"
       >
         {open ? <X className="h-6 w-6" /> : <MessageCircle className="h-6 w-6" />}

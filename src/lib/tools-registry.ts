@@ -456,17 +456,17 @@ export const PLATFORM_TOOLS: PlatformTool[] = [
   }),
   t({
     id: "regex-helper",
-    name: "Regex helper",
+    name: "Regex tester",
     slug: "regex-helper",
-    description: "Describe a match → regex + test cases explanation.",
+    description: "Live regex101-style tester: pattern, flags, matches. Optional AI explain.",
     category: "Developer",
     icon: "Regex",
-    freeRunsPerDay: 20,
+    freeRunsPerDay: 80,
     isPro: false,
     tags: ["regex"],
-    taskKeywords: ["regex", "regular expression"],
-    bestModels: ["GPT-4o", "Claude Sonnet", "DeepSeek"],
-    runner: "prompt-studio",
+    taskKeywords: ["regex", "regular expression", "regex tester"],
+    actionHint: "Pattern + sample text",
+    runner: "free-utility",
   }),
 
   // ——— Automation ———

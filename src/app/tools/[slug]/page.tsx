@@ -62,6 +62,8 @@ const FREE_RUNNERS = new Set<string>([
   "uuid-generator",
   "percentage-calc",
   "custom-assistant",
+  "password-generator",
+  "regex-helper",
 ]);
 
 const APP_REDIRECTS: Record<string, string> = {

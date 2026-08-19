@@ -8,6 +8,7 @@ import {
   Sheet,
 } from "lucide-react";
 import { DropZone } from "@/components/DropZone";
+import { buildSimpleDocx } from "@/lib/resume-ats";
 import { trackToolUse } from "@/lib/self-learn";
 
 async function usage(id: string) {
@@ -189,6 +190,15 @@ export function PdfToDocLab() {
       {text && (
         <>
           <div className="flex flex-wrap gap-2">
+            <button
+              type="button"
+              className="inline-flex items-center gap-1 rounded-lg bg-white px-3 py-1.5 text-sm font-medium text-black"
+              onClick={() =>
+                downloadBlob(buildSimpleDocx(text.split(/\n/)), "plethora-extract.docx")
+              }
+            >
+              <Download className="h-3.5 w-3.5" /> Word .docx
+            </button>
             <button
               type="button"
               className="inline-flex items-center gap-1 rounded-lg bg-violet-600 px-3 py-1.5 text-sm text-white"

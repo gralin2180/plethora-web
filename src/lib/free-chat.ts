@@ -1,5 +1,12 @@
 import { siteKnowledgeForAssistant } from "./about-content";
 import { premiumModelList, primaryPremiumModel } from "./premium-models";
+import {
+  DEFAULT_ZEN_MODEL,
+  OPENCODE_ZEN_FREE_MODELS,
+  ZEN_BASE_URL,
+  ZEN_HISTORY_MESSAGES,
+  ZEN_MAX_OUTPUT_TOKENS,
+} from "./free-models";
 
 /**
  * Free-tier chat LLM providers (OpenRouter free models, Groq, custom).
@@ -16,6 +23,7 @@ export interface FreeChatResult {
   error?: string;
   /** true when a platform premium model answered */
   usedPremium?: boolean;
+  code?: "pool_exhausted" | "provider_failed";
 }
 
 export function buildChatSystemPrompt(
@@ -196,7 +204,38 @@ export type FreeChatOpts = {
   preferPremium?: boolean;
   /** When load is hot, shorten free answers */
   maxTokens?: number;
+  /** Platform free-model pick (OpenCode Zen or OpenRouter :free) */
+  preferredModel?: string;
+  preferredSource?: "zen" | "openrouter";
 };
+
+export function hasZenProvider(): boolean {
+  return env("DISABLE_ZEN_PUBLIC") !== "1";
+}
+
+function zenHeaders(): Record<string, string> {
+  return {
+    "User-Agent": "Plethora/1.0",
+    "HTTP-Referer": env("PLETHORA_SITE_URL") || "https://plethora-ten.vercel.app",
+    "X-Title": "Plethora",
+  };
+}
+
+function zenProvider(model: string): {
+  name: string;
+  baseUrl: string;
+  apiKey?: string;
+  model: string;
+  headers?: Record<string, string>;
+} {
+  return {
+    name: "opencode-zen",
+    baseUrl: env("OPENCODE_ZEN_BASE_URL") || ZEN_BASE_URL,
+    apiKey: env("OPENCODE_ZEN_API_KEY") || env("ZEN_API_KEY") || "public",
+    model,
+    headers: zenHeaders(),
+  };
+}
 
 async function callProvider(
   p: {
@@ -246,9 +285,25 @@ async function callProvider(
     };
   }
 
-  let data: { choices?: { message?: { content?: string } }[] };
+  let data: {
+    choices?: {
+      message?: {
+        content?: string;
+        reasoning_content?: string;
+        reasoning?: string;
+      };
+    }[];
+  };
   try {
-    data = JSON.parse(raw) as { choices?: { message?: { content?: string } }[] };
+    data = JSON.parse(raw) as {
+      choices?: {
+        message?: {
+          content?: string;
+          reasoning_content?: string;
+          reasoning?: string;
+        };
+      }[];
+    };
   } catch {
     return {
       reply: "",
@@ -259,7 +314,8 @@ async function callProvider(
     };
   }
 
-  const reply = data.choices?.[0]?.message?.content?.trim();
+  const msg = data.choices?.[0]?.message;
+  const reply = (msg?.content || msg?.reasoning_content || msg?.reasoning || "").trim();
   if (!reply) {
     return {
       reply: "",
@@ -357,12 +413,40 @@ export async function freeChatCompletion(
       },
     });
   } else {
-    if (opts.preferPremium) {
+    const pick = opts.preferredModel?.trim();
+    const seen = new Set<string>();
+    const pushZen = (id: string) => {
+      const key = `zen:${id}`;
+      if (seen.has(key)) return;
+      seen.add(key);
+      providers.push({ ...zenProvider(id), usedPremium: false });
+    };
+
+    if (opts.preferredSource === "openrouter" && pick) {
+      const match = freeProviders().find((p) => p.name === "openrouter");
+      if (match) {
+        providers.push({ ...match, model: pick, usedPremium: false });
+        seen.add(`or:${pick}`);
+      }
+    } else if (pick && opts.preferredSource === "zen") {
+      pushZen(pick);
+    } else {
+      pushZen(DEFAULT_ZEN_MODEL.id);
+    }
+    for (const m of OPENCODE_ZEN_FREE_MODELS) {
+      pushZen(m.id);
+    }
+
+    if (opts.preferPremium && opts.preferredSource !== "zen") {
       for (const p of premiumProviders()) {
         providers.push({ ...p, usedPremium: true });
       }
     }
-    for (const p of freeProviders()) {
+    const rest = freeProviders();
+    for (const p of rest) {
+      const key = `${p.name}:${p.model}`;
+      if (seen.has(key)) continue;
+      seen.add(key);
       providers.push({ ...p, usedPremium: false });
     }
   }
@@ -388,11 +472,15 @@ export async function freeChatCompletion(
       role: "system",
       content: systemPrompt,
     },
-    ...history.slice(-14).filter((m) => m.role !== "system"),
+    ...history
+      .slice(-(opts.preferredSource === "zen" ? ZEN_HISTORY_MESSAGES : 14))
+      .filter((m) => m.role !== "system"),
     { role: "user", content: userMessage },
   ];
 
-  const maxTokens = opts.maxTokens ?? 1200;
+  const maxTokens =
+    opts.maxTokens ??
+    (opts.preferredSource === "zen" ? ZEN_MAX_OUTPUT_TOKENS : 1200);
   let lastError = "";
   for (const p of providers) {
     try {
@@ -423,11 +511,21 @@ export async function freeChatCompletion(
   }
 
   return {
-    reply: "",
+    reply: POOL_EXHAUSTED_MESSAGE,
     provider: "none",
     ok: false,
     error: lastError || "All free providers failed",
+    code: "pool_exhausted",
   };
+}
+
+export const POOL_EXHAUSTED_MESSAGE =
+  "Every free model we tried is at its limit right now. Add your own API key, or pay as you go / subscribe for more usage.";
+
+export function isPoolExhaustedError(err: string): boolean {
+  return /429|rate limit|freeusagelimit|quota|capacity|limit exceeded|busy|all free providers/i.test(
+    err
+  );
 }
 
 function adultOfflineFallback(userMessage: string): string {
@@ -466,6 +564,10 @@ export function isLameModelRefusal(text: string, adultMode?: boolean): boolean {
   return /i cannot assist with that request|i must refuse|against my (guidelines|values)/i.test(t);
 }
 
+export function hasOpenRouterProvider(): boolean {
+  return freeProviders().some((p) => p.name === "openrouter");
+}
+
 export function hasFreeChatProvider(): boolean {
-  return freeProviders().length > 0;
+  return freeProviders().length > 0 || hasZenProvider();
 }

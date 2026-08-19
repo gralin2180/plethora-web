@@ -157,17 +157,28 @@ export function WordCounterLab() {
     const chars = text.length;
     const charsNoSpace = text.replace(/\s/g, "").length;
     const sentences = t ? t.split(/[.!?]+/).filter((s) => s.trim()).length : 0;
-    return { words, chars, charsNoSpace, sentences };
+    const paragraphs = t ? t.split(/\n\s*\n/).filter((p) => p.trim()).length : 0;
+    const readingMin = words / 200;
+    const speakingMin = words / 130;
+    const freq: Record<string, number> = {};
+    for (const w of t.toLowerCase().match(/[a-z0-9']+/g) || []) {
+      if (w.length < 4) continue;
+      freq[w] = (freq[w] || 0) + 1;
+    }
+    const keywords = Object.entries(freq)
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 8);
+    return { words, chars, charsNoSpace, sentences, paragraphs, readingMin, speakingMin, keywords };
   }, [text]);
 
   return (
-    <Shell title="Word & character counter" blurb="Runs only in your browser.">
+    <Shell title="Word & character counter" blurb="Same stats as WordCounter.net — reading time, speaking time, keyword density. Nothing leaves this tab.">
       <textarea
         value={text}
         onChange={(e) => setText(e.target.value)}
-        rows={8}
+        rows={10}
         className="w-full rounded-xl border border-white/10 bg-black/40 px-3 py-2 text-sm text-white"
-        placeholder="Paste text…"
+        placeholder="Paste a draft, essay, or caption…"
         onBlur={() => text && void usage("word-counter")}
       />
       <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
@@ -176,6 +187,9 @@ export function WordCounterLab() {
           ["Characters", stats.chars],
           ["No spaces", stats.charsNoSpace],
           ["Sentences", stats.sentences],
+          ["Paragraphs", stats.paragraphs],
+          ["Read", `${stats.readingMin < 1 ? `${Math.round(stats.readingMin * 60)}s` : `${stats.readingMin.toFixed(1)}m`}`],
+          ["Speak", `${stats.speakingMin < 1 ? `${Math.round(stats.speakingMin * 60)}s` : `${stats.speakingMin.toFixed(1)}m`}`],
         ].map(([l, v]) => (
           <div key={l as string} className="rounded-xl border border-white/10 p-3">
             <p className="text-[11px] text-zinc-500">{l}</p>
@@ -183,6 +197,18 @@ export function WordCounterLab() {
           </div>
         ))}
       </div>
+      {stats.keywords.length > 0 && (
+        <div>
+          <p className="text-xs text-zinc-500">Top words</p>
+          <div className="mt-1 flex flex-wrap gap-1.5">
+            {stats.keywords.map(([w, n]) => (
+              <span key={w} className="rounded-full bg-white/5 px-2 py-0.5 text-[11px] text-zinc-300">
+                {w} · {n}
+              </span>
+            ))}
+          </div>
+        </div>
+      )}
     </Shell>
   );
 }
@@ -195,8 +221,15 @@ export function CaseConverterLab() {
       upper: t.toUpperCase(),
       lower: t.toLowerCase(),
       title: t.replace(/\w\S*/g, (w) => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()),
+      sentence: t.charAt(0).toUpperCase() + t.slice(1).toLowerCase(),
+      camel: t
+        .trim()
+        .toLowerCase()
+        .replace(/[^a-z0-9]+([a-z0-9])/g, (_, c: string) => c.toUpperCase())
+        .replace(/^[A-Z]/, (c) => c.toLowerCase()),
       snake: t.trim().toLowerCase().replace(/\s+/g, "_").replace(/[^\w_]/g, ""),
       kebab: t.trim().toLowerCase().replace(/\s+/g, "-").replace(/[^\w-]/g, ""),
+      constant: t.trim().toUpperCase().replace(/\s+/g, "_").replace(/[^\w_]/g, ""),
     };
   }, [text]);
 
@@ -223,64 +256,85 @@ export function CaseConverterLab() {
 
 export function JsonFormatterLab() {
   const [raw, setRaw] = useState('{"hello":"world"}');
-  const [out, setOut] = useState("");
-  const [err, setErr] = useState("");
-
-  function pretty() {
+  const parsed = useMemo(() => {
     try {
-      setOut(JSON.stringify(JSON.parse(raw), null, 2));
-      setErr("");
-      void usage("json-formatter");
+      return { ok: true as const, value: JSON.parse(raw), err: "" };
     } catch (e) {
-      setErr(e instanceof Error ? e.message : "Invalid JSON");
+      return { ok: false as const, value: null, err: e instanceof Error ? e.message : "Invalid JSON" };
     }
-  }
-  function minify() {
-    try {
-      setOut(JSON.stringify(JSON.parse(raw)));
-      setErr("");
-      void usage("json-formatter");
-    } catch (e) {
-      setErr(e instanceof Error ? e.message : "Invalid JSON");
-    }
-  }
+  }, [raw]);
+  const pretty = parsed.ok ? JSON.stringify(parsed.value, null, 2) : "";
+  const mini = parsed.ok ? JSON.stringify(parsed.value) : "";
 
   return (
-    <Shell title="JSON formatter" blurb="Validate, pretty-print, or minify.">
+    <Shell title="JSON formatter" blurb="Live validate like jsonformatter.org — pretty, minify, copy. Your data stays here.">
       <textarea
         value={raw}
         onChange={(e) => setRaw(e.target.value)}
-        rows={6}
+        rows={8}
         className="w-full rounded-xl border border-white/10 bg-black/40 px-3 py-2 font-mono text-xs text-white"
       />
-      <div className="flex gap-2">
-        <button type="button" onClick={pretty} className="rounded-lg bg-violet-600 px-3 py-1.5 text-sm text-white">
+      <p className={`text-xs ${parsed.ok ? "text-emerald-400" : "text-red-400"}`}>
+        {parsed.ok ? `Valid · ${mini.length} minified chars` : parsed.err}
+      </p>
+      <div className="flex flex-wrap gap-2">
+        <button
+          type="button"
+          disabled={!parsed.ok}
+          onClick={() => {
+            setRaw(pretty);
+            void usage("json-formatter");
+          }}
+          className="rounded-lg bg-violet-600 px-3 py-1.5 text-sm text-white disabled:opacity-40"
+        >
           Pretty
         </button>
-        <button type="button" onClick={minify} className="rounded-lg border border-white/10 px-3 py-1.5 text-sm text-zinc-300">
+        <button
+          type="button"
+          disabled={!parsed.ok}
+          onClick={() => {
+            setRaw(mini);
+            void usage("json-formatter");
+          }}
+          className="rounded-lg border border-white/10 px-3 py-1.5 text-sm text-zinc-300 disabled:opacity-40"
+        >
           Minify
         </button>
+        <CopyMini text={parsed.ok ? pretty : raw} onCopy={() => void usage("json-formatter")} />
       </div>
-      {err && <p className="text-sm text-red-400">{err}</p>}
-      {out && (
-        <pre className="overflow-auto rounded-xl border border-white/10 bg-black/40 p-3 text-xs text-zinc-300">{out}</pre>
+      {parsed.ok && (
+        <pre className="max-h-64 overflow-auto rounded-xl border border-white/10 bg-black/40 p-3 text-xs text-zinc-300">
+          {pretty}
+        </pre>
       )}
     </Shell>
   );
 }
 
 export function UuidLab() {
+  const [n, setN] = useState(5);
   const [list, setList] = useState<string[]>([]);
-  function gen(n = 5) {
-    const next = Array.from({ length: n }, () => crypto.randomUUID());
+  function gen(count = n) {
+    const next = Array.from({ length: Math.min(100, Math.max(1, count)) }, () => crypto.randomUUID());
     setList(next);
     void usage("uuid-generator");
   }
   return (
-    <Shell title="UUID generator" blurb="Secure v4 UUIDs via Web Crypto.">
-      <button type="button" onClick={() => gen(5)} className="rounded-xl bg-violet-600 px-4 py-2 text-sm text-white">
-        Generate 5
-      </button>
+    <Shell title="UUID generator" blurb="Cryptographically random v4 UUIDs — same job as uuidgenerator.net, no ads, no upload.">
+      <div className="flex flex-wrap items-center gap-2">
+        <input
+          type="number"
+          min={1}
+          max={100}
+          value={n}
+          onChange={(e) => setN(Number(e.target.value))}
+          className="w-20 rounded-lg border border-white/10 bg-black/40 px-2 py-2 text-sm text-white"
+        />
+        <button type="button" onClick={() => gen()} className="rounded-xl bg-violet-600 px-4 py-2 text-sm text-white">
+          Generate
+        </button>
+        <CopyMini text={list.join("\n")} onCopy={() => void usage("uuid-generator")} />
+      </div>
       <ul className="space-y-1 font-mono text-sm text-zinc-300">
         {list.map((u) => (
           <li key={u} className="flex justify-between gap-2 rounded-lg border border-white/10 px-3 py-1.5">
@@ -298,28 +352,158 @@ export function PercentageLab() {
   const [b, setB] = useState(200);
   const of = useMemo(() => (b * a) / 100, [a, b]);
   const change = useMemo(() => (b === 0 ? 0 : ((a - b) / Math.abs(b)) * 100), [a, b]);
+  const reverse = useMemo(() => (a === 0 ? 0 : (b / a) * 100), [a, b]);
 
   return (
-    <Shell title="Percentage calculator" blurb="X% of Y and percent change from B → A.">
+    <Shell title="Percentage calculator" blurb="X% of Y, percent change, and “B is what % of A” — calculator.net coverage, no clutter.">
       <div className="grid gap-3 sm:grid-cols-2">
         <label className="text-sm text-zinc-400">
-          X (%)
+          X
           <input type="number" value={a} onChange={(e) => setA(Number(e.target.value))} className="mt-1 w-full rounded-lg border border-white/10 bg-black/40 px-3 py-2 text-white" />
         </label>
         <label className="text-sm text-zinc-400">
-          Y (base)
+          Y
           <input type="number" value={b} onChange={(e) => setB(Number(e.target.value))} className="mt-1 w-full rounded-lg border border-white/10 bg-black/40 px-3 py-2 text-white" />
         </label>
       </div>
-      <p className="text-sm text-zinc-300">
-        {a}% of {b} = <strong className="text-white">{of.toFixed(4)}</strong>
-      </p>
-      <p className="text-sm text-zinc-300">
-        Change from {b} to {a}: <strong className="text-white">{change.toFixed(2)}%</strong>
-      </p>
-      <button type="button" className="text-xs text-violet-300" onClick={() => void usage("percentage-calc")}>
-        Log free-run usage
+      <div className="space-y-1 rounded-xl border border-white/10 p-4 text-sm text-zinc-300">
+        <p>
+          {a}% of {b} = <strong className="text-white">{of.toFixed(4)}</strong>
+        </p>
+        <p>
+          Change from {b} → {a}: <strong className="text-white">{change.toFixed(2)}%</strong>
+        </p>
+        <p>
+          {b} is <strong className="text-white">{reverse.toFixed(2)}%</strong> of {a}
+        </p>
+      </div>
+    </Shell>
+  );
+}
+
+export function PasswordLab() {
+  const [len, setLen] = useState(20);
+  const [lower, setLower] = useState(true);
+  const [upper, setUpper] = useState(true);
+  const [nums, setNums] = useState(true);
+  const [syms, setSyms] = useState(true);
+  const [pwd, setPwd] = useState("");
+
+  function gen() {
+    const sets = [
+      lower ? "abcdefghijkmnopqrstuvwxyz" : "",
+      upper ? "ABCDEFGHJKLMNPQRSTUVWXYZ" : "",
+      nums ? "23456789" : "",
+      syms ? "!@#$%^&*_-+=?" : "",
+    ].filter(Boolean);
+    const all = sets.join("");
+    if (!all) return;
+    const bytes = new Uint8Array(len);
+    crypto.getRandomValues(bytes);
+    const chars = Array.from(bytes, (b, i) => {
+      const pool = sets[i % sets.length] || all;
+      return pool[b % pool.length];
+    });
+    for (let i = chars.length - 1; i > 0; i--) {
+      const j = bytes[i] % (i + 1);
+      [chars[i], chars[j]] = [chars[j], chars[i]];
+    }
+    setPwd(chars.join(""));
+    void usage("password-generator");
+  }
+
+  const entropy = useMemo(() => {
+    let n = 0;
+    if (lower) n += 23;
+    if (upper) n += 24;
+    if (nums) n += 8;
+    if (syms) n += 14;
+    return Math.round(len * Math.log2(Math.max(n, 2)));
+  }, [len, lower, upper, nums, syms]);
+
+  return (
+    <Shell title="Password generator" blurb="Like Bitwarden’s generator: on-device CSPRNG, no history stored.">
+      <label className="block text-xs text-zinc-500">
+        Length {len}
+        <input type="range" min={8} max={64} value={len} onChange={(e) => setLen(Number(e.target.value))} className="mt-1 w-full" />
+      </label>
+      <div className="flex flex-wrap gap-3 text-sm text-zinc-300">
+        {[
+          ["a-z", lower, setLower],
+          ["A-Z", upper, setUpper],
+          ["2-9", nums, setNums],
+          ["symbols", syms, setSyms],
+        ].map(([label, on, set]) => (
+          <label key={label as string} className="flex items-center gap-1.5">
+            <input type="checkbox" checked={on as boolean} onChange={(e) => (set as (v: boolean) => void)(e.target.checked)} />
+            {label as string}
+          </label>
+        ))}
+      </div>
+      <button type="button" onClick={gen} className="rounded-xl bg-violet-600 px-4 py-2 text-sm text-white">
+        Generate
       </button>
+      {pwd && (
+        <div className="flex items-center gap-2 rounded-xl border border-white/10 bg-black/40 px-3 py-2 font-mono text-sm text-white">
+          <span className="min-w-0 flex-1 break-all">{pwd}</span>
+          <CopyMini text={pwd} />
+        </div>
+      )}
+      <p className="text-[11px] text-zinc-500">~{entropy} bits of entropy</p>
+    </Shell>
+  );
+}
+
+export function RegexLab() {
+  const [pattern, setPattern] = useState("[A-Z0-9._%+-]+@[A-Z0-9.-]+\\.[A-Z]{2,}");
+  const [flags, setFlags] = useState("gi");
+  const [sample, setSample] = useState("Write ada@x.com and also bad@@mail");
+  const result = useMemo(() => {
+    try {
+      const re = new RegExp(pattern, flags);
+      const matches = [...sample.matchAll(re)].map((m) => ({ text: m[0], index: m.index ?? 0 }));
+      return { ok: true as const, matches, err: "" };
+    } catch (e) {
+      return { ok: false as const, matches: [] as { text: string; index: number }[], err: e instanceof Error ? e.message : "bad regex" };
+    }
+  }, [pattern, flags, sample]);
+
+  return (
+    <Shell title="Regex tester" blurb="regex101-lite: pattern, flags, live matches on a sample. Explain via Chat if you want.">
+      <label className="text-xs text-zinc-500">
+        Pattern
+        <input
+          value={pattern}
+          onChange={(e) => setPattern(e.target.value)}
+          className="mt-1 w-full rounded-xl border border-white/10 bg-black/40 px-3 py-2 font-mono text-sm text-white"
+        />
+      </label>
+      <label className="text-xs text-zinc-500">
+        Flags
+        <input
+          value={flags}
+          onChange={(e) => setFlags(e.target.value)}
+          className="mt-1 w-24 rounded-xl border border-white/10 bg-black/40 px-3 py-2 font-mono text-sm text-white"
+        />
+      </label>
+      <textarea
+        value={sample}
+        onChange={(e) => setSample(e.target.value)}
+        rows={5}
+        className="w-full rounded-xl border border-white/10 bg-black/40 p-3 font-mono text-xs text-white"
+      />
+      <p className={`text-xs ${result.ok ? "text-emerald-400" : "text-red-400"}`}>
+        {result.ok ? `${result.matches.length} match(es)` : result.err}
+      </p>
+      {result.matches.length > 0 && (
+        <ul className="space-y-1 text-xs text-zinc-300">
+          {result.matches.slice(0, 40).map((m, i) => (
+            <li key={`${m.index}-${i}`} className="rounded-lg bg-white/5 px-2 py-1 font-mono">
+              {m.text} <span className="text-zinc-500">@ {m.index}</span>
+            </li>
+          ))}
+        </ul>
+      )}
     </Shell>
   );
 }

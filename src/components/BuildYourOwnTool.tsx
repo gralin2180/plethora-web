@@ -183,24 +183,19 @@ export function BuildYourOwnTool() {
       } else if (built.kind === "list") {
         setOutput(runList(input));
       } else {
-        const res = await fetch("/api/chat", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            message: [
-              "You are a focused one-shot utility. Respond with ONLY the useful result, no preamble.",
-              `Tool name: ${built.name}`,
-              `User need: ${built.need}`,
-              `Rules: ${built.prompt || "Be precise and helpful."}`,
-              "",
-              "INPUT:",
-              input || built.need,
-            ].join("\n"),
-            history: [],
-          }),
-        });
-        const data = (await res.json()) as { reply?: string; error?: string };
-        if (!res.ok) throw new Error(data.error || "Chat failed");
+        const { runPlatformAi } = await import("@/lib/platform-ai-client");
+        const data = await runPlatformAi(
+          [
+            "You are a focused one-shot utility. Respond with ONLY the useful result, no preamble.",
+            `Tool name: ${built.name}`,
+            `User need: ${built.need}`,
+            `Rules: ${built.prompt || "Be precise and helpful."}`,
+            "",
+            "INPUT:",
+            input || built.need,
+          ].join("\n")
+        );
+        if (!data.ok) throw new Error(data.reply || "Chat failed");
         setOutput(data.reply || "(empty)");
       }
       trackToolUse("build-your-tool", 2);

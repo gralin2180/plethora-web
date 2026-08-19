@@ -17,6 +17,7 @@ import {
   Zap,
 } from "lucide-react";
 import { DropZone } from "@/components/DropZone";
+import { buildSimpleDocx } from "@/lib/resume-ats";
 import { trackToolUse } from "@/lib/self-learn";
 import {
   AtsResumeScanner,
@@ -53,6 +54,8 @@ import {
   RiskRewardLab,
   UuidLab,
   WordCounterLab,
+  PasswordLab,
+  RegexLab,
 } from "@/components/DomainToolLabs";
 import {
   ExcelHubLab,
@@ -61,6 +64,8 @@ import {
   SlidesDeckLab,
   VideoConverterLab,
 } from "@/components/InBrowserToolLabs";
+import { SolidPdfLab } from "@/components/SolidPdfLab";
+import { SolidCsvLab, SolidImageFormatLab, SolidImageToPdfLab } from "@/components/SolidImageLab";
 import { BgRemoverLab } from "@/components/BgRemoverLab";
 import { CustomAssistantLab } from "@/components/CustomAssistantLab";
 import { FileExportDialog, useFileExport } from "@/components/FileExportDialog";
@@ -114,7 +119,9 @@ export type FreeRunnerKind =
   | "json-formatter"
   | "uuid-generator"
   | "percentage-calc"
-  | "custom-assistant";
+  | "custom-assistant"
+  | "password-generator"
+  | "regex-helper";
 
 export function FreeToolRunner({ kind, title }: { kind: FreeRunnerKind; title: string }) {
   const [status, setStatus] = useState("");
@@ -266,57 +273,19 @@ export function FreeToolRunner({ kind, title }: { kind: FreeRunnerKind; title: s
   }
 
   if (kind === "image-to-pdf") {
-    return (
-      <ToolShell title={title} status={status} busy={busy} filesLabel={filesLabel} exportPending={exportFile} onExportClose={closeExport}>
-        <DropZone
-          accept="image/*"
-          multiple
-          label="Drop images to make a PDF"
-          hint="JPG, PNG, WebP · processed on your device"
-          disabled={busy}
-          onFiles={(f) => void handleImageToPdf(f)}
-        />
-      </ToolShell>
-    );
+    return <SolidImageToPdfLab />;
   }
 
   if (kind === "image-format") {
-    return (
-      <ImageFormatUi
-        title={title}
-        status={status}
-        busy={busy}
-        filesLabel={filesLabel}
-        onConvert={(f, fmt) => void handleImageFormat(f, fmt)}
-      />
-    );
+    return <SolidImageFormatLab />;
   }
 
   if (kind === "pdf-merge") {
-    return (
-      <ToolShell title={title} status={status} busy={busy} filesLabel={filesLabel} exportPending={exportFile} onExportClose={closeExport}>
-        <DropZone
-          accept="application/pdf"
-          multiple
-          label="Drop PDFs to merge"
-          hint="Order = the order you drop / select"
-          disabled={busy}
-          onFiles={(f) => void handlePdfMerge(f)}
-        />
-      </ToolShell>
-    );
+    return <SolidPdfLab initialTab="merge" />;
   }
 
   if (kind === "pdf-editor") {
-    return (
-      <PdfEditorUi
-        title={title}
-        status={status}
-        busy={busy}
-        filesLabel={filesLabel}
-        onRun={(f, stamp, rev) => void handlePdfEditor(f, stamp, rev)}
-      />
-    );
+    return <SolidPdfLab initialTab="pages" />;
   }
 
   if (kind === "youtube-downloader") {
@@ -342,6 +311,8 @@ export function FreeToolRunner({ kind, title }: { kind: FreeRunnerKind; title: s
   if (kind === "json-formatter") return <JsonFormatterLab />;
   if (kind === "uuid-generator") return <UuidLab />;
   if (kind === "percentage-calc") return <PercentageLab />;
+  if (kind === "password-generator") return <PasswordLab />;
+  if (kind === "regex-helper") return <RegexLab />;
 
   if (kind === "doc-converter") {
     return (
@@ -356,10 +327,10 @@ export function FreeToolRunner({ kind, title }: { kind: FreeRunnerKind; title: s
 
   if (kind === "csv-text-tools") {
     return (
-      <CsvCleanup
-        onDone={async () => {
+      <SolidCsvLab
+        onDone={() => {
           setStatus("CSV ready");
-          await track();
+          void track();
         }}
       />
     );
@@ -1003,7 +974,7 @@ function DocTextConverter({ onDone }: { onDone: () => void }) {
           placeholder="Paste anything…"
         />
       </div>
-      <div className="grid grid-cols-2 gap-2">
+      <div className="grid grid-cols-3 gap-2">
         <button
           type="button"
           className="rounded-xl bg-violet-600 py-3 text-sm text-white"
@@ -1024,15 +995,19 @@ function DocTextConverter({ onDone }: { onDone: () => void }) {
         >
           .md
         </button>
-      </div>
-      <div className="flex flex-wrap gap-2">
-        <a href="https://www.libreoffice.org/" className="text-xs text-zinc-500 hover:text-violet-300" target="_blank" rel="noopener noreferrer">
-          LibreOffice for DOCX
-        </a>
-        <span className="text-zinc-700">·</span>
-        <a href="https://drive.google.com" className="text-xs text-zinc-500 hover:text-violet-300" target="_blank" rel="noopener noreferrer">
-          Google Drive convert
-        </a>
+        <button
+          type="button"
+          className="rounded-xl border border-white/10 py-3 text-sm text-zinc-300"
+          onClick={() => {
+            downloadBlob(
+              buildSimpleDocx(text.split(/\n/)),
+              "notes.docx"
+            );
+            onDone();
+          }}
+        >
+          Word
+        </button>
       </div>
     </div>
   );

@@ -38,7 +38,13 @@ type DeviceSession = {
   verifyUrl: string;
 };
 
-export function SubscriptionAiClient({ compact = false }: { compact?: boolean }) {
+export function SubscriptionAiClient({
+  compact = false,
+  forceFlow,
+}: {
+  compact?: boolean;
+  forceFlow?: "browser" | "device";
+}) {
   const [connected, setConnected] = useState<StoredCodexAuth | null>(null);
   const [device, setDevice] = useState<DeviceSession | null>(null);
   const [deviceStatus, setDeviceStatus] = useState<
@@ -246,8 +252,11 @@ export function SubscriptionAiClient({ compact = false }: { compact?: boolean })
         </div>
       ) : (
         <>
+          {forceFlow !== "browser" && (
           <section className="rounded-2xl border border-white/10 bg-black/30 p-5">
-            <h2 className="text-lg font-semibold text-white">Recommended: device code</h2>
+            <h2 className="text-lg font-semibold text-white">
+              {forceFlow === "device" ? "ChatGPT Pro/Plus · Headless" : "Device code"}
+            </h2>
             <p className="mt-2 text-sm text-zinc-400">
               Works in the browser — no localhost callback needed. OpenAI shows a code; Plethora
               polls until you approve in ChatGPT.
@@ -292,9 +301,13 @@ export function SubscriptionAiClient({ compact = false }: { compact?: boolean })
               Connect ChatGPT (device code)
             </button>
           </section>
+          )}
 
+          {forceFlow !== "device" && (
           <section className="rounded-2xl border border-white/10 bg-black/30 p-5">
-            <h2 className="text-lg font-semibold text-white">Alternative: browser OAuth</h2>
+            <h2 className="text-lg font-semibold text-white">
+              {forceFlow === "browser" ? "ChatGPT Pro/Plus · Browser" : "Browser login"}
+            </h2>
             <p className="mt-2 text-sm text-zinc-400">
               Opens OpenAI login. After redirect to{" "}
               <code className="text-zinc-300">localhost:1455</code>, copy the full URL from your
@@ -332,6 +345,7 @@ export function SubscriptionAiClient({ compact = false }: { compact?: boolean })
               <p className="mt-3 text-sm text-red-300">{browserError}</p>
             )}
           </section>
+          )}
         </>
       )}
 

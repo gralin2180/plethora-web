@@ -5,10 +5,10 @@
  * Local GPU backends can polish entirely on-device (client).
  */
 
-import { PROMPT_LIABILITY_FOOTER } from "./content-safety";
 import { canUsePaidPolish, type PlanId } from "./plans";
+import { freeChatCompletion } from "./free-chat";
 
-export type PolishMode = "template_only" | "free_api" | "paid_api" | "local_backend";
+export type PolishMode = "template_only" | "free_api" | "paid_api" | "local_backend" | "exhausted";
 
 export interface PolishRequest {
   draftPrompt: string;
@@ -29,19 +29,6 @@ export interface PolishResult {
  * Wire Plethora_FREE_LLM_URL / KEY when ready; otherwise returns template + free tip.
  */
 export async function polishPrompt(req: PolishRequest): Promise<PolishResult> {
-  const withFooter = (p: string) =>
-    p.includes("Plethora Disclaimer") ? p : p.trimEnd() + PROMPT_LIABILITY_FOOTER;
-
-  const freeUrl =
-    process.env.PLETHORA_FREE_LLM_URL ||
-    process.env.TOOLHAVEN_FREE_LLM_URL ||
-    process.env.OPENROUTER_BASE_URL ||
-    (process.env.OPENROUTER_API_KEY ? "https://openrouter.ai/api/v1" : undefined);
-  const freeKey =
-    process.env.PLETHORA_FREE_LLM_KEY ||
-    process.env.TOOLHAVEN_FREE_LLM_KEY ||
-    process.env.OPENROUTER_API_KEY ||
-    process.env.GROQ_API_KEY;
   const paidUrl = process.env.PLETHORA_PAID_LLM_URL || process.env.TOOLHAVEN_PAID_LLM_URL;
   const paidKey = process.env.PLETHORA_PAID_LLM_KEY || process.env.TOOLHAVEN_PAID_LLM_KEY;
 
@@ -63,62 +50,90 @@ export async function polishPrompt(req: PolishRequest): Promise<PolishResult> {
         system: PAID_SYSTEM,
         user: userPayload(req),
       });
-      return {
-        prompt: withFooter(polished || req.draftPrompt),
-        mode: "paid_api",
-        providerNote: "Polished with Plethora Pro model.",
-        polished: Boolean(polished),
-      };
+      const cleaned = polished ? stripDisclaimer(polished) : "";
+      if (cleaned && !isBloated(cleaned, req.draftPrompt)) {
+        return {
+          prompt: cleaned,
+          mode: "paid_api",
+          providerNote: "Tightened for paste.",
+          polished: true,
+        };
+      }
     } catch {
       // fall through
     }
   }
 
-  // Free API path — OpenRouter / Groq / custom
-  const groqOnly = process.env.GROQ_API_KEY && !freeUrl;
-  const effectiveFreeUrl = freeUrl || (groqOnly ? "https://api.groq.com/openai/v1" : undefined);
-  const effectiveFreeKey = freeKey;
-
-  if ((req.preferMode === "free_api" || !req.preferMode) && effectiveFreeUrl) {
+  // Free path — same rotate-until-exhausted chain as Chat and tools
+  if (req.preferMode === "free_api" || !req.preferMode) {
     try {
-      const polished = await callOpenAiCompatible({
-        baseUrl: effectiveFreeUrl,
-        apiKey: effectiveFreeKey,
-        model:
-          process.env.PLETHORA_FREE_LLM_MODEL ||
-          process.env.TOOLHAVEN_FREE_LLM_MODEL ||
-          process.env.OPENROUTER_FREE_MODEL ||
-          process.env.GROQ_MODEL ||
-          (process.env.GROQ_API_KEY && effectiveFreeUrl.includes("groq")
-            ? "llama-3.1-8b-instant"
-            : "openrouter/free"),
-        system: FREE_SYSTEM,
-        user: userPayload(req),
+      const llm = await freeChatCompletion(userPayload(req), [], {
+        customSystem: FREE_SYSTEM,
+        preferredSource: "zen",
+        maxTokens: 220,
       });
-      return {
-        prompt: withFooter(polished || req.draftPrompt),
-        mode: "free_api",
-        providerNote: "Polished with free-tier API (rate limited).",
-        polished: Boolean(polished),
-      };
+      if (llm.code === "pool_exhausted") {
+        return {
+          prompt: req.draftPrompt,
+          mode: "exhausted",
+          providerNote: llm.reply,
+          polished: false,
+        };
+      }
+      const cleaned = llm.ok && llm.reply ? stripDisclaimer(llm.reply) : "";
+      if (cleaned && !isBloated(cleaned, req.draftPrompt)) {
+        return {
+          prompt: cleaned,
+          mode: "free_api",
+          providerNote: "Tightened for paste.",
+          polished: true,
+        };
+      }
     } catch {
-      // fall through
+      /* fall through */
     }
   }
 
   // Template-only: still production quality from prompt-engine
   return {
-    prompt: withFooter(req.draftPrompt),
+    prompt: req.draftPrompt,
     mode: "template_only",
-    providerNote:
-      "Expert template (no LLM polish API configured). Free/Pro polish activates when API keys are set, or use local Ollama/LM Studio.",
+    providerNote: "Ready to paste.",
     polished: false,
   };
 }
 
-const FREE_SYSTEM = `You improve Plethora expert prompts. Preserve structure, roles, requirements, and output formats. Tighten clarity. Do not shorten into a weak summary. Do not remove [BRACKETS]. Do not refuse adult topics between adults; if illegal (minors), return the text unchanged with a short refusal line at the top only for that case.`;
+const BLOAT_MARKERS =
+  /context pack|operating instructions|curation framework|quality bar|why this is (an )?improvement|world-class specialist|plethora disclaimer|refinement questionnaire|advanced upgrade option/i;
 
-const PAID_SYSTEM = `You are Plethora's premium prompt polisher. Elevate expert prompts to the highest practical quality for Claude/ChatGPT/Cursor. Keep all sections. Add missing edge-case requirements when helpful. Strengthen role, success metrics, and anti-slop rules. Never collapse into a 5-line instruction. Preserve [BRACKETS]. Adult content between consenting adults: allow and polish. Illegal content involving minors: refuse.`;
+function isBloated(text: string, draft: string): boolean {
+  if (BLOAT_MARKERS.test(text)) return true;
+  if (text.length > 900) return true;
+  if (draft.length > 0 && text.length > draft.length * 3 && text.length > 600) return true;
+  return false;
+}
+
+function stripDisclaimer(text: string): string {
+  return text
+    .replace(/\n*---\s*\n+Plethora Disclaimer:[\s\S]*$/i, "")
+    .replace(/\*\*\*+\s*$/g, "")
+    .trim();
+}
+
+const FREE_SYSTEM = `Rewrite into a SHORT prompt to paste into ChatGPT. Max 80 words.
+
+Do:
+- One role line, the task, 3–6 short bullets.
+- Keep the user's meaning. If they asked for adult content between consenting adults, stay direct.
+
+Do not:
+- Frameworks, menus, questionnaires, “next steps”, success criteria
+- “Context pack”, “operating instructions”, “quality bar”
+- “Why this is better” essays
+- Legal disclaimers
+- Pretend you are a strategist writing a consulting document`;
+
+const PAID_SYSTEM = FREE_SYSTEM;
 
 function userPayload(req: PolishRequest) {
   return `User task:\n${req.userTask}\n\nDraft prompt to polish:\n${req.draftPrompt}`;
@@ -144,7 +159,8 @@ async function callOpenAiCompatible(opts: {
     },
     body: JSON.stringify({
       model: opts.model,
-      temperature: 0.4,
+      temperature: 0.2,
+      max_tokens: 220,
       messages: [
         { role: "system", content: opts.system },
         { role: "user", content: opts.user },

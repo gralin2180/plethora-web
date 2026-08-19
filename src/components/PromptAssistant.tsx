@@ -8,7 +8,6 @@ import {
   Copy,
   Loader2,
   MessageSquare,
-  Sparkles,
 } from "lucide-react";
 import {
   buildRefinedPrompt,
@@ -16,6 +15,7 @@ import {
   getPromptMeta,
   recommendAiForTask,
 } from "@/lib/recommender";
+import { detectIntent } from "@/lib/prompt-engine";
 import { assessContentSafety, type SafetyAssessment } from "@/lib/content-safety";
 import { ContentWarningDialog } from "@/components/ContentWarningDialog";
 import {
@@ -50,6 +50,11 @@ export function PromptAssistant() {
     if (safety.needsWarning) {
       setWarning(safety);
       setPendingAction("start");
+      return;
+    }
+    const qs = generateClarifyingQuestions(rawInput);
+    if (qs.length === 0) {
+      void runGenerate();
       return;
     }
     setStep("questions");
@@ -103,6 +108,16 @@ export function PromptAssistant() {
       if (block) draft = `${block}\n\n${draft}`;
     }
     const promptMeta = getPromptMeta(rawInput, answers);
+    const intent = detectIntent(rawInput, answers);
+
+    if (intent === "general") {
+      setRefinedPrompt(draft);
+      setMeta({ intentLabel: promptMeta.intentLabel });
+      setStep("result");
+      setLoading(false);
+      await trackUsage();
+      return;
+    }
 
     try {
       const res = await fetch("/api/polish", {
@@ -127,6 +142,14 @@ export function PromptAssistant() {
         setWarning(data.safety);
         setLoading(false);
         return;
+      } else if (res.status === 429) {
+        const { notifyAiExhausted } = await import("@/lib/platform-ai-client");
+        notifyAiExhausted();
+        setRefinedPrompt(draft);
+        setMeta({
+          intentLabel: promptMeta.intentLabel,
+          polishNote: "Free AI exhausted — template kept. Add a key or pay as you go.",
+        });
       } else {
         setRefinedPrompt(draft);
         setMeta({ intentLabel: promptMeta.intentLabel });
@@ -179,8 +202,13 @@ export function PromptAssistant() {
             setWarning(null);
             setPendingAction(null);
             if (action === "start") {
-              setStep("questions");
-              setAnswers({});
+              const qs = generateClarifyingQuestions(rawInput);
+              if (qs.length === 0) {
+                void runGenerate();
+              } else {
+                setStep("questions");
+                setAnswers({});
+              }
             } else if (action === "submit") {
               void runGenerate();
             }
@@ -194,9 +222,9 @@ export function PromptAssistant() {
               <MessageSquare className="h-5 w-5" />
             </div>
             <div>
-              <h2 className="text-lg font-semibold text-white">What do you want to do?</h2>
+              <h2 className="text-lg font-semibold text-white">What do you want?</h2>
               <p className="text-sm text-zinc-500">
-                Messy is fine. We turn it into a expert-level prompt most free models can&apos;t match.
+                Type it messy. We give you a short prompt to paste.
               </p>
             </div>
           </div>
@@ -209,11 +237,20 @@ export function PromptAssistant() {
           />
           <button
             onClick={handleStart}
-            disabled={!rawInput.trim()}
+            disabled={!rawInput.trim() || loading}
             className="mt-4 flex w-full items-center justify-center gap-2 rounded-xl bg-violet-600 py-3 font-medium text-white hover:bg-violet-500 disabled:opacity-40"
           >
-            Clarify my request
-            <ArrowRight className="h-4 w-4" />
+            {loading ? (
+              <>
+                <Loader2 className="h-4 w-4 animate-spin" />
+                Writing prompt…
+              </>
+            ) : (
+              <>
+                Get my prompt
+                <ArrowRight className="h-4 w-4" />
+              </>
+            )}
           </button>
           <div className="mt-6">
             <PersonalContextPanel compact />
@@ -226,10 +263,7 @@ export function PromptAssistant() {
           <div className="rounded-xl border border-violet-500/30 bg-violet-500/10 px-4 py-3 text-sm text-violet-200">
             You said: &ldquo;{rawInput}&rdquo;
           </div>
-          <p className="text-sm text-zinc-500">
-            Tap options to select —{" "}
-            <span className="text-zinc-300">multiple allowed</span> where noted. Skip only if you must.
-          </p>
+          <p className="text-sm text-zinc-500">Optional details. Skip if you don’t care.</p>
           {questions.map((q) => {
             const multi = q.multiSelect !== false && Boolean(q.options);
             return (
@@ -281,12 +315,11 @@ export function PromptAssistant() {
             {loading ? (
               <>
                 <Loader2 className="h-4 w-4 animate-spin" />
-                Building expert prompt...
+                Building prompt...
               </>
             ) : (
               <>
-                <Sparkles className="h-4 w-4" />
-                Generate expert prompt
+                Get my prompt
               </>
             )}
           </button>
@@ -295,20 +328,12 @@ export function PromptAssistant() {
 
       {step === "result" && (
         <div className="space-y-6">
-          <div className="rounded-2xl border border-emerald-500/30 bg-emerald-500/10 p-6">
+          <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-6">
             <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-              <div>
-                <p className="flex items-center gap-2 font-medium text-emerald-300">
-                  <Check className="h-4 w-4" />
-                  Production-ready prompt
-                </p>
-                {meta && (
-                  <p className="mt-1 text-xs text-emerald-500/80">
-                    Detected: {meta.intentLabel}
-                    {meta.polishNote ? ` · ${meta.polishNote}` : ""}
-                  </p>
-                )}
-              </div>
+              <p className="flex items-center gap-2 font-medium text-white">
+                <Check className="h-4 w-4 text-emerald-400" />
+                Your prompt
+              </p>
               <button
                 onClick={handleCopy}
                 className="flex items-center gap-1 rounded-lg border border-white/10 px-3 py-1 text-xs text-zinc-300 hover:bg-white/5"
@@ -322,12 +347,9 @@ export function PromptAssistant() {
             </pre>
           </div>
 
-          <p className="text-sm text-zinc-500">
-            Paste this into ChatGPT, Claude, Gemini, or Cursor. Fill any{" "}
-            <span className="text-zinc-400">[BRACKETS]</span> with your real brand details for best results.
-          </p>
+          <p className="text-sm text-zinc-500">Copy and paste into Chat or any AI chat.</p>
 
-          {recommendations && (
+          {recommendations && detectIntent(rawInput, answers) !== "general" && (
             <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-6">
               <h3 className="font-semibold text-white">Recommended AI tools for this task</h3>
               <p className="mt-1 text-sm text-zinc-500">

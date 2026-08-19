@@ -16,6 +16,7 @@ import { createAssistantDraft, upsertAssistant } from "@/lib/custom-assistants";
 import { startProductTour, TOUR_CHAT_OPENING } from "@/lib/product-tour";
 import { hasByok } from "@/lib/byok";
 import { hasAnyConnectedAi } from "@/lib/connected-ai";
+import { SelectModelMenu } from "@/components/SelectModelMenu";
 import {
   Loader2,
   Send,
@@ -58,6 +59,8 @@ export function ChatMode({
   const [softWarn, setSoftWarn] = useState<string | null>(null);
   const [byokOn, setByokOn] = useState(false);
   const [subscriptionOn, setSubscriptionOn] = useState(false);
+  const [zenConfigured, setZenConfigured] = useState(false);
+  const [openrouterConfigured, setOpenrouterConfigured] = useState(false);
   const [lastUserText, setLastUserText] = useState("");
   const bottomRef = useRef<HTMLDivElement>(null);
 
@@ -97,6 +100,8 @@ export function ChatMode({
       .then(
         (d: {
           openrouterConfigured?: boolean;
+          zenConfigured?: boolean;
+          llmConfigured?: boolean;
           signedIn?: boolean;
           guestDailyLimit?: number;
           freeDailyLimit?: number;
@@ -108,7 +113,11 @@ export function ChatMode({
             freeDailyLimit?: number;
           };
         }) => {
-          setLlmReady(Boolean(d.openrouterConfigured));
+          setLlmReady(
+            Boolean(d.llmConfigured) || Boolean(d.openrouterConfigured) || Boolean(d.zenConfigured)
+          );
+          setZenConfigured(Boolean(d.zenConfigured));
+          setOpenrouterConfigured(Boolean(d.openrouterConfigured));
           setSignedIn(Boolean(d.signedIn));
           if (d.entitlement?.softWarnMessage) {
             setSoftWarn(d.entitlement.softWarnMessage);
@@ -117,10 +126,10 @@ export function ChatMode({
             setQuotaNote(d.entitlement.routeLabel);
           } else if (!d.signedIn && d.guestDailyLimit) {
             setQuotaNote(
-              `Guest free AI: up to ${d.guestDailyLimit}/day · sign in for ~${d.freeDailyLimit ?? 40}/day · BYOK unlimited`
+              `Free models — no sign-in. Optional: Connect ChatGPT / Copilot or add your own key.`
             );
           } else if (d.signedIn) {
-            setQuotaNote(`Signed in · free AI ~${d.freeDailyLimit ?? 40}/day (platform key)`);
+            setQuotaNote(`Free models with 128K context · Connect is optional`);
           }
         }
       )
@@ -152,7 +161,7 @@ export function ChatMode({
   }, [initialPrompt]);
 
   useEffect(() => {
-    if (messages.length) localStorage.setItem(HISTORY_KEY, JSON.stringify(messages.slice(-80)));
+    if (messages.length) localStorage.setItem(HISTORY_KEY, JSON.stringify(messages.slice(-120)));
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
@@ -245,8 +254,8 @@ export function ChatMode({
             <div>
               <h1 className="text-2xl font-bold tracking-tight text-white sm:text-3xl">Chat</h1>
               <p className="mt-1 text-sm text-zinc-400">
-                Sharp middleman — not a dumb FAQ bot. Cloud AI needs sign-in (fair use) or your own
-                key.
+                Pick a free model and talk. No account. 128K context. Connect is optional if you
+                want ChatGPT, Copilot, or your own key.
               </p>
               {llmReady !== null && (
                 <span
@@ -261,7 +270,7 @@ export function ChatMode({
                     : byokOn
                       ? "BYOK connected"
                       : llmReady
-                        ? "Platform AI configured"
+                        ? "Free models ready"
                         : "Add platform key, subscription, or BYOK"}
                   {signedIn === false && !subscriptionOn && !byokOn && " · sign in for free tier"}
                 </span>
@@ -287,7 +296,7 @@ export function ChatMode({
               href="/get-started"
               className="inline-flex items-center gap-1.5 rounded-full border border-emerald-500/40 bg-emerald-500/15 px-4 py-1.5 text-sm font-medium text-emerald-100 hover:bg-emerald-500/25"
             >
-              {subscriptionOn ? "Connected" : "Get started"}
+              {subscriptionOn ? "Connected" : "Connect"}
             </Link>
             <Link
               href="/settings/ai-keys"
@@ -408,17 +417,17 @@ export function ChatMode({
           )}
           {signedIn === false && (
             <p className="mb-2 text-[11px] text-zinc-500">
-              Guests share free cloud models with a daily cap.{" "}
-              <Link href="/auth/login?next=/chat" className="text-violet-400 hover:underline">
-                Sign in
-              </Link>{" "}
-              for more, or{" "}
-              <Link href="/settings/ai-keys" className="text-violet-400 hover:underline">
-                use your key
-              </Link>
-              .
+              Free models work without an account. Connect is optional if you want ChatGPT, Copilot,
+              or your own key.
             </p>
           )}
+          <div className="mb-2">
+            <SelectModelMenu
+              zenConfigured={zenConfigured}
+              openrouterConfigured={openrouterConfigured}
+              connectedLabel={subscriptionOn ? "Connected AI" : "Platform AI"}
+            />
+          </div>
           <div className="flex items-end gap-2">
             <textarea
               value={input}

@@ -373,66 +373,17 @@ async function tryLlm(
   opts?: { adultConsent?: boolean }
 ): Promise<string | null> {
   const learner = learnerBundle();
-  let byokKey: string | undefined;
-  let byokBaseUrl: string | undefined;
-  let byokModel: string | undefined;
-  let codexAccessToken: string | undefined;
-  let codexAccountId: string | undefined;
-  let copilotSessionToken: string | undefined;
-  let usedConnected = false;
-  try {
-    const { resolveConnectedChatAuth } = await import("./connected-ai");
-    const connected = await resolveConnectedChatAuth();
-    if (connected.codex) {
-      codexAccessToken = connected.codex.accessToken;
-      codexAccountId = connected.codex.accountId;
-      usedConnected = true;
-    }
-    if (connected.copilot?.sessionToken) {
-      copilotSessionToken = connected.copilot.sessionToken;
-      usedConnected = true;
-    }
-    if (connected.byok?.apiKey) {
-      byokKey = connected.byok.apiKey;
-      byokBaseUrl = connected.byok.baseUrl;
-      byokModel = connected.byok.model;
-      usedConnected = true;
-    }
-  } catch {
-    /* ignore */
-  }
-  if (!usedConnected) {
-    try {
-      const { loadByok } = await import("./byok");
-      const b = loadByok();
-      if (b?.apiKey) {
-        byokKey = b.apiKey;
-        byokBaseUrl = b.baseUrl;
-        byokModel = b.model;
-      }
-    } catch {
-      /* ignore */
-    }
-    try {
-      const { getValidCodexAuth } = await import("./subscription-tokens");
-      const c = await getValidCodexAuth();
-      if (c?.accessToken) {
-        codexAccessToken = c.accessToken;
-        codexAccountId = c.accountId;
-      }
-    } catch {
-      /* ignore */
-    }
-  }
+  const { collectChatAuth, notifyAiExhausted } = await import("./platform-ai-client");
+  const auth = await collectChatAuth();
 
-  // Send prior turns only (exclude pure empty); keep last 20 messages for context
+  const wide = auth.preferredSource === "zen";
   const prior = history
     .filter((m) => m.role === "user" || m.role === "assistant")
     .filter((m) => m.content?.trim())
-    .slice(-20)
+    .slice(-(wide ? 64 : 20))
     .map((m) => ({
       role: m.role as "user" | "assistant",
-      content: m.content.slice(0, 3500),
+      content: m.content.slice(0, wide ? 24000 : 3500),
     }));
 
   try {
@@ -443,12 +394,7 @@ async function tryLlm(
         message: text,
         learnerContext: learner,
         adultConsent: opts?.adultConsent,
-        byokKey,
-        byokBaseUrl,
-        byokModel,
-        codexAccessToken,
-        codexAccountId,
-        copilotSessionToken,
+        ...auth,
         history: prior,
       }),
     });
@@ -461,8 +407,18 @@ async function tryLlm(
       softWarnMessage?: string;
       softWarn?: boolean;
       usedPremium?: boolean;
-      quota?: { mode?: string; used?: number; limit?: number };
+      quota?: { mode?: string; used?: number; limit?: number; label?: string };
     };
+    if (
+      data.code === "pool_exhausted" ||
+      data.code === "quota" ||
+      data.code === "guest_quota" ||
+      data.code === "global_daily" ||
+      data.code === "global_rate" ||
+      data.code === "busy"
+    ) {
+      notifyAiExhausted();
+    }
     if (typeof window !== "undefined" && data.softWarnMessage) {
       window.dispatchEvent(
         new CustomEvent("plethora:soft-warn", { detail: data.softWarnMessage })
@@ -477,7 +433,7 @@ async function tryLlm(
     } else if (typeof window !== "undefined" && data.quota?.mode === "subscription") {
       window.dispatchEvent(
         new CustomEvent("plethora:quota-label", {
-          detail: (data.quota as { label?: string }).label || "Your AI login",
+          detail: data.quota.label || "Your AI login",
         })
       );
     } else if (typeof window !== "undefined" && data.quota?.mode && data.quota.mode !== "byok") {
@@ -512,6 +468,8 @@ export type ServerChatOpts = {
   customSystem?: string;
   preferPremium?: boolean;
   maxTokens?: number;
+  preferredModel?: string;
+  preferredSource?: "zen" | "openrouter";
 };
 
 /** Server-side entry used by /api/chat */
@@ -520,7 +478,7 @@ export async function generateAssistantReplyServer(
   history: { role: "user" | "assistant"; content: string }[] = [],
   learnerContext?: string,
   opts?: ServerChatOpts
-): Promise<{ reply: string; source: string; usedPremium?: boolean }> {
+): Promise<{ reply: string; source: string; usedPremium?: boolean; code?: string }> {
   const text = userText.trim();
   const intent = classifyChatIntent(text);
   const adultMode = Boolean(opts?.adultMode);
@@ -536,8 +494,13 @@ export async function generateAssistantReplyServer(
       customSystem: opts?.customSystem,
       preferPremium: opts?.preferPremium,
       maxTokens: opts?.maxTokens,
+      preferredModel: opts?.preferredModel,
+      preferredSource: opts?.preferredSource,
     });
     if (llm.ok) return { reply: llm.reply, source: llm.provider, usedPremium: llm.usedPremium };
+    if (llm.code === "pool_exhausted") {
+      return { reply: llm.reply, source: "exhausted", code: "pool_exhausted" };
+    }
     return { reply: smartOfflineGeneral(text), source: "offline" };
   }
 
@@ -584,16 +547,24 @@ export async function generateAssistantReplyServer(
     customSystem: opts?.customSystem,
     preferPremium: opts?.preferPremium,
     maxTokens: opts?.maxTokens,
+    preferredModel: opts?.preferredModel,
+    preferredSource: opts?.preferredSource,
   };
 
   if (intent === "mood") {
     const llm = await freeChatCompletion(text, history, chatOpts);
     if (llm.ok) return { reply: llm.reply, source: llm.provider, usedPremium: llm.usedPremium };
+    if (llm.code === "pool_exhausted") {
+      return { reply: llm.reply, source: "exhausted", code: "pool_exhausted" };
+    }
     return { reply: moodReply(text), source: "offline-mood" };
   }
 
   const llm = await freeChatCompletion(text, history, chatOpts);
   if (llm.ok) return { reply: llm.reply, source: llm.provider, usedPremium: llm.usedPremium };
+  if (llm.code === "pool_exhausted") {
+    return { reply: llm.reply, source: "exhausted", code: "pool_exhausted" };
+  }
 
   // Fall back if free models flinch on normal talk
   return { reply: smartOfflineGeneral(text), source: "offline" };

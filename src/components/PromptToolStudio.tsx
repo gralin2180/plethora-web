@@ -1,14 +1,14 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import Link from "next/link";
-import { Check, Copy, Sparkles, Star } from "lucide-react";
+import { Check, Copy, Loader2, Sparkles } from "lucide-react";
 import type { PlatformTool } from "@/lib/types";
 import { buildRefinedPrompt } from "@/lib/prompt-engine";
 
 const STUDIO_HINTS: Record<string, { placeholder: string; lead: string }> = {
   "blog-writer": {
-    lead: "Topic, audience, tone, length — then get a Claude/GPT-ready write prompt.",
+    lead: "Topic, audience, tone, length — we write the draft.",
     placeholder: "e.g. Blog for solopreneurs on pricing freelancing, conversational, 1200 words…",
   },
   "content-outline": {
@@ -184,16 +184,16 @@ export function PromptToolStudio({ tool }: { tool: PlatformTool }) {
   };
   const [input, setInput] = useState("");
   const [output, setOutput] = useState("");
+  const [promptUsed, setPromptUsed] = useState("");
   const [copied, setCopied] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState("");
 
   const models = tool.bestModels ?? ["Claude Sonnet", "GPT-4o"];
 
-  const result = useMemo(() => {
-    if (!output) return "";
-    return output;
-  }, [output]);
+  const result = output;
 
-  function generate() {
+  function buildPrompt(): string {
     const raw = input.trim() || tool.description;
     let prompt = "";
     if (tool.slug === "documenter") {
@@ -215,7 +215,35 @@ export function PromptToolStudio({ tool }: { tool: PlatformTool }) {
     } else {
       prompt = buildRefinedPrompt(`${tool.name} for: ${raw}`, {});
     }
-    setOutput(prompt);
+    return prompt;
+  }
+
+  async function generate() {
+    const prompt = buildPrompt();
+    setPromptUsed(prompt);
+    setErr("");
+    setBusy(true);
+    setOutput("");
+    try {
+      const { runPlatformAi } = await import("@/lib/platform-ai-client");
+      const data = await runPlatformAi(
+        `${prompt}\n\nWrite the deliverable now. Do not explain how you would write it. No preamble.`
+      );
+      if (data.ok && data.reply.trim()) {
+        setOutput(data.reply.trim());
+      } else {
+        setOutput(prompt);
+        setErr(
+          data.exhausted
+            ? "Free AI is exhausted — add a key or pay as you go."
+            : data.reply || "Chat unavailable — copied a ready prompt instead."
+        );
+      }
+    } catch {
+      setOutput(prompt);
+      setErr("Offline / chat failed — here’s a prompt you can paste anywhere.");
+    }
+    setBusy(false);
     void fetch("/api/usage", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -225,25 +253,11 @@ export function PromptToolStudio({ tool }: { tool: PlatformTool }) {
 
   return (
     <div className="space-y-4">
-      <div className="rounded-2xl border border-amber-500/20 bg-amber-500/5 p-3">
-        <p className="flex items-center gap-2 text-xs font-medium text-amber-200/90">
-          <Star className="h-3.5 w-3.5" /> Best models for this tool
+      {models.length > 0 && (
+        <p className="text-[11px] text-zinc-500">
+          Writes a real draft with your connected AI (or free chat). Fallback: a pasteable prompt.
         </p>
-        <div className="mt-2 flex flex-wrap gap-1.5">
-          {models.map((m) => (
-            <span
-              key={m}
-              className="rounded-full border border-amber-500/20 bg-black/30 px-2.5 py-0.5 text-[11px] text-amber-100/90"
-            >
-              {m}
-            </span>
-          ))}
-        </div>
-        <p className="mt-2 text-[11px] text-zinc-500">
-          Premium model routing + usage limits = coming with Pro (Cursor-style). Copy the prompt into free
-          chat for now.
-        </p>
-      </div>
+      )}
 
       <p className="text-sm text-zinc-400">{meta.lead}</p>
       <textarea
@@ -255,16 +269,19 @@ export function PromptToolStudio({ tool }: { tool: PlatformTool }) {
       />
       <button
         type="button"
-        onClick={generate}
-        className="flex w-full items-center justify-center gap-2 rounded-xl bg-violet-600 py-3 text-sm font-medium text-white hover:bg-violet-500"
+        onClick={() => void generate()}
+        disabled={busy}
+        className="flex w-full items-center justify-center gap-2 rounded-xl bg-violet-600 py-3 text-sm font-medium text-white hover:bg-violet-500 disabled:opacity-60"
       >
-        <Sparkles className="h-4 w-4" /> Generate expert prompt
+        {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
+        {busy ? "Writing…" : "Write it"}
       </button>
+      {err && <p className="text-xs text-amber-300">{err}</p>}
 
       {result && (
         <div className="rounded-2xl border border-white/10 bg-black/40 p-4">
           <div className="mb-2 flex items-center justify-between">
-            <p className="text-xs font-medium text-zinc-400">Ready to paste</p>
+            <p className="text-xs font-medium text-zinc-400">Result</p>
             <button
               type="button"
               onClick={async () => {
@@ -281,12 +298,17 @@ export function PromptToolStudio({ tool }: { tool: PlatformTool }) {
           <pre className="max-h-72 overflow-auto whitespace-pre-wrap text-xs leading-relaxed text-zinc-300">
             {result}
           </pre>
+          {promptUsed && (
+            <details className="mt-3">
+              <summary className="cursor-pointer text-xs text-zinc-500">Prompt used</summary>
+              <pre className="mt-2 max-h-40 overflow-auto whitespace-pre-wrap text-[11px] text-zinc-500">
+                {promptUsed}
+              </pre>
+            </details>
+          )}
           <div className="mt-3 flex flex-wrap gap-3 text-xs">
             <Link href="/chat" className="text-violet-400 hover:underline">
-              Open in Chat →
-            </Link>
-            <Link href="/prompt-assistant" className="text-violet-400 hover:underline">
-              Refine further →
+              Continue in Chat →
             </Link>
           </div>
         </div>

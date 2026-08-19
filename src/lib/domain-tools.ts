@@ -303,4 +303,18 @@ export const DOMAIN_EXTRA_TOOLS: PlatformTool[] = [
     actionHint: "Enter numbers",
     runner: "free-utility",
   },
+  {
+    id: "password-generator",
+    name: "Password generator",
+    slug: "password-generator",
+    description: "Strong random passwords on this device — length, sets, entropy. Nothing stored.",
+    category: "Free Utilities",
+    icon: "Hash",
+    freeRunsPerDay: 200,
+    isPro: false,
+    tags: ["password", "security", "generator"],
+    taskKeywords: ["password generator", "random password", "secure password"],
+    actionHint: "Set length → generate",
+    runner: "free-utility",
+  },
 ];

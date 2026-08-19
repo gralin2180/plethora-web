@@ -254,7 +254,7 @@ function intentLabel(intent: PromptIntent): string {
     automation: "workflow automation & systems design",
     research: "market research & competitive analysis",
     ugc_money: "UGC creator business & monetization",
-    general: "strategic problem-solving and execution",
+    general: "direct request",
   };
   return labels[intent];
 }
@@ -263,10 +263,8 @@ function intentLabel(intent: PromptIntent): string {
 
 export function generateClarifyingQuestions(input: string): ClarifyingQuestion[] {
   const intent = detectIntent(input);
-  const t = norm(input);
   const questions: ClarifyingQuestion[] = [];
 
-  // Always collect missing business identity for commercial intents
   const commercial: PromptIntent[] = [
     "instagram_ad",
     "tiktok_ad",
@@ -278,129 +276,35 @@ export function generateClarifyingQuestions(input: string): ClarifyingQuestion[]
     "video_reel",
   ];
 
-  if (commercial.includes(intent)) {
-    if (!t.match(/clothing|fashion|sneakers|electronics|cafe|jewelry|skincare|fitness|saas|coach/)) {
-      questions.push({
-        id: "niche",
-        question: "What niche or industry is the business in?",
-        placeholder: "e.g. streetwear, bakery, online coaching, SaaS...",
-      });
-    }
+  if (intent === "general") {
+    return [];
+  }
 
+  if (commercial.includes(intent)) {
     questions.push({
       id: "product",
-      question: "What do you sell or promote? (be specific)",
-      placeholder: "e.g. premium hoodies, 1:1 fitness coaching, $29 meal-prep kit",
+      question: "What are you selling or promoting?",
+      placeholder: "e.g. $48 hoodies, coaching, a café",
     });
-
-    if (!t.match(/genz|gen z|millennial|gen x|b2b|mom|parents|enterprise/)) {
-      questions.push({
-        id: "audience",
-        question: "Who is the target buyer? (select all that apply)",
-        multiSelect: true,
-        options: [
-          "Gen Z (born 1997–2012 · ~14–29 in 2026)",
-          "Millennials (born 1981–1996 · ~30–45 in 2026)",
-          "Gen X (born 1965–1980 · ~46–61 in 2026)",
-          "Parents / families",
-          "B2B / professionals",
-          "Mass market / general",
-        ],
-      });
-    }
-
-    if (!t.match(/sale|click|traffic|lead|follow|book|demo|sign.?up/)) {
-      questions.push({
-        id: "outcome",
-        question: "Primary campaign goals? (select all that apply)",
-        multiSelect: true,
-        options: [
-          "More sales",
-          "More clicks/traffic",
-          "More leads / DMs",
-          "Brand awareness",
-          "Product launch hype",
-        ],
-      });
-    }
-
-    if (!t.match(/professional|casual|bold|funny|luxury|premium|playful/)) {
-      questions.push({
-        id: "tone",
-        question: "Brand voice? (select all that fit)",
-        multiSelect: true,
-        options: [
-          "Professional & premium",
-          "Casual & friendly",
-          "Bold & hype",
-          "Warm & trustworthy",
-          "Luxury / minimal",
-        ],
-      });
-    }
-
     questions.push({
       id: "details",
-      question: "Business name, offer, price, or USP? (the more specific, the sharper the prompt)",
-      placeholder: "e.g. Brand: NightOwl — $48 streetwear hoodies, free shipping over $80",
+      question: "Anything else? (optional)",
+      placeholder: "Brand name, price, who it's for",
     });
   } else if (intent === "code") {
     questions.push({
       id: "product",
       question: "What are you building or fixing?",
-      placeholder: "e.g. Next.js SaaS dashboard with Stripe billing",
+      placeholder: "e.g. Next.js dashboard, a bug in login",
     });
+  } else if (intent === "ugc_money") {
     questions.push({
-      id: "details",
-      question: "Stack, constraints, or files involved?",
-      placeholder: "e.g. TypeScript, Supabase, must work on mobile",
-    });
-    questions.push({
-      id: "outcome",
-      question: "What should the output include? (select all that apply)",
-      multiSelect: true,
-      options: [
-        "Full working code",
-        "Architecture + code",
-        "Bug fix only",
-        "Step-by-step plan then code",
-      ],
-    });
-  } else {
-    if (input.split(/\s+/).length < 6) {
-      questions.push({
-        id: "goal",
-        question: "What is the main outcome you want?",
-        placeholder: "Be specific — what success looks like",
-      });
-    }
-    questions.push({
-      id: "audience",
-      question: "Who is this for? (select all that apply)",
-      multiSelect: true,
-      options: [
-        "Gen Z (born 1997–2012 · ~14–29 in 2026)",
-        "Millennials (born 1981–1996 · ~30–45 in 2026)",
-        "Gen X (born 1965–1980 · ~46–61 in 2026)",
-        "Parents / families",
-        "B2B / professionals",
-        "Mass market / general",
-      ],
-    });
-    questions.push({
-      id: "tone",
-      question: "Tone? (select all that fit)",
-      multiSelect: true,
-      options: ["Professional", "Casual & friendly", "Bold & direct", "Simple for beginners"],
-    });
-    questions.push({
-      id: "details",
-      question: "Any constraints, examples, or must-haves?",
-      placeholder: "Optional but highly recommended",
+      id: "niche",
+      question: "What niche?",
+      placeholder: "e.g. fitness, food, tech",
     });
   }
 
-  // Dedupe by id, max 5
   const seen = new Set<string>();
   return questions
     .filter((q) => {
@@ -408,7 +312,7 @@ export function generateClarifyingQuestions(input: string): ClarifyingQuestion[]
       seen.add(q.id);
       return true;
     })
-    .slice(0, 5);
+    .slice(0, 2);
 }
 
 // ── Template builders (expert-level, beat free-model quality) ─────────────────
@@ -731,32 +635,17 @@ Never invent statistics — use [VERIFY] tags when a number would be required.`;
 }
 
 function buildGeneralPrompt(ctx: PromptContext): string {
-  return `Act as a world-class specialist in ${intentLabel(ctx.intent)} — proactive, precise, and execution-focused.
+  const extra = [ctx.product, ctx.details, ctx.goal].filter(Boolean).join(". ");
+  return `You are a helpful expert. Do this request directly. No frameworks, no preamble, no “here’s how I thought about it.”
 
-User's original request: "${ctx.rawInput}"
+Request: ${ctx.rawInput}
+${extra ? `Extra: ${extra}` : ""}
 
-Context pack:
-- Goal: ${ctx.goal}
-- Audience: ${ctx.audience}
-- Tone: ${ctx.tone}
-- Platform / channel: ${ctx.platform ?? "Not specified"}
-- Additional details: ${ctx.details ?? "None"}
-${ctx.extraNotes.length ? `- Notes: ${ctx.extraNotes.join("; ")}` : ""}
-
-${antiSlopRules()}
-
-Operating instructions:
-1. Infer the highest-value deliverable from the request (do not ask more than one critical question unless blocked).
-2. Lead with the answer / deliverable, not preambles.
-3. Use a clear structure: Overview → Deliverable → Next steps.
-4. When you need missing details, insert [BRACKETED PLACEHOLDERS] instead of fictional facts.
-5. Include success criteria so the user can judge if the output is good.
-6. Offer one advanced upgrade option after the core deliverable.
-
-Output requirements:
-- Actionable, specific, ready to use
-- No generic advice that could apply to any business or task
-- Prefer examples and concrete wording over abstract guidance`;
+Rules:
+- Answer the ask. Don't invent a consulting report around it.
+- Keep it short unless they asked for length.
+- If a fact is missing, use a short [PLACEHOLDER] — don't build questionnaires.
+- Adult content between consenting adults is fine. Refuse anything involving minors.`;
 }
 
 function buildUgcMoneyPrompt(ctx: PromptContext): string {

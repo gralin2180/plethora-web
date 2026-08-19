@@ -2,7 +2,8 @@ import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { generateAssistantReplyServer } from "@/lib/assistant-brain";
 import { assessContentSafety } from "@/lib/content-safety";
-import { hasFreeChatProvider } from "@/lib/free-chat";
+import { hasFreeChatProvider, hasOpenRouterProvider, hasZenProvider } from "@/lib/free-chat";
+import { OPENCODE_ZEN_FREE_MODELS, OPENROUTER_FREE_MODELS, ZEN_HISTORY_MESSAGES, ZEN_MAX_OUTPUT_TOKENS, ZEN_MESSAGE_CHARS } from "@/lib/free-models";
 import { createClient } from "@/lib/supabase/server";
 import { GUEST_AI_BLOCK, platformChatDailyLimit } from "@/lib/ai-quota";
 import { getPlanCapabilities, type PlanId } from "@/lib/plans";
@@ -44,7 +45,13 @@ export async function GET() {
 
   return NextResponse.json({
     ok: true,
-    openrouterConfigured: hasFreeChatProvider(),
+    openrouterConfigured: hasOpenRouterProvider(),
+    zenConfigured: hasZenProvider(),
+    llmConfigured: hasFreeChatProvider(),
+    freeModels: {
+      zen: OPENCODE_ZEN_FREE_MODELS,
+      openrouter: OPENROUTER_FREE_MODELS,
+    },
     signedIn: Boolean(user),
     requiresAuth: false,
     guestDailyLimit: platformChatDailyLimit("guest"),
@@ -95,6 +102,15 @@ export async function POST(request: Request) {
         ? body.byokModel.trim().slice(0, 120)
         : undefined;
 
+    const preferredModel =
+      typeof body.preferredModel === "string" && body.preferredModel.trim()
+        ? body.preferredModel.trim().slice(0, 120)
+        : undefined;
+    const preferredSource =
+      body.preferredSource === "zen" || body.preferredSource === "openrouter"
+        ? (body.preferredSource as "zen" | "openrouter")
+        : undefined;
+
     const codexAccessToken =
       typeof body.codexAccessToken === "string" && body.codexAccessToken.length > 20
         ? body.codexAccessToken.trim().slice(0, 8000)
@@ -110,6 +126,7 @@ export async function POST(request: Request) {
         : undefined;
 
     const usesOwnAi = Boolean(byokKey || codexAccessToken || copilotSessionToken);
+    const usesZenPublic = preferredSource === "zen" && !byokKey && hasZenProvider();
 
     const cookieStore = await cookies();
     const anonymousId = getOrCreateAnonymousId(cookieStore);
@@ -120,7 +137,7 @@ export async function POST(request: Request) {
       data: { user },
     } = await supabase.auth.getUser();
 
-    if (!hasFreeChatProvider() && !usesOwnAi) {
+    if (!hasFreeChatProvider() && !usesOwnAi && !usesZenPublic) {
       return NextResponse.json(
         {
           reply:
@@ -149,8 +166,8 @@ export async function POST(request: Request) {
       plan = entitlement.plan;
     }
 
-    // Free-path quota (BYOK + ChatGPT subscription skip platform free daily + global free guard)
-    if (!usesOwnAi) {
+    // Free-path quota (BYOK + ChatGPT + Zen public skip platform daily)
+    if (!usesOwnAi && !usesZenPublic) {
       if (user) {
         limit = entitlement.freeDailyLimit;
         try {
@@ -206,23 +223,6 @@ export async function POST(request: Request) {
         }
       }
 
-      // Global free-pool choke protection (not for premium-entitled when we'll use premium path)
-      // For free routing (incl. premium-exhausted fallback) always apply
-      if (!entitlement.premiumAllowed) {
-        const gate = assertPlatformFreeCapacity();
-        if (!gate.ok) {
-          return NextResponse.json(
-            {
-              reply: gate.reason,
-              ok: false,
-              code: gate.code,
-              needsUpgrade: true,
-            },
-            { status: 429 }
-          );
-        }
-      }
-
       // Global daily free ceiling (platform key budget)
       try {
         const { data: globalUsed } = await supabase.rpc("get_usage_count", {
@@ -248,6 +248,7 @@ export async function POST(request: Request) {
       }
     }
 
+    const wideContext = usesZenPublic || preferredSource === "zen";
     const history = Array.isArray(body.history)
       ? body.history
           .filter(
@@ -256,9 +257,9 @@ export async function POST(request: Request) {
           )
           .map((m: { role: "user" | "assistant"; content: string }) => ({
             role: m.role as "user" | "assistant",
-            content: String(m.content).slice(0, 3500),
+            content: String(m.content).slice(0, wideContext ? ZEN_MESSAGE_CHARS : 3500),
           }))
-          .slice(-24)
+          .slice(-(wideContext ? ZEN_HISTORY_MESSAGES : 24))
       : [];
 
     const histForModel =
@@ -268,15 +269,29 @@ export async function POST(request: Request) {
         ? history.slice(0, -1)
         : history;
 
-    const preferPremium = !usesOwnAi && entitlement.premiumAllowed;
+    const preferPremium = !usesOwnAi && !usesZenPublic && entitlement.premiumAllowed;
     const freeLoadResult =
-      usesOwnAi || preferPremium
+      usesOwnAi
         ? ({ ok: true, load: "normal" } as const)
         : assertPlatformFreeCapacity();
-    const maxTokens =
-      !usesOwnAi && freeLoadResult.ok && freeLoadResult.load === "hot"
+    if (!freeLoadResult.ok) {
+      return NextResponse.json(
+        {
+          reply: freeLoadResult.reason,
+          ok: false,
+          code: freeLoadResult.code,
+          needsUpgrade: true,
+        },
+        { status: 429 }
+      );
+    }
+    const maxTokens = wideContext
+      ? freeLoadResult.load === "hot"
+        ? 4096
+        : ZEN_MAX_OUTPUT_TOKENS
+      : !usesOwnAi && freeLoadResult.load === "hot"
         ? 600
-        : !usesOwnAi && freeLoadResult.ok && freeLoadResult.load === "elevated"
+        : !usesOwnAi && freeLoadResult.load === "elevated"
           ? 900
           : 1200;
 
@@ -284,7 +299,9 @@ export async function POST(request: Request) {
       generateAssistantReplyServer(
         message,
         histForModel,
-        typeof body.learnerContext === "string" ? body.learnerContext.slice(0, 2000) : undefined,
+        typeof body.learnerContext === "string"
+          ? body.learnerContext.slice(0, wideContext ? 8000 : 2000)
+          : undefined,
         {
           adultMode,
           byok: byokKey
@@ -302,6 +319,8 @@ export async function POST(request: Request) {
             typeof body.customSystem === "string" ? body.customSystem.slice(0, 6000) : undefined,
           preferPremium,
           maxTokens,
+          preferredModel,
+          preferredSource,
         }
       );
 
@@ -310,8 +329,31 @@ export async function POST(request: Request) {
         ? await withPlatformFreeSlot(run)
         : await run();
 
+    if (result.code === "pool_exhausted") {
+      const res = NextResponse.json(
+        {
+          reply: result.reply,
+          ok: false,
+          code: "pool_exhausted",
+          needsUpgrade: true,
+          source: result.source,
+        },
+        { status: 429 }
+      );
+      if (setAnonCookie) {
+        res.cookies.set(ANON_COOKIE, anonymousId, {
+          httpOnly: true,
+          secure: process.env.NODE_ENV === "production",
+          sameSite: "lax",
+          maxAge: 60 * 60 * 24 * 365,
+          path: "/",
+        });
+      }
+      return res;
+    }
+
     // Usage accounting
-    if (!usesOwnAi && result.reply) {
+    if (!usesOwnAi && !usesZenPublic && result.reply) {
       try {
         if (result.usedPremium && user) {
           await recordPremiumUse(supabase, user.id, {

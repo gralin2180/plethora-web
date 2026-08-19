@@ -4,7 +4,6 @@ import {
   MessageSquare,
   Plug,
   Search,
-  Sparkles,
   Zap,
 } from "lucide-react";
 import { PLATFORM_TOOLS } from "@/lib/tools-registry";
@@ -14,7 +13,7 @@ const FEATURES = [
   {
     icon: MessageSquare,
     title: "Prompt Assistant",
-    desc: "Messy goal → expert, model-ready prompt.",
+    desc: "Messy ask → short prompt to paste.",
     href: "/prompt-assistant",
   },
   {
@@ -42,46 +41,33 @@ export function HomePage() {
     <>
       <section className="relative overflow-hidden px-4 pb-12 pt-14 sm:px-6 sm:pb-16 sm:pt-20">
         <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_top,_rgba(124,58,237,0.25)_0%,_transparent_50%)]" />
-        <div className="relative mx-auto max-w-4xl text-center">
-          <div className="mb-5 inline-flex items-center gap-2 rounded-full border border-violet-500/40 bg-violet-500/15 px-4 py-1.5 text-sm font-medium text-violet-200">
-            <Sparkles className="h-4 w-4" />
-            Tools. AI. One place.
-          </div>
-          <h1 className="text-4xl font-semibold tracking-tight text-white sm:text-5xl sm:leading-[1.15]">
-            <span className="block">Everything you need to ship,</span>
-            <span className="mt-1 block bg-gradient-to-r from-violet-300 via-violet-400 to-cyan-300 bg-clip-text pb-[0.15em] leading-[1.25] text-transparent">
-              without twenty open tabs
-            </span>
+        <div className="relative mx-auto max-w-2xl text-center">
+          <h1 className="text-4xl font-semibold tracking-tight text-white sm:text-5xl">
+            Connect your AI. Then use it.
           </h1>
-          <p className="mx-auto mt-5 max-w-xl text-base leading-relaxed text-zinc-400 sm:text-lg">
-            Prompt engineering first — then free utilities, AI studios, local GPU, and Plethora MCP so
-            your agents run the work.
+          <p className="mx-auto mt-4 max-w-md text-base text-zinc-400">
+            Log in with ChatGPT, Copilot, Perplexity, Gemini — the accounts you already have. Then
+            chat, write prompts, or grab a tool.
           </p>
           <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row">
             <Link
-              href="/prompt-assistant"
-              className="flex items-center gap-2 rounded-xl bg-violet-600 px-7 py-3 text-sm font-medium text-white hover:bg-violet-500"
+              href="/get-started"
+              className="flex items-center gap-2 rounded-xl bg-white px-7 py-3 text-sm font-medium text-black hover:bg-zinc-200"
             >
-              Prompt Assistant
+              Connect an AI
               <ArrowRight className="h-4 w-4" />
             </Link>
             <Link
-              href="/tools"
-              className="flex items-center gap-2 rounded-xl border border-white/15 px-7 py-3 text-sm font-medium text-zinc-100 hover:bg-white/[0.05]"
+              href="/chat"
+              className="flex items-center gap-2 rounded-xl bg-violet-600 px-7 py-3 text-sm font-medium text-white hover:bg-violet-500"
             >
-              Browse tools
+              Open chat
             </Link>
             <Link
-              href="/about"
-              className="text-sm text-zinc-500 hover:text-zinc-300"
+              href="/prompt-assistant"
+              className="text-sm text-zinc-400 hover:text-white"
             >
-              About & FAQ →
-            </Link>
-            <Link
-              href="/connect"
-              className="text-sm text-zinc-500 hover:text-zinc-300"
-            >
-              Connect apps →
+              Write a prompt →
             </Link>
           </div>
         </div>

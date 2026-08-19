@@ -25,33 +25,23 @@ type NavItem = {
 
 /** Primary destinations — keep scannable */
 const PRIMARY: NavItem[] = [
-  { href: "/tools", label: "Tools", tour: "nav-tools" },
-  { href: "/prompt-assistant", label: "Prompts", tour: "nav-prompt" },
+  { href: "/get-started", label: "Connect", tour: "nav-get-started" },
   { href: "/chat", label: "Chat", tour: "nav-chat" },
-  {
-    href: "/get-started",
-    label: "Get started",
-    tour: "nav-get-started",
-    hint: "Connect ChatGPT, Copilot, Perplexity…",
-  },
-  { href: "/ai-finder", label: "Finder", tour: "nav-ai-finder" },
-  { href: "/mcp", label: "MCP", tour: "nav-mcp" },
-  { href: "/about", label: "About", tour: "nav-about" },
-  { href: "/pricing", label: "Pricing", tour: "nav-pricing" },
+  { href: "/prompt-assistant", label: "Prompts", tour: "nav-prompt" },
+  { href: "/tools", label: "Tools", tour: "nav-tools" },
 ];
 
 const MORE: NavItem[] = [
+  { href: "/ai-finder", label: "Finder", tour: "nav-ai-finder", hint: "Find a tool for a task" },
+  { href: "/mcp", label: "MCP", tour: "nav-mcp", hint: "Agent tools" },
+  { href: "/about", label: "About", tour: "nav-about" },
+  { href: "/design", label: "Design", tour: "nav-design", hint: "How AI routing works" },
+  { href: "/pricing", label: "Pricing", tour: "nav-pricing" },
   {
     href: "/settings/billing",
     label: "Billing & AI",
     tour: "nav-billing",
     hint: "Pro, try packs, usage limits",
-  },
-  {
-    href: "/get-started",
-    label: "Get started / Connected",
-    tour: "nav-subscription-ai",
-    hint: "Your ChatGPT, Copilot, Perplexity, Gemini logins",
   },
   {
     href: "/settings/ai-keys",
@@ -129,7 +119,7 @@ export function Header({ user = null }: { user?: SupaUser | null }) {
     : pathname;
   const [moreOpen, setMoreOpen] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
-  const [aiHubLabel, setAiHubLabel] = useState("Get started");
+  const [aiHubLabel, setAiHubLabel] = useState("Connect");
   const moreRef = useRef<HTMLDivElement>(null);
   const moreMenuId = useId();
 
@@ -138,7 +128,7 @@ export function Header({ user = null }: { user?: SupaUser | null }) {
     setMobileOpen(false);
     try {
       void import("@/lib/connected-ai").then((m) => {
-        setAiHubLabel(m.hasAnyConnectedAi() ? "Connected" : "Get started");
+        setAiHubLabel(m.hasAnyConnectedAi() ? "Connected" : "Connect");
       });
     } catch {
       /* */
@@ -395,6 +385,11 @@ export function Footer() {
               <li>
                 <Link href="/learn" className="hover:text-white">
                   Learn AI
+                </Link>
+              </li>
+              <li>
+                <Link href="/design" className="hover:text-white">
+                  Design
                 </Link>
               </li>
             </ul>

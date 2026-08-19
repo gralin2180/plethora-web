@@ -2,6 +2,7 @@
 
 import dynamic from "next/dynamic";
 import { ProductTour } from "@/components/ProductTour";
+import { AiLimitHost } from "@/components/AiLimitHost";
 
 const FloatingAssistant = dynamic(
   () => import("@/components/FloatingAssistant").then((m) => m.FloatingAssistant),
@@ -13,6 +14,7 @@ export function ClientChrome() {
     <>
       <FloatingAssistant />
       <ProductTour />
+      <AiLimitHost />
     </>
   );
 }

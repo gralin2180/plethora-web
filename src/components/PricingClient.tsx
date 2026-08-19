@@ -7,7 +7,8 @@ import { HARDCORE_BUNDLE, HARDCORE_FEATURES } from "@/lib/hardcore-bundle";
 
 const FREE_FEATURES = [
   "Browse all tools & AI catalog",
-  "Fair free AI daily cap (shared free models — won't choke the site)",
+  "Free models with no sign-in (rotates until the pool is exhausted)",
+  "Then: your API key, or pay as you go / subscribe",
   "2 workspaces · up to 3 devices",
   "Prompt Assistant + AI Finder",
   "BYOK anytime (your OpenRouter key)",
@@ -74,8 +75,8 @@ export function PricingClient() {
         <div className="mx-auto max-w-5xl text-center">
           <h1 className="text-3xl font-bold text-white sm:text-4xl">Simple pricing</h1>
           <p className="mt-2 text-zinc-500">
-            Free models for everyone (with fair caps). Pro adds a premium budget — then falls back
-            to free AI. BYOK always available.
+            Free models for everyone. When the free pool is exhausted, add your own key or pay as
+            you go. Pro adds a monthly premium budget.
           </p>
           <div className="mt-4 flex flex-wrap justify-center gap-2">
             <Link
@@ -136,9 +137,10 @@ export function PricingClient() {
         )}
 
         <div className="mx-auto mt-10 max-w-5xl rounded-2xl border border-white/10 bg-white/[0.02] p-6">
-          <h2 className="text-lg font-semibold text-white">Try packs (no monthly bill)</h2>
+          <h2 className="text-lg font-semibold text-white">Pay as you go (no monthly bill)</h2>
           <p className="mt-1 text-sm text-zinc-500">
-            Taste premium models for an hour, a day, or a week — then free pool + BYOK.
+            Extra usage when the free pool is exhausted — an hour, a day, or a week — then free
+            pool + BYOK again.
           </p>
           <div className="mt-4 grid gap-3 sm:grid-cols-3">
             {[
