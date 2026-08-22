@@ -1,39 +1,23 @@
 import Link from "next/link";
 import {
   ArrowRight,
+  Flame,
+  Hammer,
+  HardDrive,
   MessageSquare,
-  Plug,
   Search,
-  Zap,
+  Wrench,
 } from "lucide-react";
 import { PLATFORM_TOOLS } from "@/lib/tools-registry";
 import { StickyRails } from "@/components/StickyRails";
 
-const FEATURES = [
-  {
-    icon: MessageSquare,
-    title: "Prompt Assistant",
-    desc: "Messy ask → short prompt to paste.",
-    href: "/prompt-assistant",
-  },
-  {
-    icon: Search,
-    title: "AI Finder",
-    desc: "Exact path: chat, tools, MCP for any job.",
-    href: "/ai-finder",
-  },
-  {
-    icon: Zap,
-    title: "Tools that run",
-    desc: "Converters, SEO, trading, captions — under one roof.",
-    href: "/tools",
-  },
-  {
-    icon: Plug,
-    title: "Connect & MCP",
-    desc: "Slack, Canva, Figma, Notion + Plethora MCP for agents.",
-    href: "/connect",
-  },
+const ROOMS = [
+  { href: "/chat", title: "Chat", desc: "Normal talk", icon: MessageSquare },
+  { href: "/spicy", title: "Spicy 18+", desc: "Companion chat", icon: Flame },
+  { href: "/local-llms", title: "Local LLMs", desc: "Your PC", icon: HardDrive },
+  { href: "/tools", title: "Tools", desc: "The whole roof", icon: Wrench },
+  { href: "/tools/build-your-tool", title: "App Maker", desc: "Build a web app", icon: Hammer },
+  { href: "/ai-finder", title: "Finder", desc: "What should I use?", icon: Search },
 ];
 
 export function HomePage() {
@@ -80,8 +64,8 @@ export function HomePage() {
       </section>
 
       <section className="border-t border-white/10 px-4 py-10 sm:px-6">
-        <div className="mx-auto grid max-w-5xl gap-3 sm:grid-cols-2 lg:grid-cols-4">
-          {FEATURES.map((f) => (
+        <div className="mx-auto grid max-w-5xl gap-3 sm:grid-cols-2 lg:grid-cols-3">
+          {ROOMS.map((f) => (
             <Link
               key={f.href}
               href={f.href}

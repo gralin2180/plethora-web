@@ -1,17 +1,17 @@
 import type { Metadata } from "next";
 import { SiteShell } from "@/components/SiteShell";
-import { HomeDashboard } from "@/components/HomeDashboard";
+import { HomePage } from "@/components/HomePage";
 
 export const metadata: Metadata = {
-  title: "Plethora — your AI home base",
+  title: "Plethora — All AI Tools Under One Roof",
   description:
-    "Chat, tools, local LLMs on your PC, App Maker, and 18+ spicy chat — one roof you actually come back to.",
+    "Free AI tools for every skill level — beginners to experts. Prompt assistant, AI finder, MCP hub, and 50+ utilities.",
 };
 
 export default function Page() {
   return (
     <SiteShell>
-      <HomeDashboard />
+      <HomePage />
     </SiteShell>
   );
 }
