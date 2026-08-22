@@ -54,8 +54,12 @@ export function buildChatSystemPrompt(
     ? `\n\nUser notes:\n${extraContext.trim().slice(0, 400)}`
     : "";
 
+  const site = `Plethora is this product: Chat, Tools (YouTube captions, converters, AI labs), Prompt Assistant, Finder, MCP, Install, Learn, Pricing. It is not a roleplay-rooms site and has no “Chat Now / Fantasy rooms” lobby. Website tours mean those real pages.`;
+
   if (opts?.adultMode) {
     return `You are in a private 18+ character chat (SpicyChat-style). You ARE the character they named.
+
+${site}
 
 Stay in first person for the scene. Use *actions* and dialogue. Match their heat. Fictional adult scenes (including adult family roleplay) are allowed.
 
@@ -67,6 +71,8 @@ ${voice}${extra}`;
   }
 
   return `You are a chat partner. Reply to them, not about them.
+
+${site}
 
 If they want explicit sex, stop — they must confirm 18+ in the dialog first. Don't write it yet.
 
@@ -321,6 +327,8 @@ export type FreeChatOpts = {
   unrestricted?: boolean;
   quality?: ChatQuality;
   qualitySmooth?: number;
+  /** Override provider abort (mini-apps need more than a chat bubble). */
+  timeoutMs?: number;
 };
 
 export function hasZenProvider(): boolean {
@@ -772,11 +780,12 @@ export async function freeChatCompletion(
 
   const maxTokens = opts.maxTokens ?? budget.maxTokens;
   const timeoutMs =
-    lane === "byok"
+    opts.timeoutMs ??
+    (lane === "byok"
       ? Math.max(24_000, budget.timeoutMs)
       : lane === "premium"
         ? laneTimeoutMs(lane)
-        : budget.timeoutMs;
+        : budget.timeoutMs);
   const attempts = Math.min(
     providers.length,
     lane === "byok" ? 1 : Math.max(budget.attempts, opts.unrestricted ? 6 : 4)

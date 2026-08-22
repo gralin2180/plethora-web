@@ -59,11 +59,12 @@ const CUSTOM: Record<string, ToolHowDoc> = {
     ],
   },
   "build-your-tool": {
-    summary: "Compose inputs → transform → output without shipping a whole product.",
+    summary: "Intake brief + Plethora questions → generated web app → modification chat only.",
     steps: [
-      { id: "i", label: "Pick inputs", detail: "Text, URL, file, or choice." },
-      { id: "x", label: "Connect transforms", detail: "Graph or form steps." },
-      { id: "o", label: "Run & save idea", detail: "Keep notes in a workspace when signed in." },
+      { id: "i", label: "Describe the job", detail: "What the app should do + your custom prompt." },
+      { id: "q", label: "Answer the chips", detail: "Audience, data, look, must-haves, hard no’s." },
+      { id: "b", label: "Create web app", detail: "Preview on the right; Chat never dumps source." },
+      { id: "c", label: "Modify in the box", detail: "That page becomes a chatbox for changes only." },
     ],
   },
   "bg-remover": {

@@ -199,10 +199,10 @@ export const AI_TOOL_TOOLS: PlatformTool[] = [
   },
   {
     id: "build-your-tool",
-    name: "Build your own AI tool",
+    name: "AI App Maker",
     slug: "build-your-tool",
     description:
-      "Describe what you need + optional prompt — live mini-tool spin up in minutes (pin on this device).",
+      "Brief the job, custom prompt, and a few questions — get a live web app, then chat only for edits.",
     category: "AI Tools",
     icon: "Hammer",
     freeRunsPerDay: 40,
@@ -216,7 +216,7 @@ export const AI_TOOL_TOOLS: PlatformTool[] = [
       "no code tool",
     ],
     bestModels: ["OpenRouter free", "Claude Sonnet"],
-    actionHint: "Describe the tool → Build it right now",
+    actionHint: "Brief → Create → modify in chat",
     runner: "free-utility",
   },
 ];

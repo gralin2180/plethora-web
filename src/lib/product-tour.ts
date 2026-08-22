@@ -11,7 +11,16 @@ export type TourStep = {
   title: string;
   dialogue: string;
   placement?: "auto" | "bottom" | "top" | "center";
+  /** Navigate here before highlighting (coach flows). */
+  href?: string;
 };
+
+export type TourStartDetail = { steps?: TourStep[] };
+
+export function startProductTour(detail?: TourStartDetail): void {
+  if (typeof window === "undefined") return;
+  window.dispatchEvent(new CustomEvent(TOUR_EVENT, { detail: detail || {} }));
+}
 
 export const TOUR_STEPS: TourStep[] = [
   {
@@ -104,15 +113,10 @@ export const TOUR_STEPS: TourStep[] = [
   },
 ];
 
-export function startProductTour(): void {
-  if (typeof window === "undefined") return;
-  window.dispatchEvent(new CustomEvent(TOUR_EVENT));
-}
-
 export function finishProductTour(): void {
   if (typeof window === "undefined") return;
   window.dispatchEvent(new CustomEvent(TOUR_DONE_EVENT));
 }
 
 export const TOUR_CHAT_OPENING =
-  "Starting the guided tour — follow the highlights. Next / Back or Skip anytime. Arrow keys also work.";
+  "This is **Plethora** — tools, chat, prompts, Finder, MCP, and install guides. Follow the glowing spots. **Next** / **Back** / **Skip**. Not a roleplay-rooms site.";

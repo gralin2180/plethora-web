@@ -363,6 +363,7 @@ export function ToolsGrid() {
                   <Link
                     key={t.id}
                     href={toolHref(t.slug)}
+                    data-tour={`tool-${t.slug}`}
                     onClick={() => trackToolUse(t.slug)}
                     className="flex items-center gap-3 rounded-xl border border-violet-500/25 bg-black/30 px-3 py-3 text-sm text-violet-100/90 transition hover:border-violet-400/40 hover:bg-violet-500/10"
                   >
@@ -417,6 +418,7 @@ export function ToolsGrid() {
           return (
             <div
               key={tool.id}
+              data-tour={`tool-${tool.slug}`}
               className="group relative flex flex-col rounded-2xl border border-white/10 bg-white/[0.02] p-5 transition hover:border-violet-500/40 hover:bg-violet-500/5"
             >
               <button

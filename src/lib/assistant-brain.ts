@@ -29,6 +29,8 @@ export interface ChatMessage {
   content: string;
   at: string;
   files?: { name: string; kind: string; thumb?: string }[];
+  /** Mini-app opened in its own window — never dump source in the bubble. */
+  project?: { slug: string; title: string };
 }
 
 export function newMessage(role: ChatMessage["role"], content: string): ChatMessage {
@@ -579,6 +581,7 @@ export type ServerChatOpts = {
   unrestricted?: boolean;
   quality?: import("./chat-quality").ChatQuality;
   qualitySmooth?: number;
+  timeoutMs?: number;
 };
 
 /** Server-side entry used by /api/chat */
@@ -620,6 +623,7 @@ export async function generateAssistantReplyServer(
       unrestricted: opts?.unrestricted,
       quality: opts?.quality,
       qualitySmooth: opts?.qualitySmooth,
+      timeoutMs: opts?.timeoutMs,
     });
     if (llm.ok) return { reply: llm.reply, source: llm.provider, usedPremium: llm.usedPremium };
     if (llm.code === "pool_exhausted") {
@@ -647,6 +651,7 @@ export async function generateAssistantReplyServer(
     unrestricted: opts?.unrestricted,
     quality: opts?.quality,
     qualitySmooth: opts?.qualitySmooth,
+    timeoutMs: opts?.timeoutMs,
   };
 
   const llm = await freeChatCompletion(text, history, chatOpts);

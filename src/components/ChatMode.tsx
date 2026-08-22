@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import {
   classifyChatIntent,
   generateAssistantReply,
@@ -14,6 +15,13 @@ import { ContentWarningDialog } from "@/components/ContentWarningDialog";
 import { assessContentSafety, type SafetyAssessment } from "@/lib/content-safety";
 import { createAssistantDraft, upsertAssistant } from "@/lib/custom-assistants";
 import { startProductTour, TOUR_CHAT_OPENING } from "@/lib/product-tour";
+import { coachForGoal, startCoach, APP_MAKER_STEPS } from "@/lib/coach-guide";
+import {
+  isMiniAppNudge,
+  projectPath,
+  stashAppMakerIntake,
+  wantsMiniApp,
+} from "@/lib/mini-apps";
 import { hasByok } from "@/lib/byok";
 import { hasAnyConnectedAi } from "@/lib/connected-ai";
 import {
@@ -68,6 +76,7 @@ export function ChatMode({
   /** Called when user clears — parent can sync (floating header) */
   onClearHistory?: () => void;
 }) {
+  const router = useRouter();
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
@@ -96,6 +105,8 @@ export function ChatMode({
   const [editingId, setEditingId] = useState<string | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
+  const scrollerRef = useRef<HTMLDivElement>(null);
+  const stickBottom = useRef(true);
 
   function clearChat() {
     setMessages([newMessage("assistant", openingMessage(personality))]);
@@ -208,6 +219,7 @@ export function ChatMode({
 
   useEffect(() => {
     if (messages.length) localStorage.setItem(HISTORY_KEY, JSON.stringify(messages.slice(-120)));
+    if (!stickBottom.current) return;
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
@@ -228,11 +240,44 @@ export function ChatMode({
     const ac = new AbortController();
     abortRef.current = ac;
     try {
-      if (classifyChatIntent(text) === "tour" && !adultConsent) {
+      const coach = coachForGoal(text);
+      if (coach) {
+        startCoach(coach.steps);
+        setMessages((m) => [...m, newMessage("assistant", coach.reply)]);
+        setLoading(false);
+        return;
+      }
+
+      if (classifyChatIntent(text) === "tour") {
         startProductTour();
         setMessages((m) => [...m, newMessage("assistant", TOUR_CHAT_OPENING)]);
         setLoading(false);
         return;
+      }
+
+      const priorUsers = messages.filter((m) => m.role === "user").map((m) => m.content);
+      const assistantDumpedCode = messages.some(
+        (m) => m.role === "assistant" && /```|<!DOCTYPE|<html[\s>]/i.test(m.content)
+      );
+      const appAsk =
+        wantsMiniApp(text) ||
+        (isMiniAppNudge(text) && (priorUsers.some(wantsMiniApp) || assistantDumpedCode));
+
+      if (appAsk) {
+        const brief = [...priorUsers, text].join("\n");
+        stashAppMakerIntake({ need: brief.slice(0, 2000) });
+        startCoach(APP_MAKER_STEPS);
+        router.push("/tools/build-your-tool");
+        const note = newMessage(
+          "assistant",
+          "Apps aren’t built in this chat. **AI App Maker** is open — what it should do, your custom prompt, then a few Plethora questions. After **Create web app**, that page is only a modification chat + live preview."
+        );
+        if (!adultConsent) {
+          setMessages((m) => [...m, note]);
+          setLoading(false);
+          return;
+        }
+        setMessages((m) => [...m, note]);
       }
 
       if (adultConsent) {
@@ -241,14 +286,18 @@ export function ChatMode({
       }
 
       const draft = newMessage("assistant", "");
-      setMessages([...next, draft]);
-      const reply = await generateAssistantReply(outbound, next, {
+      setMessages((m) => [...m, draft]);
+      const llmText = appAsk
+        ? `${outbound}\n\n[They are building the app in /tools/build-your-tool now. Do not output HTML or source. Short in-character only.]`
+        : outbound;
+      const reply = await generateAssistantReply(llmText, next, {
         adultConsent,
         personality,
         quality: qualityFromSmooth(qualitySmooth),
         qualitySmooth,
         signal: ac.signal,
         onDelta: (chunk) => {
+          if (/```|<!DOCTYPE|<html[\s>]/i.test(chunk)) return;
           setMessages((m) =>
             m.map((x) =>
               x.id === draft.id ? { ...x, content: x.content + chunk } : x
@@ -256,8 +305,9 @@ export function ChatMode({
           );
         },
       });
+      const cleaned = stripDumpedCode(reply || "");
       setMessages((m) =>
-        m.map((x) => (x.id === draft.id ? { ...x, content: reply || x.content } : x))
+        m.map((x) => (x.id === draft.id ? { ...x, content: cleaned || x.content } : x))
       );
       if (loadPersonalContext().enabled && text.length > 20) {
         appendPattern(`Talked about: ${text.slice(0, 120)}`);
@@ -536,7 +586,15 @@ export function ChatMode({
             Clear
           </button>
         </div>
-        <div className="flex-1 space-y-5 overflow-y-auto bg-[radial-gradient(1200px_400px_at_10%_-10%,rgba(124,58,237,0.12),transparent_50%)] p-4 sm:p-6">
+        <div
+          ref={scrollerRef}
+          onScroll={() => {
+            const el = scrollerRef.current;
+            if (!el) return;
+            stickBottom.current = el.scrollHeight - el.scrollTop - el.clientHeight < 96;
+          }}
+          className="flex-1 space-y-5 overflow-y-auto bg-[radial-gradient(1200px_400px_at_10%_-10%,rgba(124,58,237,0.12),transparent_50%)] p-4 sm:p-6"
+        >
           {messages.map((m, idx) => {
             const emptyDraft = m.role === "assistant" && !m.content.trim() && loading;
             if (emptyDraft) return null;
@@ -580,6 +638,7 @@ export function ChatMode({
                     </div>
                   )}
                   <MessageBody text={m.content.split("\n\nAttached files")[0] || m.content} />
+                  {m.project && <ProjectCard slug={m.project.slug} title={m.project.title} />}
                   {m.role === "user" && !loading && (
                     <button
                       type="button"
@@ -751,6 +810,38 @@ export function ChatMode({
 }
 
 /** Lightweight formatting — bold, *actions*, line breaks. */
+function stripDumpedCode(text: string): string {
+  return text
+    .replace(/```[\s\S]*$/g, "")
+    .replace(/<!DOCTYPE[\s\S]*/gi, "")
+    .replace(/<html[\s\S]*/gi, "")
+    .trim();
+}
+
+function ProjectCard({ slug, title }: { slug: string; title: string }) {
+  const href = projectPath(slug);
+  return (
+    <div className="mt-3 overflow-hidden rounded-xl border border-violet-500/30 bg-violet-500/10">
+      <p className="px-3 pt-2 text-[11px] uppercase tracking-wide text-violet-200/80">Live app</p>
+      <p className="px-3 text-sm font-semibold text-white">{title}</p>
+      <p className="px-3 text-[11px] text-zinc-400">/projects/{slug}</p>
+      <div className="mt-2 flex gap-2 border-t border-white/10 px-3 py-2">
+        <a
+          href={href}
+          target="_blank"
+          rel="noreferrer"
+          className="rounded-lg bg-violet-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-violet-500"
+        >
+          Open window
+        </a>
+        <Link href={href} className="rounded-lg px-3 py-1.5 text-xs text-violet-200 hover:underline">
+          Open here
+        </Link>
+      </div>
+    </div>
+  );
+}
+
 function MessageBody({ text }: { text: string }) {
   return (
     <div className="space-y-1.5">

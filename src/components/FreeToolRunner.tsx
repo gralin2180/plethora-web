@@ -30,7 +30,8 @@ import {
 } from "@/components/TrafficTools";
 import { MultiClockLab } from "@/components/MultiClockLab";
 import { AdvancedCalculator } from "@/components/AdvancedCalculator";
-import { BuildYourOwnTool, ToolRequestForm } from "@/components/BuildYourOwnTool";
+import { ToolRequestForm } from "@/components/BuildYourOwnTool";
+import { AiAppMaker } from "@/components/AiAppMaker";
 import { CalendarGenerator, DailyLifePlanner } from "@/components/LifePlannerTools";
 import {
   DnsLookupLab,
@@ -351,7 +352,7 @@ export function FreeToolRunner({ kind, title }: { kind: FreeRunnerKind; title: s
   if (kind === "dns-lookup") return <DnsLookupLab />;
   if (kind === "multi-clock") return <MultiClockLab />;
   if (kind === "advanced-calculator") return <AdvancedCalculator />;
-  if (kind === "build-your-tool") return <BuildYourOwnTool />;
+  if (kind === "build-your-tool") return <AiAppMaker />;
   if (kind === "request-tool") return <ToolRequestForm />;
   if (kind === "custom-assistant") return <CustomAssistantLab />;
   if (kind === "life-planner") return <DailyLifePlanner />;

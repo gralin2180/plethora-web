@@ -323,8 +323,9 @@ export async function POST(request: Request) {
       typeof body.qualitySmooth === "number" ? body.qualitySmooth : quality === "fast" ? 20 : quality === "best" ? 100 : 50
     );
 
-    const wantStream = Boolean(body.stream);
-    const chatOpts = {
+    const wantStream = Boolean(body.stream) && body.mode !== "miniapp";
+    const miniapp = body.mode === "miniapp";
+    let chatOpts = {
       adultMode,
       byok: byokKey
         ? {
@@ -348,7 +349,19 @@ export async function POST(request: Request) {
       unrestricted,
       quality,
       qualitySmooth: typeof body.qualitySmooth === "number" ? body.qualitySmooth : undefined,
+      timeoutMs: undefined as number | undefined,
     };
+
+    if (miniapp) {
+      const { MINIAPP_SYSTEM } = await import("@/lib/mini-apps");
+      chatOpts = {
+        ...chatOpts,
+        adultMode: false,
+        customSystem: MINIAPP_SYSTEM,
+        maxTokens: 6000,
+        timeoutMs: 45_000,
+      };
+    }
 
     if (wantStream) {
       const encoder = new TextEncoder();

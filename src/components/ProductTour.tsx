@@ -1,10 +1,12 @@
 "use client";
 
 import { useCallback, useEffect, useLayoutEffect, useState, type CSSProperties } from "react";
+import { usePathname, useRouter } from "next/navigation";
 import {
   TOUR_EVENT,
   TOUR_STEPS,
   finishProductTour,
+  type TourStartDetail,
   type TourStep,
 } from "@/lib/product-tour";
 import { X } from "lucide-react";
@@ -41,12 +43,15 @@ function measure(el: HTMLElement | null): Rect | null {
 }
 
 export function ProductTour() {
+  const router = useRouter();
+  const pathname = usePathname();
   const [active, setActive] = useState(false);
   const [index, setIndex] = useState(0);
   const [rect, setRect] = useState<Rect | null>(null);
+  const [steps, setSteps] = useState<TourStep[]>(TOUR_STEPS);
 
-  const step: TourStep | undefined = TOUR_STEPS[index];
-  const total = TOUR_STEPS.length;
+  const step: TourStep | undefined = steps[index];
+  const total = steps.length;
 
   const refresh = useCallback(() => {
     if (!step) return;
@@ -61,7 +66,9 @@ export function ProductTour() {
   }, [step]);
 
   useEffect(() => {
-    const onStart = () => {
+    const onStart = (e: Event) => {
+      const detail = (e as CustomEvent<TourStartDetail>).detail;
+      setSteps(detail?.steps?.length ? detail.steps : TOUR_STEPS);
       setIndex(0);
       setActive(true);
     };
@@ -70,16 +77,24 @@ export function ProductTour() {
   }, []);
 
   useLayoutEffect(() => {
-    if (!active) return;
+    if (!active || !step) return;
+    if (step.href) {
+      const want = step.href.split("?")[0];
+      if (pathname !== want) {
+        router.push(step.href);
+        return;
+      }
+    }
     refresh();
-    // Auto-skip targets that aren't on this page/layout so the tour never feels broken
-    if (!step?.target) return;
+    if (!step.target) return;
     const el = queryTarget(step.target);
     if (!el && index < total - 1) {
-      const t = window.setTimeout(() => setIndex((i) => i + 1), 50);
+      const t = window.setTimeout(() => {
+        if (!queryTarget(step.target)) setIndex((i) => i + 1);
+      }, 2000);
       return () => clearTimeout(t);
     }
-  }, [active, index, refresh, step, total]);
+  }, [active, index, refresh, step, total, pathname, router]);
 
   useEffect(() => {
     if (!active) return;
