@@ -18,6 +18,8 @@ import { hasByok } from "@/lib/byok";
 import { hasAnyConnectedAi } from "@/lib/connected-ai";
 import {
   CHAT_PERSONALITIES,
+  ADULT_MODE_EVENT,
+  clearAdultSession,
   followUpSuggestions,
   getPersonality,
   isPickVibeCommand,
@@ -177,9 +179,14 @@ export function ChatMode({
     }
     window.addEventListener("plethora:soft-warn", onWarn);
     window.addEventListener("plethora:quota-label", onQuota);
+    function onAdult(e: Event) {
+      setAdultSession(Boolean((e as CustomEvent<boolean>).detail));
+    }
+    window.addEventListener(ADULT_MODE_EVENT, onAdult);
     return () => {
       window.removeEventListener("plethora:soft-warn", onWarn);
       window.removeEventListener("plethora:quota-label", onQuota);
+      window.removeEventListener(ADULT_MODE_EVENT, onAdult);
     };
   }, []);
 
@@ -477,11 +484,15 @@ export function ChatMode({
             type="button"
             title={
               adultSession
-                ? "18+ on — consensual adult chat is allowed"
+                ? "18+ on — tap to turn off (or use Settings)"
                 : "Enable 18+ adult content for this browser"
             }
             onClick={() => {
-              if (adultSession) return;
+              if (adultSession) {
+                clearAdultSession();
+                setAdultSession(false);
+                return;
+              }
               void sendText("I want to enable nsfw on chat");
             }}
             className={`shrink-0 rounded-full px-2.5 py-1 text-[11px] ${

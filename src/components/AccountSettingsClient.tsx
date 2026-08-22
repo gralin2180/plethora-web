@@ -20,6 +20,14 @@ import {
   Shield,
   Smartphone,
 } from "lucide-react";
+import { ContentWarningDialog } from "@/components/ContentWarningDialog";
+import { adultModeConfirmAssessment } from "@/lib/content-safety";
+import {
+  ADULT_MODE_EVENT,
+  clearAdultSession,
+  loadAdultSession,
+  saveAdultSession,
+} from "@/lib/chat-personality";
 
 function siteUrl() {
   return (
@@ -61,6 +69,8 @@ export function AccountSettingsClient() {
   const [stripeReady, setStripeReady] = useState(false);
   const [busy, setBusy] = useState<string | null>(null);
   const [avatar, setAvatar] = useState<string | null>(null);
+  const [adultOn, setAdultOn] = useState(false);
+  const [adultConfirm, setAdultConfirm] = useState(false);
 
   async function refreshUser() {
     const { data } = await supabase.auth.getUser();
@@ -106,6 +116,12 @@ export function AccountSettingsClient() {
       }
       setLoading(false);
     })();
+    setAdultOn(loadAdultSession());
+    function onAdult(e: Event) {
+      setAdultOn(Boolean((e as CustomEvent<boolean>).detail));
+    }
+    window.addEventListener(ADULT_MODE_EVENT, onAdult);
+    return () => window.removeEventListener(ADULT_MODE_EVENT, onAdult);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -249,14 +265,61 @@ export function AccountSettingsClient() {
         </p>
         <h1 className="mt-2 text-3xl font-bold text-white">Settings</h1>
         <p className="mt-2 text-sm text-zinc-400">
-          Email, phone, security, and billing. Your email is only shown here and inside the account
-          menu — not in the header.
+          Email, phone, security, billing, and 18+ content. Your email is only shown here and inside
+          the account menu — not in the header.
         </p>
       </div>
 
       {(msg || err) && (
         <p className={`text-sm ${err ? "text-red-400" : "text-emerald-400"}`}>{err || msg}</p>
       )}
+
+      {adultConfirm && (
+        <ContentWarningDialog
+          assessment={adultModeConfirmAssessment()}
+          onCancel={() => setAdultConfirm(false)}
+          onContinue={() => {
+            saveAdultSession();
+            setAdultOn(true);
+            setAdultConfirm(false);
+            flash("18+ is on for this browser.");
+          }}
+        />
+      )}
+
+      <section className="rounded-2xl border border-white/10 bg-white/[0.03] p-5">
+        <h2 className="text-lg font-semibold text-white">18+ content</h2>
+        <p className="mt-1 text-sm text-zinc-500">
+          When this is off, spicy / NSFW chat and prompts show a confirm box first. When it’s on,
+          adult chat is allowed on this device until you turn it off. Minors stay blocked.
+        </p>
+        <div className="mt-4 flex flex-wrap items-center gap-3">
+          <button
+            type="button"
+            role="switch"
+            aria-checked={adultOn}
+            onClick={() => {
+              if (adultOn) {
+                clearAdultSession();
+                setAdultOn(false);
+                flash("18+ is off. The confirm box will show again before NSFW.");
+              } else {
+                setAdultConfirm(true);
+              }
+            }}
+            className={`relative h-7 w-12 rounded-full transition ${
+              adultOn ? "bg-amber-500" : "bg-white/15"
+            }`}
+          >
+            <span
+              className={`absolute top-0.5 h-6 w-6 rounded-full bg-white transition ${
+                adultOn ? "left-5" : "left-0.5"
+              }`}
+            />
+          </button>
+          <span className="text-sm text-zinc-300">{adultOn ? "On" : "Off"}</span>
+        </div>
+      </section>
 
       <section className="rounded-2xl border border-white/10 bg-white/[0.03] p-5">
         <h2 className="text-lg font-semibold text-white">Profile</h2>

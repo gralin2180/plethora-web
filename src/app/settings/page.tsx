@@ -4,7 +4,7 @@ import { AccountSettingsClient } from "@/components/AccountSettingsClient";
 
 export const metadata: Metadata = {
   title: "Settings — Plethora",
-  description: "Account email, phone, 2FA, and billing.",
+  description: "Account email, phone, 2FA, 18+ content, and billing.",
 };
 
 export default function SettingsPage() {

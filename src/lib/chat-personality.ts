@@ -103,6 +103,8 @@ export function saveChatPersonality(id: ChatPersonalityId): void {
   localStorage.setItem(KEY, id);
 }
 
+export const ADULT_MODE_EVENT = "plethora:adult-mode";
+
 export function loadAdultSession(): boolean {
   if (typeof window === "undefined") return false;
   try {
@@ -115,11 +117,28 @@ export function loadAdultSession(): boolean {
   }
 }
 
+function notifyAdultMode(on: boolean) {
+  if (typeof window === "undefined") return;
+  window.dispatchEvent(new CustomEvent(ADULT_MODE_EVENT, { detail: on }));
+}
+
 export function saveAdultSession(): void {
   if (typeof window === "undefined") return;
   try {
     localStorage.setItem(ADULT_STICKY_KEY, "1");
     sessionStorage.setItem(ADULT_SESSION_KEY, "1");
+    notifyAdultMode(true);
+  } catch {
+    /* ignore */
+  }
+}
+
+export function clearAdultSession(): void {
+  if (typeof window === "undefined") return;
+  try {
+    localStorage.removeItem(ADULT_STICKY_KEY);
+    sessionStorage.removeItem(ADULT_SESSION_KEY);
+    notifyAdultMode(false);
   } catch {
     /* ignore */
   }

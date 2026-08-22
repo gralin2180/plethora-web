@@ -108,7 +108,18 @@ export function assessContentSafety(text: string): SafetyAssessment {
   };
 }
 
-/** Footer always attachable to generated prompts for legal hygiene */
+/** Same confirm used when turning 18+ on from Settings (no message yet). */
+export function adultModeConfirmAssessment(): SafetyAssessment {
+  return {
+    flags: ["adult_18"],
+    needsWarning: true,
+    hardBlock: false,
+    title: "18+ adult content — confirm",
+    message:
+      "Turn this on only if you are 18+ and want consensual adult chat, roleplay, and image prompts. Minors stay blocked. You can turn it off anytime in Settings.",
+    continueLabel: "I am 18+ — turn on",
+  };
+}
 export const PROMPT_LIABILITY_FOOTER = `
 
 ---
