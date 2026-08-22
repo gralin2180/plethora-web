@@ -38,6 +38,57 @@ export function newMessage(role: ChatMessage["role"], content: string): ChatMess
   };
 }
 
+function applyChatSideEffects(
+  data: {
+    code?: string;
+    softWarnMessage?: string;
+    quota?: { mode?: string; used?: number; limit?: number; label?: string; lane?: string };
+  },
+  notifyAiExhausted: () => void
+) {
+  if (
+    data.code === "pool_exhausted" ||
+    data.code === "quota" ||
+    data.code === "guest_quota" ||
+    data.code === "global_daily" ||
+    data.code === "global_rate" ||
+    data.code === "busy"
+  ) {
+    notifyAiExhausted();
+  }
+  if (typeof window !== "undefined" && data.softWarnMessage) {
+    window.dispatchEvent(
+      new CustomEvent("plethora:soft-warn", { detail: data.softWarnMessage })
+    );
+  }
+  if (typeof window !== "undefined" && data.quota?.mode === "premium" && data.quota.limit) {
+    window.dispatchEvent(
+      new CustomEvent("plethora:quota-label", {
+        detail: `Premium ${data.quota.used ?? "?"}/${data.quota.limit}`,
+      })
+    );
+  } else if (typeof window !== "undefined" && data.quota?.mode === "dev") {
+    window.dispatchEvent(
+      new CustomEvent("plethora:quota-label", {
+        detail: data.quota.label || "Dev — unrestricted",
+      })
+    );
+  } else if (typeof window !== "undefined" && data.quota?.mode === "subscription") {
+    window.dispatchEvent(
+      new CustomEvent("plethora:quota-label", {
+        detail: data.quota.label || "Your AI login",
+      })
+    );
+  } else if (typeof window !== "undefined" && data.quota?.mode && data.quota.mode !== "byok") {
+    const laneBit = data.quota.label ? `${data.quota.label} · ` : "";
+    window.dispatchEvent(
+      new CustomEvent("plethora:quota-label", {
+        detail: `${laneBit}${data.quota.mode === "premium" ? "Included" : "Free"} ${data.quota.used ?? "?"}/${data.quota.limit ?? "?"}`,
+      })
+    );
+  }
+}
+
 export type ChatIntent =
   | "greeting"
   | "mood"
@@ -288,7 +339,11 @@ Brain’s offline so I’m thinner than usual — keep talking anyway. What’s 
 export async function generateAssistantReply(
   userText: string,
   history: ChatMessage[] = [],
-  opts?: { adultConsent?: boolean; personality?: ChatPersonalityId | null }
+  opts?: {
+    adultConsent?: boolean;
+    personality?: ChatPersonalityId | null;
+    onDelta?: (chunk: string) => void;
+  }
 ): Promise<string> {
   const text = userText.trim();
   if (!text) return "I’m here. Drop a thought, a task, or pure chaos.";
@@ -307,7 +362,11 @@ export async function generateAssistantReply(
     parsePersonalityChoice(text);
 
   if (opts?.adultConsent || /\b(fuck me|sext|blowjob|cock|roleplay.*sex|nsfw)\b/i.test(text)) {
-    const llm = await tryLlm(text, history, { adultConsent: true, personality });
+    const llm = await tryLlm(text, history, {
+      adultConsent: true,
+      personality,
+      onDelta: opts?.onDelta,
+    });
     if (llm) return llm;
   }
 
@@ -318,6 +377,7 @@ export async function generateAssistantReply(
   const llm = await tryLlm(text, history, {
     adultConsent: opts?.adultConsent,
     personality,
+    onDelta: opts?.onDelta,
   });
   if (llm) return llm;
 
@@ -359,7 +419,11 @@ function learnerBundle(): string {
 async function tryLlm(
   text: string,
   history: ChatMessage[],
-  opts?: { adultConsent?: boolean; personality?: ChatPersonalityId | null }
+  opts?: {
+    adultConsent?: boolean;
+    personality?: ChatPersonalityId | null;
+    onDelta?: (chunk: string) => void;
+  }
 ): Promise<string | null> {
   const learner = learnerBundle();
   const { collectChatAuth, notifyAiExhausted } = await import("./platform-ai-client");
@@ -383,6 +447,7 @@ async function tryLlm(
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
+        stream: Boolean(opts?.onDelta),
         message: text,
         learnerContext: learner,
         adultConsent: opts?.adultConsent,
@@ -391,6 +456,58 @@ async function tryLlm(
         history: prior,
       }),
     });
+    const ctype = res.headers.get("content-type") || "";
+    if (ctype.includes("text/event-stream") && res.body) {
+      let full = "";
+      let meta: {
+        reply?: string;
+        code?: string;
+        softWarnMessage?: string;
+        quota?: { mode?: string; used?: number; limit?: number; label?: string; lane?: string };
+      } = {};
+      const reader = res.body.getReader();
+      const dec = new TextDecoder();
+      let buf = "";
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        buf += dec.decode(value, { stream: true });
+        const lines = buf.split("\n");
+        buf = lines.pop() || "";
+        for (const line of lines) {
+          const t = line.trim();
+          if (!t.startsWith("data:")) continue;
+          const payload = t.slice(5).trim();
+          if (!payload) continue;
+          try {
+            const j = JSON.parse(payload) as {
+              delta?: string;
+              done?: boolean;
+              reply?: string;
+              code?: string;
+              softWarnMessage?: string;
+              quota?: typeof meta.quota;
+            };
+            if (j.delta) {
+              full += j.delta;
+              opts?.onDelta?.(j.delta);
+            }
+            if (j.done) {
+              meta = j;
+              if (j.reply && !full) {
+                full = j.reply;
+                opts?.onDelta?.(j.reply);
+              }
+            }
+            if (j.code) meta.code = j.code;
+          } catch {
+            /* keep-alive */
+          }
+        }
+      }
+      applyChatSideEffects(meta, notifyAiExhausted);
+      if (full.trim()) return full.trim();
+    } else {
     const data = (await res.json()) as {
       reply?: string;
       ok?: boolean;
@@ -402,42 +519,12 @@ async function tryLlm(
       usedPremium?: boolean;
       quota?: { mode?: string; used?: number; limit?: number; label?: string; lane?: string };
     };
-    if (
-      data.code === "pool_exhausted" ||
-      data.code === "quota" ||
-      data.code === "guest_quota" ||
-      data.code === "global_daily" ||
-      data.code === "global_rate" ||
-      data.code === "busy"
-    ) {
-      notifyAiExhausted();
+    applyChatSideEffects(data, notifyAiExhausted);
+    if (data.reply?.trim()) {
+      opts?.onDelta?.(data.reply.trim());
+      return data.reply.trim();
     }
-    if (typeof window !== "undefined" && data.softWarnMessage) {
-      window.dispatchEvent(
-        new CustomEvent("plethora:soft-warn", { detail: data.softWarnMessage })
-      );
     }
-    if (typeof window !== "undefined" && data.quota?.mode === "premium" && data.quota.limit) {
-      window.dispatchEvent(
-        new CustomEvent("plethora:quota-label", {
-          detail: `Premium ${data.quota.used ?? "?"}/${data.quota.limit}`,
-        })
-      );
-    } else if (typeof window !== "undefined" && data.quota?.mode === "subscription") {
-      window.dispatchEvent(
-        new CustomEvent("plethora:quota-label", {
-          detail: data.quota.label || "Your AI login",
-        })
-      );
-    } else if (typeof window !== "undefined" && data.quota?.mode && data.quota.mode !== "byok") {
-      const laneBit = data.quota.label ? `${data.quota.label} · ` : "";
-      window.dispatchEvent(
-        new CustomEvent("plethora:quota-label", {
-          detail: `${laneBit}${data.quota.mode === "premium" ? "Included" : "Free"} ${data.quota.used ?? "?"}/${data.quota.limit ?? "?"}`,
-        })
-      );
-    }
-    if (data.reply?.trim()) return data.reply.trim();
   } catch {
     /* fall through */
   }
@@ -447,6 +534,7 @@ async function tryLlm(
       learnerContext: learner,
       adultMode: opts?.adultConsent,
       personality,
+      onDelta: opts?.onDelta,
     });
     if (r.ok && r.reply) return r.reply;
   }
@@ -466,6 +554,7 @@ export type ServerChatOpts = {
   preferredModel?: string;
   preferredSource?: "zen" | "openrouter";
   lane?: import("./ai-lanes").ChatLane;
+  onDelta?: (chunk: string) => void;
 };
 
 /** Server-side entry used by /api/chat */
@@ -494,6 +583,7 @@ export async function generateAssistantReplyServer(
       preferredModel: opts?.preferredModel,
       preferredSource: opts?.preferredSource,
       lane: opts?.lane,
+      onDelta: opts?.onDelta,
     });
     if (llm.ok) return { reply: llm.reply, source: llm.provider, usedPremium: llm.usedPremium };
     if (llm.code === "pool_exhausted") {
@@ -517,6 +607,7 @@ export async function generateAssistantReplyServer(
     preferredModel: opts?.preferredModel,
     preferredSource: opts?.preferredSource,
     lane: opts?.lane,
+    onDelta: opts?.onDelta,
   };
 
   const llm = await freeChatCompletion(text, history, chatOpts);

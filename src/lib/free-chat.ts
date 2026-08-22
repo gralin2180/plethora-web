@@ -7,7 +7,6 @@ import {
 import { premiumModelList, primaryPremiumModel } from "./premium-models";
 import {
   DEFAULT_ZEN_MODEL,
-  OPENCODE_ZEN_FREE_MODELS,
   SLOW_ZEN_MODEL_IDS,
   ZEN_BASE_URL,
   ZEN_MAX_OUTPUT_TOKENS,
@@ -221,6 +220,7 @@ export type FreeChatOpts = {
   preferredSource?: "zen" | "openrouter";
   /** Cursor-style routing lane */
   lane?: ChatLane;
+  onDelta?: (chunk: string) => void;
 };
 
 export function hasZenProvider(): boolean {
@@ -259,6 +259,44 @@ function zenProvider(model: string): {
   };
 }
 
+async function readOpenAiSse(
+  res: Response,
+  onDelta?: (chunk: string) => void
+): Promise<string> {
+  const reader = res.body?.getReader();
+  if (!reader) return "";
+  const dec = new TextDecoder();
+  let buf = "";
+  let full = "";
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    buf += dec.decode(value, { stream: true });
+    const lines = buf.split("\n");
+    buf = lines.pop() || "";
+    for (const line of lines) {
+      const t = line.trim();
+      if (!t.startsWith("data:")) continue;
+      const payload = t.slice(5).trim();
+      if (!payload || payload === "[DONE]") continue;
+      try {
+        const j = JSON.parse(payload) as {
+          choices?: { delta?: { content?: string }; message?: { content?: string } }[];
+        };
+        const piece =
+          j.choices?.[0]?.delta?.content || j.choices?.[0]?.message?.content || "";
+        if (piece) {
+          full += piece;
+          onDelta?.(piece);
+        }
+      } catch {
+        /* ignore keep-alive */
+      }
+    }
+  }
+  return full.trim();
+}
+
 async function callProvider(
   p: {
     name: string;
@@ -269,7 +307,8 @@ async function callProvider(
   },
   messages: ChatHistoryMsg[],
   maxTokens = 1200,
-  timeoutMs = 12_000
+  timeoutMs = 12_000,
+  onDelta?: (chunk: string) => void
 ): Promise<FreeChatResult> {
   const base = p.baseUrl.replace(/\/$/, "");
   const responses = p.name === "opencode-zen" && zenUsesResponsesApi(p.model);
@@ -280,6 +319,7 @@ async function callProvider(
       : `${base}/chat/completions`;
   const ctrl = new AbortController();
   const timer = setTimeout(() => ctrl.abort(), timeoutMs);
+  const wantStream = Boolean(onDelta) && !responses;
 
   const system = messages.find((m) => m.role === "system")?.content;
   const rest = messages.filter((m) => m.role !== "system");
@@ -295,6 +335,7 @@ async function callProvider(
         model: p.model,
         temperature: 0.85,
         max_tokens: maxTokens,
+        stream: wantStream,
         messages,
       };
 
@@ -310,6 +351,20 @@ async function callProvider(
       body: JSON.stringify(body),
       signal: ctrl.signal,
     });
+
+    if (wantStream && res.ok && res.body) {
+      const reply = await readOpenAiSse(res, onDelta);
+      if (!reply) {
+        return {
+          reply: "",
+          provider: p.name,
+          model: p.model,
+          ok: false,
+          error: "Empty model response",
+        };
+      }
+      return { reply, provider: p.name, model: p.model, ok: true };
+    }
   } catch (e) {
     const aborted = e instanceof Error && e.name === "AbortError";
     return {
@@ -392,6 +447,7 @@ async function callProvider(
     };
   }
 
+  if (onDelta && reply) onDelta(reply);
   return { reply, provider: p.name, model: p.model, ok: true };
 }
 
@@ -521,13 +577,6 @@ export async function freeChatCompletion(
       } else {
         pushZen(DEFAULT_ZEN_MODEL.id);
       }
-      let extras = 0;
-      for (const m of OPENCODE_ZEN_FREE_MODELS) {
-        if (extras >= 2) break;
-        if (seen.has(`zen:${m.id}`)) continue;
-        pushZen(m.id);
-        extras += 1;
-      }
     }
   }
 
@@ -580,13 +629,13 @@ export async function freeChatCompletion(
   let lastError = "";
   for (const p of providers.slice(0, attempts)) {
     try {
-      const result = await callProvider(p, messages, maxTokens, timeoutMs);
+      const result = await callProvider(p, messages, maxTokens, timeoutMs, opts.onDelta);
       if (result.ok && result.reply && !isLameModelRefusal(result.reply, opts.adultMode)) {
         return { ...result, usedPremium: Boolean(p.usedPremium) };
       }
       if (result.ok && result.reply && isLameModelRefusal(result.reply, opts.adultMode)) {
         lastError = "Model refused with template reply";
-        continue;
+        break;
       }
       lastError = result.error || lastError;
       if (process.env.NODE_ENV === "development") {

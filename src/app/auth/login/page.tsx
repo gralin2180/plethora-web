@@ -11,7 +11,7 @@ export default function LoginPage() {
     <SiteShell>
       <div className="mx-auto max-w-md px-4 py-16">
         <h1 className="text-2xl font-bold text-white">Welcome back</h1>
-        <p className="mt-2 text-zinc-500">Sign in to track usage and save prompts.</p>
+        <p className="mt-2 text-zinc-500">Sign in with Google, Apple, GitHub, Discord, or email.</p>
         <div className="mt-8 rounded-2xl border border-white/10 bg-white/[0.03] p-6">
           <AuthForm mode="login" />
         </div>

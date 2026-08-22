@@ -23,7 +23,7 @@ import {
   freePlatformDailyHardCap,
   withPlatformFreeSlot,
 } from "@/lib/free-tier-guard";
-import { recordPremiumUse } from "@/lib/billing-activate";
+import { isDevUnrestricted } from "@/lib/dev-access";
 
 const ANON_COOKIE = "Plethora_anon_id";
 const PROFILE_ENT_COLS =
@@ -63,6 +63,10 @@ export async function GET() {
       openrouter: OPENROUTER_FREE_MODELS,
     },
     signedIn: Boolean(user),
+    unrestricted: isDevUnrestricted({
+      email: user?.email,
+      userId: user?.id,
+    }),
     requiresAuth: false,
     guestDailyLimit: platformChatDailyLimit("guest"),
     freeDailyLimit: platformChatDailyLimit("free"),
@@ -97,7 +101,7 @@ export async function POST(request: Request) {
       );
     }
 
-    const adultMode = Boolean(body.adultConsent);
+    const adultConsent = Boolean(body.adultConsent);
 
     const byokKey =
       typeof body.byokKey === "string" && body.byokKey.trim().length > 20
@@ -147,6 +151,12 @@ export async function POST(request: Request) {
       data: { user },
     } = await supabase.auth.getUser();
 
+    const unrestricted = isDevUnrestricted({
+      email: user?.email,
+      userId: user?.id,
+    });
+    const adultMode = adultConsent || (unrestricted && safety.needsWarning);
+
     if (!hasFreeChatProvider() && !usesOwnAi && !usesZenPublic) {
       return NextResponse.json(
         {
@@ -176,9 +186,8 @@ export async function POST(request: Request) {
       plan = entitlement.plan;
     }
 
-    // Free-path quota (BYOK / Connect skip). Public Zen still counts — otherwise
-    // the 12/day label never moves and every guest turn can hammer the pool.
-    if (!usesOwnAi) {
+    // Free-path quota. Owner/dev bypass; everyone else stays capped.
+    if (!usesOwnAi && !unrestricted) {
       if (user) {
         limit = entitlement.freeDailyLimit;
         try {
@@ -289,7 +298,7 @@ export async function POST(request: Request) {
 
     const preferPremium = lane === "premium";
     const freeLoadResult =
-      usesOwnAi || preferPremium
+      usesOwnAi || preferPremium || unrestricted
         ? ({ ok: true, load: "normal" } as const)
         : assertPlatformFreeCapacity();
     if (!freeLoadResult.ok) {
@@ -305,6 +314,104 @@ export async function POST(request: Request) {
     }
     const maxTokens = laneMaxTokens(lane, freeLoadResult.load === "hot");
 
+    const wantStream = Boolean(body.stream);
+    const chatOpts = {
+      adultMode,
+      byok: byokKey
+        ? {
+            apiKey: byokKey,
+            baseUrl: byokBaseUrl,
+            model: byokModel,
+          }
+        : undefined,
+      codex: codexAccessToken
+        ? { accessToken: codexAccessToken, accountId: codexAccountId }
+        : undefined,
+      copilot: copilotSessionToken ? { sessionToken: copilotSessionToken } : undefined,
+      customSystem:
+        typeof body.customSystem === "string" ? body.customSystem.slice(0, 6000) : undefined,
+      personality: isChatPersonalityId(body.personality) ? body.personality : undefined,
+      preferPremium,
+      maxTokens,
+      preferredModel,
+      preferredSource,
+      lane,
+    };
+
+    if (wantStream) {
+      const encoder = new TextEncoder();
+      const stream = new ReadableStream({
+        async start(controller) {
+          const send = (obj: unknown) =>
+            controller.enqueue(encoder.encode(`data: ${JSON.stringify(obj)}\n\n`));
+          try {
+            const result = await generateAssistantReplyServer(
+              message,
+              histForModel,
+              typeof body.learnerContext === "string"
+                ? body.learnerContext.slice(
+                    0,
+                    lane === "premium" || lane === "byok" ? 4000 : 1500
+                  )
+                : undefined,
+              {
+                ...chatOpts,
+                onDelta: (chunk) => send({ delta: chunk }),
+              }
+            );
+            send({
+              done: true,
+              reply: result.reply,
+              source: result.source,
+              ok: !result.code,
+              code: result.code,
+              usedPremium: Boolean(result.usedPremium),
+              unrestricted,
+              quota: unrestricted
+                ? { mode: "dev", label: "Dev — unrestricted" }
+                : { mode: plan, used: usedBefore + 1, limit, lane, label: laneLabel(lane) },
+            });
+            if (!usesOwnAi && !unrestricted && result.reply && !result.code) {
+              try {
+                if (user) {
+                  await supabase.rpc("increment_tool_usage", {
+                    p_user_id: user.id,
+                    p_anonymous_id: null,
+                    p_tool_id: "chat-llm",
+                    p_metadata: { source: "chat", tier: "free" },
+                  });
+                } else {
+                  await supabase.rpc("increment_tool_usage", {
+                    p_user_id: null,
+                    p_anonymous_id: anonymousId,
+                    p_tool_id: "chat-llm",
+                    p_metadata: { source: "chat-guest", tier: "free" },
+                  });
+                }
+              } catch {
+                /* soft */
+              }
+            }
+          } catch {
+            send({
+              done: true,
+              reply: "Something broke on the server. Try again in a second.",
+              ok: false,
+            });
+          } finally {
+            controller.close();
+          }
+        },
+      });
+      return new Response(stream, {
+        headers: {
+          "Content-Type": "text/event-stream; charset=utf-8",
+          "Cache-Control": "no-cache, no-transform",
+          Connection: "keep-alive",
+        },
+      });
+    }
+
     const run = async () =>
       generateAssistantReplyServer(
         message,
@@ -312,34 +419,13 @@ export async function POST(request: Request) {
         typeof body.learnerContext === "string"
           ? body.learnerContext.slice(0, lane === "premium" || lane === "byok" ? 4000 : 1500)
           : undefined,
-        {
-          adultMode,
-          byok: byokKey
-            ? {
-                apiKey: byokKey,
-                baseUrl: byokBaseUrl,
-                model: byokModel,
-              }
-            : undefined,
-          codex: codexAccessToken
-            ? { accessToken: codexAccessToken, accountId: codexAccountId }
-            : undefined,
-          copilot: copilotSessionToken ? { sessionToken: copilotSessionToken } : undefined,
-          customSystem:
-            typeof body.customSystem === "string" ? body.customSystem.slice(0, 6000) : undefined,
-          personality: isChatPersonalityId(body.personality) ? body.personality : undefined,
-          preferPremium,
-          maxTokens,
-          preferredModel,
-          preferredSource,
-          lane,
-        }
+        chatOpts
       );
 
     const result =
-      !usesOwnAi && lane !== "premium"
-        ? await withPlatformFreeSlot(run)
-        : await run();
+      unrestricted || usesOwnAi || lane === "premium"
+        ? await run()
+        : await withPlatformFreeSlot(run);
 
     if (result.code === "pool_exhausted") {
       const res = NextResponse.json(
@@ -365,7 +451,7 @@ export async function POST(request: Request) {
     }
 
     // Usage accounting
-    if (!usesOwnAi && result.reply) {
+    if (!usesOwnAi && !unrestricted && result.reply) {
       try {
         if (result.usedPremium && user) {
           await recordPremiumUse(supabase, user.id, {
@@ -462,7 +548,9 @@ export async function POST(request: Request) {
       usedPremium: Boolean(result.usedPremium),
       softWarn: Boolean(softWarnMessage),
       softWarnMessage,
-      quota: copilotSessionToken
+      quota: unrestricted
+        ? { mode: "dev" as const, label: "Dev — unrestricted" }
+        : copilotSessionToken
         ? { mode: "subscription" as const, label: "GitHub Copilot" }
         : codexAccessToken
         ? { mode: "subscription" as const }

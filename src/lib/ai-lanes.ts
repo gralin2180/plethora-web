@@ -24,20 +24,17 @@ export function resolveChatLane(opts: {
 }
 
 export function laneTimeoutMs(lane: ChatLane): number {
-  if (lane === "premium" || lane === "byok") return 20_000;
-  if (lane === "slow") return 8_000;
-  return 12_000;
+  if (lane === "premium" || lane === "byok") return 25_000;
+  return 18_000;
 }
 
-export function laneMaxAttempts(lane: ChatLane): number {
-  if (lane === "slow") return 2;
-  return 3;
+export function laneMaxAttempts(_lane: ChatLane): number {
+  return 1;
 }
 
 export function laneMaxTokens(lane: ChatLane, hot?: boolean): number {
-  if (lane === "premium" || lane === "byok") return hot ? 900 : 1600;
-  if (lane === "slow") return hot ? 320 : 480;
-  return hot ? 500 : 800;
+  if (lane === "premium" || lane === "byok") return hot ? 700 : 1000;
+  return hot ? 280 : 420;
 }
 
 export function laneHistoryTurns(lane: ChatLane): number {

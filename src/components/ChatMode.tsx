@@ -69,6 +69,7 @@ export function ChatMode({
   const [personality, setPersonality] = useState<ChatPersonalityId | null>(null);
   const [pickingPersonality, setPickingPersonality] = useState(false);
   const [adultSession, setAdultSession] = useState(false);
+  const [unrestricted, setUnrestricted] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
 
   function clearChat() {
@@ -111,6 +112,7 @@ export function ChatMode({
           zenConfigured?: boolean;
           llmConfigured?: boolean;
           signedIn?: boolean;
+          unrestricted?: boolean;
           guestDailyLimit?: number;
           freeDailyLimit?: number;
           entitlement?: {
@@ -127,17 +129,22 @@ export function ChatMode({
           setZenConfigured(Boolean(d.zenConfigured));
           setOpenrouterConfigured(Boolean(d.openrouterConfigured));
           setSignedIn(Boolean(d.signedIn));
-          if (d.entitlement?.softWarnMessage) {
-            setSoftWarn(d.entitlement.softWarnMessage);
-          }
-          if (d.entitlement?.routeLabel) {
-            setQuotaNote(d.entitlement.routeLabel);
-          } else if (!d.signedIn && d.guestDailyLimit) {
-            setQuotaNote(
-              `Free pool — ${d.guestDailyLimit}/day, no sign-in. Connect or extra usage if you run out.`
-            );
-          } else if (d.signedIn) {
-            setQuotaNote(`Free pool with a daily cap · Connect is optional`);
+          setUnrestricted(Boolean(d.unrestricted));
+          if (d.unrestricted) {
+            setQuotaNote("Dev access — no daily cap on this account");
+          } else {
+            if (d.entitlement?.softWarnMessage) {
+              setSoftWarn(d.entitlement.softWarnMessage);
+            }
+            if (d.entitlement?.routeLabel) {
+              setQuotaNote(d.entitlement.routeLabel);
+            } else if (!d.signedIn && d.guestDailyLimit) {
+              setQuotaNote(
+                `Free pool — ${d.guestDailyLimit}/day, no sign-in. Connect or extra usage if you run out.`
+              );
+            } else if (d.signedIn) {
+              setQuotaNote(`Free pool with a daily cap · Connect is optional`);
+            }
           }
         }
       )
@@ -194,11 +201,22 @@ export function ChatMode({
         setAdultSession(true);
       }
 
+      const draft = newMessage("assistant", "");
+      setMessages([...next, draft]);
       const reply = await generateAssistantReply(text, next, {
         adultConsent,
         personality,
+        onDelta: (chunk) => {
+          setMessages((m) =>
+            m.map((x) =>
+              x.id === draft.id ? { ...x, content: x.content + chunk } : x
+            )
+          );
+        },
       });
-      setMessages((m) => [...m, newMessage("assistant", reply)]);
+      setMessages((m) =>
+        m.map((x) => (x.id === draft.id ? { ...x, content: reply || x.content } : x))
+      );
       if (loadPersonalContext().enabled && text.length > 20) {
         appendPattern(`Talked about: ${text.slice(0, 120)}`);
       }
@@ -253,8 +271,14 @@ export function ChatMode({
       setPending({ text, assessment: safety });
       return;
     }
-    if (safety.needsWarning && !adultSession) {
+    if (safety.needsWarning && !adultSession && !unrestricted) {
       setPending({ text, assessment: safety });
+      return;
+    }
+    if (safety.needsWarning && unrestricted) {
+      saveAdultSession();
+      setAdultSession(true);
+      await runSend(text, true);
       return;
     }
     await runSend(text, adultSession);
@@ -489,7 +513,7 @@ export function ChatMode({
               )}
             </div>
           ))}
-          {loading && (
+          {loading && !messages[messages.length - 1]?.content && (
             <div className="flex items-center gap-2 pl-10 text-xs text-zinc-500">
               <Loader2 className="h-3.5 w-3.5 animate-spin text-violet-400" />
               Thinking…
