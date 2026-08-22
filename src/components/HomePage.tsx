@@ -31,12 +31,11 @@ export function HomePage() {
             <Sparkles className="h-4 w-4" />
             Tools. AI. One place.
           </div>
-          <h1 className="text-5xl font-semibold tracking-tight text-white sm:text-6xl">
-            Plethora
+          <h1 className="text-4xl font-semibold tracking-tight text-white sm:text-5xl md:text-6xl">
+            Everything you need to ship, without twenty open tabs
           </h1>
           <p className="mx-auto mt-4 max-w-xl text-base leading-relaxed text-zinc-400 sm:text-lg">
-            Everything you need to ship, without twenty open tabs. Free utilities, chat, local
-            models on your PC, and MCP so agents can run the work.
+            Free utilities, chat, local models on your PC, and MCP so agents can run the work.
           </p>
           <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row">
             <Link

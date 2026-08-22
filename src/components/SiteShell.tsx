@@ -28,7 +28,13 @@ async function getUserSafe(): Promise<User | null> {
   }
 }
 
-export async function SiteShell({ children }: { children: React.ReactNode }) {
+export async function SiteShell({
+  children,
+  hideFooter = false,
+}: {
+  children: React.ReactNode;
+  hideFooter?: boolean;
+}) {
   const user = await getUserSafe();
 
   return (
@@ -36,7 +42,7 @@ export async function SiteShell({ children }: { children: React.ReactNode }) {
       <Header user={user} />
       <DeviceSeatGuard enabled={Boolean(user)} />
       <main className="flex-1">{children}</main>
-      <Footer />
+      {hideFooter ? null : <Footer />}
     </>
   );
 }

@@ -247,11 +247,18 @@ export function ChatMode({
     if (initialPrompt) setInput(initialPrompt);
   }, [initialPrompt]);
 
+  const histKeyRef = useRef(histKey);
+
   useEffect(() => {
+    if (histKeyRef.current !== histKey) {
+      histKeyRef.current = histKey;
+      return;
+    }
     if (messages.length) localStorage.setItem(histKey, JSON.stringify(messages.slice(-120)));
     if (!stickBottom.current) return;
-    bottomRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages]);
+    const el = scrollerRef.current;
+    if (el) el.scrollTop = el.scrollHeight;
+  }, [messages, histKey]);
 
   async function runSend(text: string, adultConsent: boolean, files: PreparedChatFile[] = []) {
     if ((!text && !files.length) || loading) return;
@@ -468,7 +475,7 @@ export function ChatMode({
   }
 
   return (
-    <div className={embedded ? "flex h-full flex-col" : "mx-auto max-w-3xl"}>
+    <div className={embedded ? "flex h-full min-h-0 flex-col overflow-hidden" : "mx-auto max-w-3xl"}>
       {pending && (
         <ContentWarningDialog
           assessment={pending.assessment}
@@ -576,7 +583,7 @@ export function ChatMode({
       )}
 
       <div
-        className={`flex flex-col overflow-hidden rounded-3xl border border-white/10 bg-[#0b0b14] shadow-[0_24px_80px_-32px_rgba(109,40,217,0.45)] ${
+        className={`flex min-h-0 flex-col overflow-hidden rounded-3xl border border-white/10 bg-[#0b0b14] shadow-[0_24px_80px_-32px_rgba(109,40,217,0.45)] ${
           embedded ? "min-h-0 flex-1" : "min-h-[520px]"
         }`}
       >
@@ -642,7 +649,7 @@ export function ChatMode({
             if (!el) return;
             stickBottom.current = el.scrollHeight - el.scrollTop - el.clientHeight < 96;
           }}
-          className="flex-1 space-y-5 overflow-y-auto bg-[radial-gradient(1200px_400px_at_10%_-10%,rgba(124,58,237,0.12),transparent_50%)] p-4 sm:p-6"
+          className="min-h-0 flex-1 space-y-5 overflow-y-auto overscroll-contain bg-[radial-gradient(1200px_400px_at_10%_-10%,rgba(124,58,237,0.12),transparent_50%)] p-4 sm:p-6"
         >
           {messages.map((m, idx) => {
             const emptyDraft = m.role === "assistant" && !m.content.trim() && loading;

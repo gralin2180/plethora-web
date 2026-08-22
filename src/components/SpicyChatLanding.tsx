@@ -32,30 +32,15 @@ export function SpicyChatLanding() {
     setOk(true);
   }
 
-  return (
-    <div className="mx-auto max-w-6xl px-4 py-8 sm:px-6">
-      <div className="mb-6 overflow-hidden rounded-3xl border border-rose-500/25 bg-gradient-to-br from-rose-600/20 via-[#160b12] to-[#080810] p-6">
-        <p className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-rose-300">
-          <Flame className="h-3.5 w-3.5" />
-          18+ AI chat
-        </p>
-        <h1 className="mt-2 text-3xl font-semibold text-white sm:text-4xl">
-          Spicy AI chat — girlfriend energy, dirty talk, roleplay
-        </h1>
-        <p className="mt-3 max-w-2xl text-sm text-zinc-400">
-          Free NSFW companion chat for adults. Confirm you are 18+. Sexual content involving
-          minors is blocked. After you land, the rest of Plethora is one click: tools, local
-          models on your PC, App Maker.
-        </p>
-      </div>
-
-      {!ok ? (
-        <div className="mx-auto max-w-lg rounded-2xl border border-white/10 bg-black/40 p-6 text-center">
+  if (!ok) {
+    return (
+      <div className="mx-auto max-w-lg px-4 py-16 sm:px-6">
+        <div className="rounded-2xl border border-white/10 bg-black/40 p-6 text-center">
           <Shield className="mx-auto h-8 w-8 text-rose-300" />
-          <p className="mt-3 text-lg font-medium text-white">Are you 18 or older?</p>
+          <p className="mt-3 text-lg font-medium text-white">Spicy chat is 18+</p>
           <p className="mt-2 text-sm text-zinc-500">
-            This room is explicit on purpose. Everyone in the scene must be an adult. If you are
-            not 18, leave.
+            Explicit companion chat. Everyone in the scene must be an adult. If you are not 18,
+            leave.
           </p>
           <div className="mt-5 flex flex-col gap-2 sm:flex-row sm:justify-center">
             <button
@@ -73,55 +58,57 @@ export function SpicyChatLanding() {
             </Link>
           </div>
         </div>
-      ) : (
-        <div className="grid gap-6 lg:grid-cols-[1fr_280px]">
-          <div className="min-h-[560px] rounded-2xl border border-white/10 bg-black/30 p-3">
-            <ChatMode embedded room="spicy" companion={companion} />
-          </div>
-          <aside className="space-y-3 lg:sticky lg:top-20 lg:self-start">
-            <SpicyAvatarStudio onSelect={setCompanion} />
-            <p className="text-xs font-semibold uppercase tracking-wider text-zinc-500">
-              Also in Plethora
-            </p>
-            {[
-              {
-                href: "/",
-                icon: Flame,
-                title: "Your desk",
-                body: "Home remembers your tools and apps.",
-              },
-              {
-                href: "/local-llms",
-                icon: HardDrive,
-                title: "Private local LLMs",
-                body: "Run the spicy model on your GPU — we never see the weights.",
-              },
-              {
-                href: "/tools",
-                icon: Wrench,
-                title: "Free tools",
-                body: "Captions, PDF, Shorts cutter, converters.",
-              },
-              {
-                href: "/tools/build-your-tool",
-                icon: Hammer,
-                title: "App Maker",
-                body: "Build a web app, then chat to change it.",
-              },
-            ].map((x) => (
-              <Link
-                key={x.href}
-                href={x.href}
-                className="block rounded-2xl border border-white/10 bg-white/[0.03] p-4 hover:border-rose-500/30"
-              >
-                <x.icon className="mb-2 h-4 w-4 text-rose-300" />
-                <p className="text-sm font-medium text-white">{x.title}</p>
-                <p className="mt-1 text-xs text-zinc-500">{x.body}</p>
-              </Link>
-            ))}
-          </aside>
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex h-[calc(100dvh-3.5rem)] flex-col overflow-hidden sm:h-[calc(100dvh-4rem)]">
+      <div className="flex min-h-0 flex-1 flex-col gap-3 overflow-hidden px-3 py-3 sm:px-4 lg:flex-row">
+        <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden rounded-2xl border border-white/10 bg-black/30 p-2">
+          <ChatMode embedded room="spicy" companion={companion} />
         </div>
-      )}
+        <aside className="flex max-h-[42vh] w-full shrink-0 flex-col gap-3 overflow-y-auto lg:max-h-none lg:w-72">
+          <SpicyAvatarStudio onSelect={setCompanion} />
+          <p className="text-xs font-semibold uppercase tracking-wider text-zinc-500">Also here</p>
+          {[
+            {
+              href: "/",
+              icon: Flame,
+              title: "Home",
+              body: "Tools and rooms on one desk.",
+            },
+            {
+              href: "/local-llms",
+              icon: HardDrive,
+              title: "Private local LLMs",
+              body: "Run the model on your GPU.",
+            },
+            {
+              href: "/tools",
+              icon: Wrench,
+              title: "Free tools",
+              body: "Captions, PDF, Shorts cutter.",
+            },
+            {
+              href: "/tools/build-your-tool",
+              icon: Hammer,
+              title: "App Maker",
+              body: "Build a web app, then chat to change it.",
+            },
+          ].map((x) => (
+            <Link
+              key={x.href}
+              href={x.href}
+              className="block rounded-2xl border border-white/10 bg-white/[0.03] p-3 hover:border-rose-500/30"
+            >
+              <x.icon className="mb-1.5 h-4 w-4 text-rose-300" />
+              <p className="text-sm font-medium text-white">{x.title}</p>
+              <p className="mt-1 text-xs text-zinc-500">{x.body}</p>
+            </Link>
+          ))}
+        </aside>
+      </div>
     </div>
   );
 }

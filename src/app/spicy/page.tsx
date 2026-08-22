@@ -22,7 +22,7 @@ export const metadata: Metadata = {
 
 export default function SpicyPage() {
   return (
-    <SiteShell>
+    <SiteShell hideFooter>
       <SpicyChatLanding />
     </SiteShell>
   );
