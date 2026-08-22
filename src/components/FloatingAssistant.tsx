@@ -134,6 +134,13 @@ export function FloatingAssistant() {
               >
                 Full chat
               </Link>
+              <Link
+                href="/projects"
+                onPointerDown={(e) => e.stopPropagation()}
+                className="text-[10px] text-violet-400 hover:underline"
+              >
+                Projects
+              </Link>
               <button
                 type="button"
                 onPointerDown={(e) => e.stopPropagation()}

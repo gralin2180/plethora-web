@@ -323,7 +323,7 @@ export async function POST(request: Request) {
       typeof body.qualitySmooth === "number" ? body.qualitySmooth : quality === "fast" ? 20 : quality === "best" ? 100 : 50
     );
 
-    const wantStream = Boolean(body.stream) && body.mode !== "miniapp";
+    const wantStream = Boolean(body.stream);
     const miniapp = body.mode === "miniapp";
     let chatOpts = {
       adultMode,

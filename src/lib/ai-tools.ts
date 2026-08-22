@@ -215,7 +215,11 @@ export const AI_TOOL_TOOLS: PlatformTool[] = [
       "tool builder",
       "no code tool",
     ],
-    bestModels: ["OpenRouter free", "Claude Sonnet"],
+    bestModels: [
+      "Auto: OpenCode Zen + OpenRouter free pool",
+      "Faster / Best free",
+      "Your Connect or BYOK key",
+    ],
     actionHint: "Brief → Create → modify in chat",
     runner: "free-utility",
   },

@@ -486,6 +486,18 @@ export function ChatMode({
             >
               Tour the site
             </button>
+            <Link
+              href="/projects"
+              className="rounded-full border border-violet-500/40 bg-violet-500/15 px-4 py-1.5 text-sm font-medium text-violet-100 hover:bg-violet-500/25"
+            >
+              Projects
+            </Link>
+            <Link
+              href="/tools/build-your-tool"
+              className="rounded-full border border-white/15 px-4 py-1.5 text-sm text-zinc-300 hover:bg-white/5"
+            >
+              App Maker
+            </Link>
             <button
               type="button"
               onClick={clearChat}

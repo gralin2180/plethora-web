@@ -119,14 +119,22 @@ export default async function ToolPage({ params }: Props) {
     <SiteShell>
       <ToolVisitTracker slug={slug} />
       <div className="px-4 py-10 sm:px-6">
-          <div className={`mx-auto ${isFreeRunner ? "max-w-3xl" : "max-w-2xl"}`}>
+          <div className={`mx-auto ${slug === "build-your-tool" ? "max-w-6xl" : isFreeRunner ? "max-w-3xl" : "max-w-2xl"}`}>
+          <div className="mb-6 flex flex-wrap items-center gap-4">
           <Link
             href="/tools"
-            className="mb-6 inline-flex items-center gap-1 text-sm text-zinc-500 hover:text-white"
+            className="inline-flex items-center gap-1 text-sm text-zinc-500 hover:text-white"
           >
             <ArrowLeft className="h-4 w-4" />
             All tools
           </Link>
+          <Link href="/projects" className="text-sm text-violet-300 hover:underline">
+            Projects
+          </Link>
+          <Link href="/chat" className="text-sm text-zinc-500 hover:text-white">
+            Chat
+          </Link>
+          </div>
           <div className="overflow-hidden rounded-3xl border border-white/10 bg-gradient-to-b from-white/[0.05] to-white/[0.02]">
             <div className="border-b border-white/5 px-6 pb-5 pt-7 sm:px-8">
               <div className="flex flex-wrap items-center gap-2">
@@ -145,7 +153,7 @@ export default async function ToolPage({ params }: Props) {
               {tool.actionHint && (
                 <p className="mt-3 text-sm font-medium text-violet-300/90">{tool.actionHint}</p>
               )}
-              {tool.bestModels && tool.bestModels.length > 0 && (
+              {tool.bestModels && tool.bestModels.length > 0 && slug !== "build-your-tool" && (
                 <p className="mt-3 flex flex-wrap items-center gap-1.5 text-[11px] text-amber-200/80">
                   <Star className="h-3 w-3" />
                   {tool.bestModels.join(" · ")}

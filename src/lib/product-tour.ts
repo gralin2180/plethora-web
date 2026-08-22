@@ -40,6 +40,14 @@ export const TOUR_STEPS: TourStep[] = [
     placement: "bottom",
   },
   {
+    id: "projects",
+    target: "nav-projects",
+    title: "Your apps",
+    dialogue:
+      "Mini-apps from AI App Maker land here — open /projects anytime from Chat or the header.",
+    placement: "bottom",
+  },
+  {
     id: "learn",
     target: "nav-learn",
     title: "Learn",

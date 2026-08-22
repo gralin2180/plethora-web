@@ -2,7 +2,7 @@
 
 import { useEffect, useState, type ReactNode } from "react";
 import Link from "next/link";
-import { Hammer, Loader2, Send, Sparkles } from "lucide-react";
+import { Hammer, Send, Sparkles } from "lucide-react";
 import { collectChatAuth } from "@/lib/platform-ai-client";
 import {
   compileAppSpec,
@@ -18,11 +18,18 @@ import { trackToolUse } from "@/lib/self-learn";
 
 const FEATURES = [
   "Task list",
-  "Pomodoro / timer",
+  "Live clock",
+  "Reminders + alerts",
+  "Focus 15 / 25 / 50",
   "Daily stats",
-  "Notes",
-  "Export CSV",
-  "Keyboard shortcuts",
+  "Calendar .ics",
+];
+
+const ROUTES: { id: string; label: string; hint: string; quality: number }[] = [
+  { id: "auto", label: "Auto pool", hint: "Zen + OpenRouter free rotate", quality: 50 },
+  { id: "fast", label: "Faster", hint: "Snappy smaller models", quality: 18 },
+  { id: "best", label: "Best free", hint: "Larger free models, slower", quality: 92 },
+  { id: "connected", label: "Your AI", hint: "Connect / BYOK if linked", quality: 92 },
 ];
 
 type Phase = "intake" | "building" | "studio";
@@ -36,7 +43,15 @@ export function AiAppMaker() {
   const [audience, setAudience] = useState("Just me");
   const [data, setData] = useState("Stay in this browser");
   const [look, setLook] = useState("Dark, focused");
-  const [features, setFeatures] = useState<string[]>(["Task list", "Pomodoro / timer"]);
+  const [features, setFeatures] = useState<string[]>([
+    "Task list",
+    "Live clock",
+    "Reminders + alerts",
+    "Focus 15 / 25 / 50",
+  ]);
+  const [route, setRoute] = useState("auto");
+  const [buildLog, setBuildLog] = useState("");
+  const [buildStep, setBuildStep] = useState("Planning layout");
   const [constraints, setConstraints] = useState("");
   const [html, setHtml] = useState("");
   const [slug, setSlug] = useState("");
@@ -57,23 +72,58 @@ export function AiAppMaker() {
     setFeatures((cur) => (cur.includes(f) ? cur.filter((x) => x !== f) : [...cur, f]));
   }
 
-  async function generateHtml(message: string, previousHtml?: string): Promise<string | null> {
+  async function generateHtml(
+    message: string,
+    previousHtml?: string,
+    onDelta?: (chunk: string) => void
+  ): Promise<string | null> {
     const auth = await collectChatAuth();
+    const q = ROUTES.find((r) => r.id === route)?.quality ?? 92;
     const res = await fetch("/api/chat", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         mode: "miniapp",
-        stream: false,
-        qualitySmooth: 92,
+        stream: true,
+        qualitySmooth: q,
         message: previousHtml
-          ? `Here is the current app HTML. Apply this change and return the FULL updated document only.\n\nChange: ${message}\n\nCURRENT:\n${previousHtml.slice(0, 48000)}`
+          ? `Here is the current app HTML. Apply this change and return the FULL updated document only.\n\nChange: ${message}\n\nCURRENT:\n${previousHtml.slice(0, 40000)}`
           : message,
         ...auth,
       }),
     });
-    const json = (await res.json()) as { reply?: string; ok?: boolean };
-    return extractCompleteHtml(json.reply || "");
+    const ctype = res.headers.get("content-type") || "";
+    let full = "";
+    if (ctype.includes("text/event-stream") && res.body) {
+      const reader = res.body.getReader();
+      const dec = new TextDecoder();
+      let buf = "";
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        buf += dec.decode(value, { stream: true });
+        const lines = buf.split("\n");
+        buf = lines.pop() || "";
+        for (const line of lines) {
+          const t = line.trim();
+          if (!t.startsWith("data:")) continue;
+          try {
+            const j = JSON.parse(t.slice(5).trim()) as { delta?: string; reply?: string };
+            if (j.delta) {
+              full += j.delta;
+              onDelta?.(j.delta);
+            }
+            if (j.reply && !full) full = j.reply;
+          } catch {
+            /* */
+          }
+        }
+      }
+    } else {
+      const json = (await res.json()) as { reply?: string };
+      full = json.reply || "";
+    }
+    return extractCompleteHtml(full);
   }
 
   async function buildApp() {
@@ -83,6 +133,8 @@ export function AiAppMaker() {
     }
     setPhase("building");
     setStatus("");
+    setBuildLog("");
+    setBuildStep("Laying out clock, tasks, and focus");
     trackToolUse("build-your-tool", 5);
     const title = name.trim() || titleFromBrief(need);
     const spec = compileAppSpec({
@@ -96,7 +148,15 @@ export function AiAppMaker() {
       constraints: constraints.trim(),
     });
     try {
-      const fromModel = await generateHtml(spec);
+      const fromModel = await generateHtml(spec, undefined, (chunk) => {
+        setBuildLog((s) => (s + chunk).slice(-4000));
+        if (chunk.includes("clock") || chunk.includes("Date")) setBuildStep("Wiring live clock");
+        else if (chunk.includes("Notification") || chunk.includes("remind"))
+          setBuildStep("Adding reminders");
+        else if (chunk.includes("pomodoro") || chunk.includes("timer"))
+          setBuildStep("Focus timer presets");
+        else if (chunk.includes("</html>")) setBuildStep("Sealing the document");
+      });
       const doc = fromModel || fallbackTrackerHtml(title);
       const id = uniqueSlug(slugifyAppTitle(title));
       saveMiniApp({
@@ -163,10 +223,31 @@ export function AiAppMaker() {
 
   if (phase === "building") {
     return (
-      <div className="flex min-h-[320px] flex-col items-center justify-center rounded-2xl border border-violet-500/30 bg-violet-500/5 p-8 text-center">
-        <Loader2 className="h-8 w-8 animate-spin text-violet-300" />
-        <p className="mt-3 font-medium text-white">Building your web app…</p>
-        <p className="mt-1 text-sm text-zinc-500">This stays in the maker — not in Chat.</p>
+      <div className="overflow-hidden rounded-2xl border border-violet-500/40 bg-[#070712]">
+        <div className="relative overflow-hidden border-b border-white/10 px-4 py-6">
+          <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(600px_200px_at_20%_0%,rgba(139,92,246,.35),transparent)]" />
+          <p className="relative text-xs font-semibold uppercase tracking-[0.2em] text-violet-300">
+            Compiling
+          </p>
+          <p className="relative mt-1 text-lg font-semibold text-white">{buildStep}…</p>
+          <p className="relative mt-1 text-xs text-zinc-500">
+            Not Chat — you should see structure appear below as the model writes.
+          </p>
+          <div className="relative mt-4 flex gap-2">
+            {["Clock", "Tasks", "Remind", "Focus", "Export"].map((s, i) => (
+              <span
+                key={s}
+                className="rounded-full border border-cyan-400/30 bg-cyan-400/10 px-2.5 py-1 text-[10px] text-cyan-100"
+                style={{ opacity: 0.45 + (i % 5) * 0.1 }}
+              >
+                {s}
+              </span>
+            ))}
+          </div>
+        </div>
+        <pre className="max-h-[360px] overflow-auto bg-black/50 p-4 font-mono text-[11px] leading-relaxed text-emerald-300/90">
+          {buildLog || "// waiting for first tokens…"}
+        </pre>
       </div>
     );
   }
@@ -261,8 +342,23 @@ export function AiAppMaker() {
           AI App Maker
         </p>
         <p className="mt-2 text-sm text-zinc-400">
-          Brief the job, your rules, and a few Plethora questions. We generate a real web app in
-          the preview — then this tool becomes a chatbox for edits only.
+          Brief the job, your rules, and a few Plethora questions. Create a real web app here —
+          then this tool is only a modification chat.
+        </p>
+      </div>
+
+      <div>
+        <p className="text-xs text-zinc-500">Model path (not Claude-only)</p>
+        <div className="mt-2 flex flex-wrap gap-2">
+          {ROUTES.map((r) => (
+            <Chip key={r.id} on={route === r.id} onClick={() => setRoute(r.id)}>
+              {r.label}
+            </Chip>
+          ))}
+        </div>
+        <p className="mt-1.5 text-[11px] text-zinc-600">
+          {ROUTES.find((r) => r.id === route)?.hint}. Chat quality + Connect/BYOK still apply.
+          “Claude Sonnet” on the tool card was a suggestion, not the only engine.
         </p>
       </div>
 

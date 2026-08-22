@@ -119,14 +119,14 @@ export function NodeWorkflowCanvas({
   }
 
   return (
-    <section className="mt-8 rounded-2xl border border-white/10 bg-black/25">
-      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-white/5 px-5 py-4">
+    <section className="mt-8 overflow-hidden rounded-2xl border border-cyan-500/20 bg-[#070712] shadow-[0_0_80px_-20px_rgba(34,211,238,0.35)]">
+      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-white/10 bg-gradient-to-r from-cyan-500/10 via-violet-600/10 to-transparent px-5 py-4">
         <div className="flex items-center gap-2">
-          <GitBranch className="h-4 w-4 text-violet-400" />
+          <GitBranch className="h-4 w-4 text-cyan-300" />
           <div>
             <p className="text-sm font-semibold text-white">Node pipeline</p>
             <p className="text-xs text-zinc-500">
-              Graph mode for multi-step tools — edit nodes, then export a checklist.
+              Graph for this tool — tap a node, rewrite it, export a plan. Not the App Maker.
             </p>
           </div>
         </div>
@@ -160,30 +160,32 @@ export function NodeWorkflowCanvas({
       </div>
 
       <div className="grid gap-0 lg:grid-cols-[1fr_240px]">
-        <div className="relative min-h-[220px] overflow-x-auto border-b border-white/5 p-5 lg:border-b-0 lg:border-r">
-          {/* connector line */}
+        <div className="relative min-h-[240px] overflow-x-auto border-b border-white/5 bg-[linear-gradient(rgba(255,255,255,0.03)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.03)_1px,transparent_1px)] bg-[size:22px_22px] p-5 lg:border-b-0 lg:border-r">
           <div
-            className="pointer-events-none absolute left-8 right-8 top-[4.5rem] hidden h-px bg-gradient-to-r from-transparent via-white/20 to-transparent md:block"
+            className="pointer-events-none absolute left-10 right-10 top-[5.2rem] hidden h-[2px] bg-gradient-to-r from-cyan-400/0 via-violet-400/70 to-amber-400/0 md:block"
             aria-hidden
           />
-          <ul className="relative flex min-w-max flex-col gap-3 md:flex-row md:items-start md:gap-4">
+          <ul className="relative flex min-w-max flex-col gap-3 md:flex-row md:items-start md:gap-6">
             {nodes.map((node, i) => (
               <li key={node.id} className="flex items-center gap-2 md:flex-col md:gap-3">
                 <button
                   type="button"
                   onClick={() => setSelected(node.id)}
-                  className={`w-full min-w-[140px] max-w-[180px] rounded-xl border px-3 py-3 text-left transition md:w-40 ${
+                  className={`w-full min-w-[150px] max-w-[190px] rounded-2xl border px-3 py-3 text-left shadow-[0_12px_40px_-18px_rgba(0,0,0,0.9)] transition md:w-44 ${
                     kindTone[node.kind]
                   } ${
                     selected === node.id
-                      ? "ring-2 ring-violet-400/70"
+                      ? "scale-[1.03] ring-2 ring-cyan-300/80"
                       : "hover:brightness-110"
                   }`}
                 >
-                  <span className="text-[10px] uppercase tracking-wide text-zinc-400">
+                  <span className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-black/40 text-[10px] text-white">
+                    {i + 1}
+                  </span>
+                  <span className="ml-1.5 text-[10px] uppercase tracking-wide text-zinc-400">
                     {node.kind}
                   </span>
-                  <span className="mt-0.5 block text-sm font-medium text-white">
+                  <span className="mt-1 block text-sm font-medium text-white">
                     {node.title}
                   </span>
                   <span className="mt-1 line-clamp-2 text-[11px] text-zinc-500">
@@ -191,7 +193,7 @@ export function NodeWorkflowCanvas({
                   </span>
                 </button>
                 {i < nodes.length - 1 && (
-                  <span className="text-zinc-600 md:hidden" aria-hidden>
+                  <span className="text-cyan-500/70 md:hidden" aria-hidden>
                     ↓
                   </span>
                 )}

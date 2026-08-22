@@ -27,11 +27,12 @@ type NavItem = {
 const PRIMARY: NavItem[] = [
   { href: "/get-started", label: "Connect", tour: "nav-get-started" },
   { href: "/chat", label: "Chat", tour: "nav-chat" },
-  { href: "/prompt-assistant", label: "Prompts", tour: "nav-prompt" },
   { href: "/tools", label: "Tools", tour: "nav-tools" },
+  { href: "/projects", label: "Projects", tour: "nav-projects" },
 ];
 
 const MORE: NavItem[] = [
+  { href: "/prompt-assistant", label: "Prompts", tour: "nav-prompt", hint: "Turn a messy goal into a prompt" },
   { href: "/ai-finder", label: "Finder", tour: "nav-ai-finder", hint: "Find a tool for a task" },
   { href: "/mcp", label: "MCP", tour: "nav-mcp", hint: "Agent tools" },
   { href: "/about", label: "About", tour: "nav-about" },
