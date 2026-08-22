@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { PagePulse } from "@/components/PagePulse";
 import {
   Check,
   ExternalLink,
@@ -145,9 +146,10 @@ export function BillingClient() {
 
   if (loading) {
     return (
-      <div className="flex items-center gap-2 px-4 py-16 text-sm text-zinc-500">
-        <Loader2 className="h-4 w-4 animate-spin" /> Loading billing…
-      </div>
+      <PagePulse
+        title="Loading billing"
+        hint="Plans, packs, and usage — assembling your live Stripe + quota snapshot."
+      />
     );
   }
 

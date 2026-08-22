@@ -161,7 +161,7 @@ export function UserMenu({ user }: { user: SupabaseUser | null }) {
             <BarChart3 className="h-4 w-4 text-zinc-400" />
             Usage & billing
           </Link>
-          <Link href="/dashboard" className={item} onClick={() => setOpen(false)}>
+          <Link href="/history" className={item} onClick={() => setOpen(false)}>
             <History className="h-4 w-4 text-zinc-400" />
             History
           </Link>

@@ -13,7 +13,7 @@ import { recommendAiForTask } from "./recommender";
 import { buildRefinedPrompt } from "./prompt-engine";
 import { loadPersonalContext, contextToPromptBlock } from "./personal-context";
 import { PLATFORM_TOOLS, searchTools } from "./tools-registry";
-import { ABOUT_FAQS } from "./about-content";
+import { getMcpsForTask } from "./mcp-registry";
 import {
   getPopularTools,
   getRecentTools,
@@ -55,6 +55,7 @@ function applyChatSideEffects(
     data.code === "global_rate" ||
     data.code === "busy"
   ) {
+    if (data.quota?.mode === "dev" || (data as { unrestricted?: boolean }).unrestricted) return;
     notifyAiExhausted();
   }
   if (typeof window !== "undefined" && data.softWarnMessage) {
@@ -556,6 +557,7 @@ export type ServerChatOpts = {
   preferredSource?: "zen" | "openrouter";
   lane?: import("./ai-lanes").ChatLane;
   onDelta?: (chunk: string) => void;
+  unrestricted?: boolean;
 };
 
 /** Server-side entry used by /api/chat */
@@ -568,11 +570,20 @@ export async function generateAssistantReplyServer(
   const text = userText.trim();
   const intent = classifyChatIntent(text);
   const adultMode = Boolean(opts?.adultMode);
+  const mcpHits = getMcpsForTask(text, 2);
+  const mcpHint =
+    mcpHits.length > 0
+      ? `If they named a product, add one short line suggesting MCP/plugin: ${mcpHits
+          .map((m) => `${m.name} — ${m.docsUrl || m.url || "/mcp"}`)
+          .join("; ")}. Don't dump a catalog.`
+      : "";
+  const learner =
+    [learnerContext, mcpHint].filter(Boolean).join("\n") || undefined;
 
   // Adult / sexual intent always goes to LLM (after consent) — not banter shortcuts
   if (adultMode) {
     const llm = await freeChatCompletion(text, history, {
-      learnerContext,
+      learnerContext: learner,
       adultMode: true,
       personality: opts?.personality,
       codex: opts?.codex,
@@ -585,6 +596,7 @@ export async function generateAssistantReplyServer(
       preferredSource: opts?.preferredSource,
       lane: opts?.lane,
       onDelta: opts?.onDelta,
+      unrestricted: opts?.unrestricted,
     });
     if (llm.ok) return { reply: llm.reply, source: llm.provider, usedPremium: llm.usedPremium };
     if (llm.code === "pool_exhausted") {
@@ -596,7 +608,7 @@ export async function generateAssistantReplyServer(
   if (intent === "tour") return { reply: websiteTour(), source: "tour" };
 
   const chatOpts = {
-    learnerContext,
+    learnerContext: learner,
     adultMode,
     personality: opts?.personality,
     codex: opts?.codex,
@@ -609,6 +621,7 @@ export async function generateAssistantReplyServer(
     preferredSource: opts?.preferredSource,
     lane: opts?.lane,
     onDelta: opts?.onDelta,
+    unrestricted: opts?.unrestricted,
   };
 
   const llm = await freeChatCompletion(text, history, chatOpts);

@@ -24,7 +24,7 @@ import {
   withPlatformFreeSlot,
 } from "@/lib/free-tier-guard";
 import { recordPremiumUse } from "@/lib/billing-activate";
-import { isDevUnrestricted } from "@/lib/dev-access";
+import { emailsFromAuthUser, isDevUnrestricted } from "@/lib/dev-access";
 
 const ANON_COOKIE = "Plethora_anon_id";
 const PROFILE_ENT_COLS =
@@ -67,6 +67,7 @@ export async function GET() {
     unrestricted: isDevUnrestricted({
       email: user?.email,
       userId: user?.id,
+      emails: emailsFromAuthUser(user),
     }),
     requiresAuth: false,
     guestDailyLimit: platformChatDailyLimit("guest"),
@@ -155,6 +156,7 @@ export async function POST(request: Request) {
     const unrestricted = isDevUnrestricted({
       email: user?.email,
       userId: user?.id,
+      emails: emailsFromAuthUser(user),
     });
     const adultMode = adultConsent;
 
@@ -337,6 +339,7 @@ export async function POST(request: Request) {
       preferredModel,
       preferredSource,
       lane,
+      unrestricted,
     };
 
     if (wantStream) {
@@ -428,7 +431,7 @@ export async function POST(request: Request) {
         ? await run()
         : await withPlatformFreeSlot(run);
 
-    if (result.code === "pool_exhausted") {
+    if (result.code === "pool_exhausted" && !unrestricted) {
       const res = NextResponse.json(
         {
           reply: result.reply,

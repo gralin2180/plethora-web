@@ -12,6 +12,7 @@ import {
   oauthAvatarUrl,
   saveCustomAvatar,
 } from "@/lib/user-avatar";
+import { PagePulse } from "@/components/PagePulse";
 import {
   CreditCard,
   KeyRound,
@@ -232,11 +233,7 @@ export function AccountSettingsClient() {
   }
 
   if (loading) {
-    return (
-      <div className="flex items-center gap-2 px-4 py-16 text-sm text-zinc-500">
-        <Loader2 className="h-4 w-4 animate-spin" /> Loading account…
-      </div>
-    );
+    return <PagePulse title="Loading account" hint="Email, security, and plan — pulling your profile." />;
   }
 
   if (!user) return null;

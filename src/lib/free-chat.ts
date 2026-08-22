@@ -6,6 +6,7 @@ import {
 import { premiumModelList, primaryPremiumModel } from "./premium-models";
 import {
   DEFAULT_ZEN_MODEL,
+  OPENCODE_ZEN_FREE_MODELS,
   SLOW_ZEN_MODEL_IDS,
   ZEN_BASE_URL,
   ZEN_MAX_OUTPUT_TOKENS,
@@ -205,6 +206,7 @@ export type FreeChatOpts = {
   /** Cursor-style routing lane */
   lane?: ChatLane;
   onDelta?: (chunk: string) => void;
+  unrestricted?: boolean;
 };
 
 export function hasZenProvider(): boolean {
@@ -561,6 +563,15 @@ export async function freeChatCompletion(
       } else {
         pushZen(DEFAULT_ZEN_MODEL.id);
       }
+      if (opts.unrestricted) {
+        let extras = 0;
+        for (const m of OPENCODE_ZEN_FREE_MODELS) {
+          if (extras >= 4) break;
+          if (seen.has(`zen:${m.id}`)) continue;
+          pushZen(m.id);
+          extras += 1;
+        }
+      }
     }
   }
 
@@ -604,7 +615,9 @@ export async function freeChatCompletion(
     opts.maxTokens ??
     (lane === "premium" || lane === "byok" ? 480 : ZEN_MAX_OUTPUT_TOKENS);
   const timeoutMs = laneTimeoutMs(lane);
-  const attempts = Math.min(providers.length, laneMaxAttempts(lane));
+  const attempts = opts.unrestricted
+    ? Math.min(providers.length, 5)
+    : Math.min(providers.length, laneMaxAttempts(lane));
   let lastError = "";
   for (const p of providers.slice(0, attempts)) {
     try {
@@ -644,11 +657,13 @@ export async function freeChatCompletion(
   }
 
   return {
-    reply: POOL_EXHAUSTED_MESSAGE,
+    reply: opts.unrestricted
+      ? "Public models are busy right now. Retry in a few seconds — your account isn’t on the daily cap."
+      : POOL_EXHAUSTED_MESSAGE,
     provider: "none",
-    ok: false,
+    ok: Boolean(opts.unrestricted),
     error: lastError || "All free providers failed",
-    code: "pool_exhausted",
+    code: opts.unrestricted ? undefined : "pool_exhausted",
   };
 }
 
