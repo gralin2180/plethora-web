@@ -23,6 +23,7 @@ import {
   freePlatformDailyHardCap,
   withPlatformFreeSlot,
 } from "@/lib/free-tier-guard";
+import { recordPremiumUse } from "@/lib/billing-activate";
 import { isDevUnrestricted } from "@/lib/dev-access";
 
 const ANON_COOKIE = "Plethora_anon_id";
