@@ -13,6 +13,7 @@ import { recommendAiForTask } from "./recommender";
 import { buildRefinedPrompt } from "./prompt-engine";
 import { loadPersonalContext, contextToPromptBlock } from "./personal-context";
 import { PLATFORM_TOOLS, searchTools } from "./tools-registry";
+import { ABOUT_FAQS } from "./about-content";
 import { getMcpsForTask } from "./mcp-registry";
 import {
   getPopularTools,
