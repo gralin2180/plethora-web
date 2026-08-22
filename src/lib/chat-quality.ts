@@ -1,48 +1,58 @@
 /**
- * User-picked speed vs quality. Fast still uses real models (Groq / MythoMax / GLM),
- * not a canned one-liner. Best spends more time on larger models.
+ * Smooth 0–100 quality slider. Higher = larger models + more time.
+ * Bands (fast / balanced / best) are labels only — the API uses the number.
  */
 
 export type ChatQuality = "fast" | "balanced" | "best";
 
-export const CHAT_QUALITY_KEY = "plethora.chat.quality.v1";
+export const CHAT_QUALITY_KEY = "plethora.chat.quality.smooth.v1";
 
-export function isChatQuality(v: unknown): v is ChatQuality {
-  return v === "fast" || v === "balanced" || v === "best";
+export function clampSmooth(n: number): number {
+  if (!Number.isFinite(n)) return 50;
+  return Math.min(100, Math.max(0, Math.round(n)));
+}
+
+export function qualityFromSmooth(n: number): ChatQuality {
+  const s = clampSmooth(n);
+  if (s < 34) return "fast";
+  if (s < 67) return "balanced";
+  return "best";
 }
 
 export function parseChatQuality(raw: unknown): ChatQuality {
-  if (typeof raw === "number") {
-    if (raw <= 0) return "fast";
-    if (raw >= 2) return "best";
-    return "balanced";
-  }
-  if (isChatQuality(raw)) return raw;
+  if (typeof raw === "number") return qualityFromSmooth(raw);
+  if (raw === "fast" || raw === "balanced" || raw === "best") return raw;
   return "balanced";
 }
 
-export function loadChatQuality(): ChatQuality {
-  if (typeof window === "undefined") return "balanced";
+export function parseSmooth(raw: unknown): number {
+  if (typeof raw === "number") return clampSmooth(raw);
+  if (typeof raw === "string" && raw.trim() !== "" && Number.isFinite(Number(raw))) {
+    return clampSmooth(Number(raw));
+  }
+  return 50;
+}
+
+export function loadSmoothQuality(): number {
+  if (typeof window === "undefined") return 50;
   try {
-    return parseChatQuality(localStorage.getItem(CHAT_QUALITY_KEY));
+    const raw = localStorage.getItem(CHAT_QUALITY_KEY);
+    if (raw == null) return 50;
+    return parseSmooth(JSON.parse(raw));
   } catch {
-    return "balanced";
+    return 50;
   }
 }
 
-export function saveChatQuality(q: ChatQuality) {
+export function saveSmoothQuality(n: number) {
   if (typeof window === "undefined") return;
-  localStorage.setItem(CHAT_QUALITY_KEY, q);
+  localStorage.setItem(CHAT_QUALITY_KEY, JSON.stringify(clampSmooth(n)));
 }
 
-export function qualityIndex(q: ChatQuality): number {
-  return q === "fast" ? 0 : q === "best" ? 2 : 1;
-}
-
-export function qualityFromIndex(n: number): ChatQuality {
-  if (n <= 0) return "fast";
-  if (n >= 2) return "best";
-  return "balanced";
+export function qualityLabel(q: ChatQuality): string {
+  if (q === "fast") return "Faster";
+  if (q === "best") return "Best";
+  return "Balanced";
 }
 
 export type QualityBudget = {
@@ -52,20 +62,21 @@ export type QualityBudget = {
   historyTurns: number;
 };
 
+/** Interpolate budget from the smooth slider (0 = snappy, 100 = max quality). */
+export function budgetFromSmooth(n: number): QualityBudget {
+  const t = clampSmooth(n) / 100;
+  return {
+    timeoutMs: Math.round(9_000 + t * 14_000),
+    attempts: Math.round(4 + t * 4),
+    maxTokens: Math.round(400 + t * 360),
+    historyTurns: Math.round(8 + t * 10),
+  };
+}
+
 export function qualityBudget(q: ChatQuality): QualityBudget {
-  if (q === "fast") {
-    return { timeoutMs: 8_000, attempts: 2, maxTokens: 360, historyTurns: 8 };
-  }
-  if (q === "best") {
-    return { timeoutMs: 22_000, attempts: 4, maxTokens: 720, historyTurns: 16 };
-  }
-  return { timeoutMs: 12_000, attempts: 3, maxTokens: 520, historyTurns: 12 };
+  if (q === "fast") return budgetFromSmooth(20);
+  if (q === "best") return budgetFromSmooth(100);
+  return budgetFromSmooth(50);
 }
 
 export type RouteKind = "adult" | "code" | "vision" | "long" | "general";
-
-export function qualityLabel(q: ChatQuality): string {
-  if (q === "fast") return "Faster";
-  if (q === "best") return "Best";
-  return "Balanced";
-}

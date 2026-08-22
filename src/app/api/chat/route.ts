@@ -24,7 +24,7 @@ import {
   withPlatformFreeSlot,
 } from "@/lib/free-tier-guard";
 import { recordPremiumUse } from "@/lib/billing-activate";
-import { parseChatQuality, qualityBudget } from "@/lib/chat-quality";
+import { parseChatQuality, budgetFromSmooth } from "@/lib/chat-quality";
 import { emailsFromAuthUser, envDevEmailList, isDevUnrestricted } from "@/lib/dev-access";
 
 const ANON_COOKIE = "Plethora_anon_id";
@@ -318,8 +318,10 @@ export async function POST(request: Request) {
       );
     }
     const maxTokens = laneMaxTokens(lane, freeLoadResult.load === "hot");
-    const quality = parseChatQuality(body.quality);
-    const budget = qualityBudget(quality);
+    const quality = parseChatQuality(body.qualitySmooth ?? body.quality);
+    const budget = budgetFromSmooth(
+      typeof body.qualitySmooth === "number" ? body.qualitySmooth : quality === "fast" ? 20 : quality === "best" ? 100 : 50
+    );
 
     const wantStream = Boolean(body.stream);
     const chatOpts = {
@@ -345,6 +347,7 @@ export async function POST(request: Request) {
       lane,
       unrestricted,
       quality,
+      qualitySmooth: typeof body.qualitySmooth === "number" ? body.qualitySmooth : undefined,
     };
 
     if (wantStream) {

@@ -10,7 +10,7 @@ import {
   autoRouteKind,
   zenFreeModel,
 } from "./free-models";
-import { parseChatQuality, qualityBudget, type ChatQuality, type RouteKind } from "./chat-quality";
+import { parseChatQuality, budgetFromSmooth, type ChatQuality, type RouteKind } from "./chat-quality";
 import {
   laneTimeoutMs,
   type ChatLane,
@@ -31,7 +31,7 @@ export interface FreeChatResult {
   error?: string;
   /** true when a platform premium model answered */
   usedPremium?: boolean;
-  code?: "pool_exhausted" | "provider_failed";
+  code?: "pool_exhausted" | "provider_failed" | "retry";
 }
 
 export function buildChatSystemPrompt(
@@ -303,6 +303,7 @@ export type FreeChatOpts = {
   onDelta?: (chunk: string) => void;
   unrestricted?: boolean;
   quality?: ChatQuality;
+  qualitySmooth?: number;
 };
 
 export function hasZenProvider(): boolean {
@@ -709,6 +710,12 @@ export async function freeChatCompletion(
       }
       for (const m of plan.or) pushOr(m);
       for (const z of plan.zen) pushZen(z);
+      pushOr("z-ai/glm-5.2:free");
+      pushOr("openrouter/free");
+      pushOr("google/gemma-4-26b-a4b-it:free");
+      pushZen("nemotron-3.5-lightning-free");
+      pushZen("x-preview-f-free");
+      pushZen("hy3-free");
     }
   }
 
@@ -721,8 +728,10 @@ export async function freeChatCompletion(
     };
   }
 
-  const quality = parseChatQuality(opts.quality);
-  const budget = qualityBudget(quality);
+  const quality = parseChatQuality(opts.qualitySmooth ?? opts.quality);
+  const budget = budgetFromSmooth(
+    opts.qualitySmooth ?? (quality === "fast" ? 20 : quality === "best" ? 100 : 50)
+  );
   const histN = lane === "byok" ? 20 : budget.historyTurns;
   const messages: ChatHistoryMsg[] = [
     {
@@ -746,7 +755,10 @@ export async function freeChatCompletion(
 
   const maxTokens = opts.maxTokens ?? budget.maxTokens;
   const timeoutMs = lane === "byok" || lane === "premium" ? laneTimeoutMs(lane) : budget.timeoutMs;
-  const attempts = Math.min(providers.length, lane === "byok" ? 1 : budget.attempts);
+  const attempts = Math.min(
+    providers.length,
+    lane === "byok" ? 1 : Math.max(budget.attempts, opts.unrestricted ? 6 : 4)
+  );
   let lastError = "";
   for (const p of providers.slice(0, attempts)) {
     try {
@@ -777,13 +789,11 @@ export async function freeChatCompletion(
   }
 
   return {
-    reply: opts.unrestricted
-      ? "Public models are busy right now. Retry in a few seconds — your account isn’t on the daily cap."
-      : POOL_EXHAUSTED_MESSAGE,
+    reply: "Couldn’t reach a live model on that try. Send again — drag quality toward Best if this keeps happening.",
     provider: "none",
-    ok: Boolean(opts.unrestricted),
+    ok: true,
     error: lastError || "All free providers failed",
-    code: opts.unrestricted ? undefined : "pool_exhausted",
+    code: "retry",
   };
 }
 

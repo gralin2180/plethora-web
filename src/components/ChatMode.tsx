@@ -33,12 +33,10 @@ import {
   type ChatPersonalityId,
 } from "@/lib/chat-personality";
 import {
-  loadChatQuality,
-  qualityFromIndex,
-  qualityIndex,
+  loadSmoothQuality,
+  qualityFromSmooth,
   qualityLabel,
-  saveChatQuality,
-  type ChatQuality,
+  saveSmoothQuality,
 } from "@/lib/chat-quality";
 import {
   Loader2,
@@ -87,7 +85,7 @@ export function ChatMode({
   const [personality, setPersonality] = useState<ChatPersonalityId | null>(null);
   const [pickingPersonality, setPickingPersonality] = useState(false);
   const [adultSession, setAdultSession] = useState(false);
-  const [quality, setQuality] = useState<ChatQuality>("balanced");
+  const [qualitySmooth, setQualitySmooth] = useState(50);
   const [unrestricted, setUnrestricted] = useState(false);
   const [pendingFiles, setPendingFiles] = useState<PreparedChatFile[]>([]);
   const [fileNote, setFileNote] = useState<string | null>(null);
@@ -115,7 +113,7 @@ export function ChatMode({
     try {
       setPersonality(loadChatPersonality());
       setAdultSession(loadAdultSession());
-      setQuality(loadChatQuality());
+      setQualitySmooth(loadSmoothQuality());
     } catch {
       /* */
     }
@@ -240,7 +238,8 @@ export function ChatMode({
       const reply = await generateAssistantReply(outbound, next, {
         adultConsent,
         personality,
-        quality,
+        quality: qualityFromSmooth(qualitySmooth),
+        qualitySmooth,
         onDelta: (chunk) => {
           setMessages((m) =>
             m.map((x) =>
@@ -623,6 +622,15 @@ export function ChatMode({
           {quotaNote && (
             <p className="mb-2 text-[11px] text-zinc-500">{quotaNote}</p>
           )}
+          <div className="mb-2 flex justify-end">
+            <QualitySlider
+              value={qualitySmooth}
+              onChange={(n) => {
+                setQualitySmooth(n);
+                saveSmoothQuality(n);
+              }}
+            />
+          </div>
           {signedIn === false && (
             <p className="mb-2 text-[11px] text-zinc-500">
               Free models work without an account. Connect is optional if you want ChatGPT, Copilot,
@@ -654,15 +662,6 @@ export function ChatMode({
               Editing a previous prompt — later messages were dropped so the thread stays consistent.
             </p>
           )}
-          <div className="mb-2 flex items-center gap-3 px-0.5">
-            <QualitySlider
-              value={quality}
-              onChange={(q) => {
-                setQuality(q);
-                saveChatQuality(q);
-              }}
-            />
-          </div>
           <div className="flex items-end gap-2">
             <input
               ref={fileRef}
@@ -755,27 +754,33 @@ function QualitySlider({
   value,
   onChange,
 }: {
-  value: ChatQuality;
-  onChange: (q: ChatQuality) => void;
+  value: number;
+  onChange: (n: number) => void;
 }) {
+  const band = qualityFromSmooth(value);
   return (
-    <label className="flex min-w-0 flex-1 items-center gap-2">
-      <span className="shrink-0 text-[10px] uppercase tracking-wide text-zinc-600">Faster</span>
+    <div className="w-[min(100%,13.5rem)]">
+      <div className="flex items-center justify-between gap-2">
+        <span className="text-[10px] text-zinc-600">Speed</span>
+        <span className="text-[10px] font-medium text-violet-200">{qualityLabel(band)}</span>
+      </div>
       <input
         type="range"
         min={0}
-        max={2}
+        max={100}
         step={1}
-        value={qualityIndex(value)}
-        onChange={(e) => onChange(qualityFromIndex(Number(e.target.value)))}
-        className="h-1.5 w-full cursor-pointer accent-violet-500"
-        aria-label="Reply speed versus quality"
+        value={value}
+        onChange={(e) => onChange(Number(e.target.value))}
+        className="mt-1 h-1.5 w-full cursor-pointer accent-violet-500"
+        aria-valuemin={0}
+        aria-valuemax={100}
+        aria-valuenow={value}
+        aria-label="Reply quality. Left is faster, right is Best."
       />
-      <span className="shrink-0 text-[10px] uppercase tracking-wide text-zinc-600">Best</span>
-      <span className="shrink-0 rounded-full border border-white/10 px-2 py-0.5 text-[10px] text-violet-200">
-        {qualityLabel(value)}
-      </span>
-    </label>
+      <p className="mt-1 text-[10px] leading-snug text-zinc-600">
+        Drag right toward Best for roleplay, code, and longer answers.
+      </p>
+    </div>
   );
 }
 

@@ -347,6 +347,7 @@ export async function generateAssistantReply(
     personality?: ChatPersonalityId | null;
     onDelta?: (chunk: string) => void;
     quality?: import("./chat-quality").ChatQuality;
+    qualitySmooth?: number;
   }
 ): Promise<string> {
   const text = userText.trim();
@@ -371,6 +372,7 @@ export async function generateAssistantReply(
       personality,
       onDelta: opts?.onDelta,
       quality: opts?.quality,
+      qualitySmooth: opts?.qualitySmooth,
     });
     if (llm) return llm;
   }
@@ -384,6 +386,7 @@ export async function generateAssistantReply(
     personality,
     onDelta: opts?.onDelta,
     quality: opts?.quality,
+    qualitySmooth: opts?.qualitySmooth,
   });
   if (llm) return llm;
 
@@ -430,6 +433,7 @@ async function tryLlm(
     personality?: ChatPersonalityId | null;
     onDelta?: (chunk: string) => void;
     quality?: import("./chat-quality").ChatQuality;
+    qualitySmooth?: number;
   }
 ): Promise<string | null> {
   const learner = learnerBundle();
@@ -460,6 +464,7 @@ async function tryLlm(
         adultConsent: opts?.adultConsent,
         personality,
         quality: opts?.quality,
+        qualitySmooth: opts?.qualitySmooth,
         ...auth,
         history: prior,
       }),
@@ -565,6 +570,7 @@ export type ServerChatOpts = {
   onDelta?: (chunk: string) => void;
   unrestricted?: boolean;
   quality?: import("./chat-quality").ChatQuality;
+  qualitySmooth?: number;
 };
 
 /** Server-side entry used by /api/chat */
@@ -605,6 +611,7 @@ export async function generateAssistantReplyServer(
       onDelta: opts?.onDelta,
       unrestricted: opts?.unrestricted,
       quality: opts?.quality,
+      qualitySmooth: opts?.qualitySmooth,
     });
     if (llm.ok) return { reply: llm.reply, source: llm.provider, usedPremium: llm.usedPremium };
     if (llm.code === "pool_exhausted") {
@@ -631,6 +638,7 @@ export async function generateAssistantReplyServer(
     onDelta: opts?.onDelta,
     unrestricted: opts?.unrestricted,
     quality: opts?.quality,
+    qualitySmooth: opts?.qualitySmooth,
   };
 
   const llm = await freeChatCompletion(text, history, chatOpts);
