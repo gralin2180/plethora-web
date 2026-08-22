@@ -123,7 +123,7 @@ export function UserMenu({ user }: { user: SupabaseUser | null }) {
         onClick={() => setOpen((v) => !v)}
         aria-haspopup="menu"
         aria-expanded={open}
-        className="flex max-w-[14rem] items-center gap-2 rounded-lg border border-white/10 py-1 pl-1 pr-2 text-sm text-zinc-200 hover:bg-white/5"
+        className="flex items-center gap-1.5 rounded-lg border border-white/10 p-1 pr-2 text-sm text-zinc-200 hover:bg-white/5"
       >
         {avatar ? (
           <img
@@ -137,7 +137,6 @@ export function UserMenu({ user }: { user: SupabaseUser | null }) {
             <UserIcon className="h-4 w-4 text-zinc-400" />
           </span>
         )}
-        <span className="hidden min-w-0 truncate sm:inline">{user.email}</span>
         <ChevronDown className={`h-3.5 w-3.5 shrink-0 text-zinc-500 ${open ? "rotate-180" : ""}`} />
       </button>
 
@@ -177,7 +176,7 @@ export function UserMenu({ user }: { user: SupabaseUser | null }) {
               Use Google photo
             </button>
           )}
-          <Link href="/settings/personal" className={item} onClick={() => setOpen(false)}>
+          <Link href="/settings" className={item} onClick={() => setOpen(false)}>
             <Settings className="h-4 w-4 text-zinc-400" />
             Settings
           </Link>

@@ -1,3 +1,4 @@
+import Link from "next/link";
 import type { Metadata } from "next";
 import { SiteShell } from "@/components/SiteShell";
 import { PersonalContextPanel } from "@/components/PersonalContextPanel";
@@ -15,6 +16,12 @@ export default function PersonalContextPage() {
         <p className="mt-2 text-sm text-zinc-500">
           Create a context profile (and optional local file) so prompts, chat, and recommendations
           match your patterns — without sending that file to Plethora servers.
+        </p>
+        <p className="mt-3 text-sm">
+          <Link href="/settings" className="text-violet-400 hover:underline">
+            ← Account settings
+          </Link>{" "}
+          (email, phone, 2FA, billing)
         </p>
         <div className="mt-8">
           <PersonalContextPanel />
