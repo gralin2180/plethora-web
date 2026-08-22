@@ -454,8 +454,8 @@ export function ChatMode({
       )}
 
       <div
-        className={`flex flex-col overflow-hidden rounded-3xl border border-white/10 bg-[#0c0c14]/90 shadow-xl shadow-black/40 ${
-          embedded ? "min-h-0 flex-1" : "min-h-[480px]"
+        className={`flex flex-col overflow-hidden rounded-3xl border border-white/10 bg-[#0b0b14] shadow-[0_24px_80px_-32px_rgba(109,40,217,0.45)] ${
+          embedded ? "min-h-0 flex-1" : "min-h-[520px]"
         }`}
       >
         <div className="flex items-center gap-2 overflow-x-auto border-b border-white/5 px-3 py-2 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
@@ -513,22 +513,25 @@ export function ChatMode({
             Clear
           </button>
         </div>
-        <div className="flex-1 space-y-4 overflow-y-auto p-4 sm:p-5">
-          {messages.map((m, idx) => (
+        <div className="flex-1 space-y-5 overflow-y-auto bg-[radial-gradient(1200px_400px_at_10%_-10%,rgba(124,58,237,0.12),transparent_50%)] p-4 sm:p-6">
+          {messages.map((m, idx) => {
+            const emptyDraft = m.role === "assistant" && !m.content.trim() && loading;
+            if (emptyDraft) return null;
+            return (
             <div key={m.id}>
               <div
-                className={`flex gap-2.5 ${m.role === "user" ? "justify-end" : "justify-start"}`}
+                className={`flex items-end gap-2.5 ${m.role === "user" ? "justify-end" : "justify-start"}`}
               >
                 {m.role !== "user" && (
-                  <span className="mt-1 flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-violet-600/90">
+                  <span className="mb-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-violet-500 to-fuchsia-600 shadow-md shadow-violet-900/40">
                     <Sparkles className="h-3.5 w-3.5 text-white" />
                   </span>
                 )}
                 <div
-                  className={`max-w-[min(100%,34rem)] rounded-2xl px-3.5 py-2.5 text-sm leading-relaxed ${
+                  className={`max-w-[min(100%,36rem)] px-4 py-2.5 text-[15px] leading-relaxed ${
                     m.role === "user"
-                      ? "rounded-br-md bg-violet-600 text-white"
-                      : "rounded-bl-md border border-white/8 bg-white/[0.04] text-zinc-200"
+                      ? "rounded-3xl rounded-br-md bg-gradient-to-br from-violet-500 to-violet-700 text-white shadow-lg shadow-violet-950/40"
+                      : "rounded-3xl rounded-bl-md border border-white/10 bg-white/[0.06] text-zinc-100 shadow-inner"
                   }`}
                 >
                   {m.files && m.files.length > 0 && (
@@ -599,17 +602,13 @@ export function ChatMode({
                 </div>
               )}
             </div>
-          ))}
-          {loading && !messages[messages.length - 1]?.content && (
-            <div className="flex items-center gap-2 pl-10 text-xs text-zinc-500">
-              <Loader2 className="h-3.5 w-3.5 animate-spin text-violet-400" />
-              Thinking…
-            </div>
-          )}
+            );
+          })}
+          {loading && !messages[messages.length - 1]?.content ? <TypingRow /> : null}
           <div ref={bottomRef} />
         </div>
 
-        <div className="border-t border-white/10 bg-black/20 p-3">
+        <div className="border-t border-white/10 bg-[#08080f]/90 p-3 backdrop-blur-sm">
           {quotaNote && (
             <p className="mb-2 text-[11px] text-zinc-500">{quotaNote}</p>
           )}
@@ -681,7 +680,7 @@ export function ChatMode({
                   ? "Edit prompt and send…"
                   : "Say anything, or attach a file…"
               }
-              className="max-h-32 min-h-[44px] flex-1 resize-none rounded-2xl border border-white/10 bg-black/40 px-3.5 py-2.5 text-sm text-white placeholder:text-zinc-600 focus:border-violet-500/40 focus:outline-none"
+              className="max-h-32 min-h-[46px] flex-1 resize-none rounded-2xl border border-white/10 bg-white/[0.04] px-3.5 py-2.5 text-sm text-white placeholder:text-zinc-600 focus:border-violet-500/50 focus:outline-none"
             />
             <button
               type="button"
@@ -699,27 +698,53 @@ export function ChatMode({
   );
 }
 
-/** Lightweight formatting — bold + soft line breaks. */
+/** Lightweight formatting — bold, *actions*, line breaks. */
 function MessageBody({ text }: { text: string }) {
   return (
     <div className="space-y-1.5">
       {text.split("\n").map((line, i) => {
         if (!line.trim()) return <div key={i} className="h-1.5" />;
-        const chunks = line.split(/(\*\*[^*]+\*\*)/g);
+        const chunks = line.split(/(\*\*[^*]+\*\*|\*[^*]+\*)/g);
         return (
           <p key={i} className="whitespace-pre-wrap">
-            {chunks.map((c, j) =>
-              c.startsWith("**") && c.endsWith("**") ? (
-                <strong key={j} className="font-semibold text-white">
-                  {c.slice(2, -2)}
-                </strong>
-              ) : (
-                <span key={j}>{c}</span>
-              )
-            )}
+            {chunks.map((c, j) => {
+              if (c.startsWith("**") && c.endsWith("**") && c.length >= 4) {
+                return (
+                  <strong key={j} className="font-semibold text-white">
+                    {c.slice(2, -2)}
+                  </strong>
+                );
+              }
+              if (c.startsWith("*") && c.endsWith("*") && c.length >= 2) {
+                return (
+                  <em key={j} className="italic text-violet-200/80">
+                    {c.slice(1, -1)}
+                  </em>
+                );
+              }
+              return <span key={j}>{c}</span>;
+            })}
           </p>
         );
       })}
+    </div>
+  );
+}
+
+function TypingRow() {
+  return (
+    <div className="flex items-end gap-2.5" aria-live="polite" aria-label="Writing a reply">
+      <span className="mb-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-violet-500 to-fuchsia-600 shadow-md shadow-violet-900/40">
+        <Sparkles className="h-3.5 w-3.5 text-white" />
+      </span>
+      <div className="flex items-center gap-2 rounded-3xl rounded-bl-md border border-white/10 bg-white/[0.06] px-4 py-3">
+        <span className="flex gap-1">
+          <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-violet-300 [animation-delay:-0.2s]" />
+          <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-violet-300 [animation-delay:-0.1s]" />
+          <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-violet-400" />
+        </span>
+        <span className="text-xs text-zinc-500">Writing…</span>
+      </div>
     </div>
   );
 }

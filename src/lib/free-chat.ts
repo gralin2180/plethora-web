@@ -629,17 +629,11 @@ export async function freeChatCompletion(
       for (const m of [
         "gryphe/mythomax-l2-13b",
         "cognitivecomputations/dolphin-mistral-24b-venice-edition",
-        "nousresearch/hermes-4-70b",
         "z-ai/glm-5.2:free",
-        "google/gemma-4-26b-a4b-it:free",
-        "stealth/ox-alpha",
       ]) {
         pushOr(m);
       }
       pushZen("x-preview-f-free");
-      pushZen("hy3-free");
-      pushZen("big-pickle");
-      pushZen("mimo-v2.5-free");
     } else {
       const kind = autoRouteKind(userMessage);
       for (const p of freeProviders()) {
@@ -711,8 +705,8 @@ export async function freeChatCompletion(
   const maxTokens =
     opts.maxTokens ??
     (lane === "premium" || lane === "byok" ? 480 : ZEN_MAX_OUTPUT_TOKENS);
-  const timeoutMs = laneTimeoutMs(lane);
-  const attempts = Math.min(providers.length, lane === "byok" ? 1 : opts.adultMode ? 10 : 8);
+  const timeoutMs = opts.adultMode ? 8_000 : laneTimeoutMs(lane);
+  const attempts = Math.min(providers.length, lane === "byok" ? 1 : opts.adultMode ? 3 : 4);
   let lastError = "";
   for (const p of providers.slice(0, attempts)) {
     try {
