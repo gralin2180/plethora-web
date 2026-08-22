@@ -459,9 +459,11 @@ export function ToolsGrid() {
                     <p className="mt-1 text-sm text-zinc-500 line-clamp-2">{tool.description}</p>
                   </div>
                 </div>
-                {tool.bestModels?.[0] && (
-                  <p className="mt-3 text-[11px] text-amber-200/70">★ {tool.bestModels[0]}</p>
-                )}
+                {tool.category === "AI Tools" || tool.runner === "prompt-studio" ? (
+                  <p className="mt-3 text-[11px] text-zinc-500">Free pool · Connect · your API key</p>
+                ) : tool.bestModels?.[0] ? (
+                  <p className="mt-3 text-[11px] text-zinc-500">{tool.bestModels[0]}</p>
+                ) : null}
                 <div className="mt-auto flex items-center justify-between pt-4 text-[11px] text-zinc-600">
                   <span>{tool.category}</span>
                   <span

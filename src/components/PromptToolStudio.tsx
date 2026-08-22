@@ -193,8 +193,6 @@ export function PromptToolStudio({ tool }: { tool: PlatformTool }) {
   const [err, setErr] = useState("");
   const [warning, setWarning] = useState<SafetyAssessment | null>(null);
 
-  const models = tool.bestModels ?? ["Claude Sonnet", "GPT-4o"];
-
   const result = output;
 
   function buildPrompt(): string {
@@ -286,11 +284,10 @@ export function PromptToolStudio({ tool }: { tool: PlatformTool }) {
           }}
         />
       )}
-      {models.length > 0 && (
-        <p className="text-[11px] text-zinc-500">
-          Writes a real draft with your connected AI (or free chat). Fallback: a pasteable prompt.
-        </p>
-      )}
+      <p className="text-[11px] text-zinc-500">
+        Uses the same AI lane as Chat (free pool, Connect, or your key). Pick a model in the header
+        above.
+      </p>
 
       <p className="text-sm text-zinc-400">{meta.lead}</p>
       <textarea

@@ -1,7 +1,8 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ArrowLeft, Star } from "lucide-react";
+import { ArrowLeft } from "lucide-react";
+import { ToolAiLane } from "@/components/ToolAiLane";
 import { SiteShell } from "@/components/SiteShell";
 import { getToolBySlug } from "@/lib/tools-registry";
 import { FreeToolRunner, type FreeRunnerKind } from "@/components/FreeToolRunner";
@@ -153,12 +154,9 @@ export default async function ToolPage({ params }: Props) {
               {tool.actionHint && (
                 <p className="mt-3 text-sm font-medium text-violet-300/90">{tool.actionHint}</p>
               )}
-              {tool.bestModels && tool.bestModels.length > 0 && slug !== "build-your-tool" && (
-                <p className="mt-3 flex flex-wrap items-center gap-1.5 text-[11px] text-amber-200/80">
-                  <Star className="h-3 w-3" />
-                  {tool.bestModels.join(" · ")}
-                </p>
-              )}
+              {(tool.category === "AI Tools" ||
+                tool.runner === "prompt-studio" ||
+                slug === "build-your-tool") && <ToolAiLane />}
               <p className="mt-2 text-xs leading-relaxed text-zinc-500">
                 <span className="text-zinc-400">{tool.freeRunsPerDay} free uses per day</span>
                 {" · "}
