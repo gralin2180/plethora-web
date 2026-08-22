@@ -36,7 +36,15 @@ import {
   Send,
   Sparkles,
   Bot,
+  Paperclip,
+  Pencil,
+  X,
 } from "lucide-react";
+import {
+  filesToModelBlock,
+  prepareChatFile,
+  type PreparedChatFile,
+} from "@/lib/chat-files";
 
 const HISTORY_KEY = "plethora.chat.history.v1";
 
@@ -70,6 +78,10 @@ export function ChatMode({
   const [pickingPersonality, setPickingPersonality] = useState(false);
   const [adultSession, setAdultSession] = useState(false);
   const [unrestricted, setUnrestricted] = useState(false);
+  const [pendingFiles, setPendingFiles] = useState<PreparedChatFile[]>([]);
+  const [fileNote, setFileNote] = useState<string | null>(null);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const fileRef = useRef<HTMLInputElement>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
 
   function clearChat() {
@@ -180,11 +192,16 @@ export function ChatMode({
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
-  async function runSend(text: string, adultConsent: boolean) {
-    if (!text || loading) return;
+  async function runSend(text: string, adultConsent: boolean, files: PreparedChatFile[] = []) {
+    if ((!text && !files.length) || loading) return;
     setInput("");
-    setLastUserText(text);
-    const userMsg = newMessage("user", text);
+    setPendingFiles([]);
+    setEditingId(null);
+    const block = filesToModelBlock(files);
+    const outbound = block ? `${text}\n\n${block}` : text;
+    setLastUserText(text || files.map((f) => f.name).join(", "));
+    const userMsg = newMessage("user", outbound);
+    userMsg.files = files.map((f) => ({ name: f.name, kind: f.kind, thumb: f.thumb }));
     const next = [...messages, userMsg];
     setMessages(next);
     setLoading(true);
@@ -203,7 +220,7 @@ export function ChatMode({
 
       const draft = newMessage("assistant", "");
       setMessages([...next, draft]);
-      const reply = await generateAssistantReply(text, next, {
+      const reply = await generateAssistantReply(outbound, next, {
         adultConsent,
         personality,
         onDelta: (chunk) => {
@@ -231,7 +248,7 @@ export function ChatMode({
 
   async function sendText(textRaw: string) {
     const text = textRaw.trim();
-    if (!text || loading) return;
+    if ((!text && !pendingFiles.length) || loading) return;
 
     if (isPickVibeCommand(text)) {
       setPickingPersonality(true);
@@ -255,14 +272,14 @@ export function ChatMode({
         setMessages([newMessage("assistant", p.hello)]);
         return;
       }
-      await runSend(`Talk ${p?.label.toLowerCase() ?? picked} from now on.`, adultSession);
+      await runSend(`Talk ${p?.label.toLowerCase() ?? picked} from now on.`, adultSession, []);
       return;
     }
 
     if (/^18\+\s*continue$/i.test(text)) {
       saveAdultSession();
       setAdultSession(true);
-      await runSend(text, true);
+      await runSend(text, true, pendingFiles);
       return;
     }
 
@@ -275,7 +292,31 @@ export function ChatMode({
       setPending({ text, assessment: safety });
       return;
     }
-    await runSend(text, adultSession);
+    await runSend(text, adultSession, pendingFiles);
+  }
+
+  function beginEdit(m: ChatMessage) {
+    if (loading || m.role !== "user") return;
+    const idx = messages.findIndex((x) => x.id === m.id);
+    if (idx < 0) return;
+    const visible = m.content.split("\n\nAttached files")[0] || m.content;
+    setInput(visible.trim());
+    setEditingId(m.id);
+    setMessages(messages.slice(0, idx));
+  }
+
+  async function onPickFiles(list: FileList | null) {
+    if (!list?.length) return;
+    setFileNote(null);
+    const next: PreparedChatFile[] = [...pendingFiles];
+    for (const file of Array.from(list).slice(0, 6)) {
+      try {
+        next.push(await prepareChatFile(file));
+      } catch (e) {
+        setFileNote(e instanceof Error ? e.message : "Couldn’t add file");
+      }
+    }
+    setPendingFiles(next.slice(0, 8));
   }
 
   const lastAssistant = [...messages].reverse().find((m) => m.role === "assistant");
@@ -470,7 +511,39 @@ export function ChatMode({
                       : "rounded-bl-md border border-white/8 bg-white/[0.04] text-zinc-200"
                   }`}
                 >
-                  <MessageBody text={m.content} />
+                  {m.files && m.files.length > 0 && (
+                    <div className="mb-2 flex flex-wrap gap-1.5">
+                      {m.files.map((f) =>
+                        f.thumb ? (
+                          // eslint-disable-next-line @next/next/no-img-element
+                          <img
+                            key={f.name}
+                            src={f.thumb}
+                            alt={f.name}
+                            className="h-12 w-12 rounded-lg object-cover"
+                          />
+                        ) : (
+                          <span
+                            key={f.name}
+                            className="rounded-md bg-black/20 px-1.5 py-0.5 text-[10px]"
+                          >
+                            {f.name}
+                          </span>
+                        )
+                      )}
+                    </div>
+                  )}
+                  <MessageBody text={m.content.split("\n\nAttached files")[0] || m.content} />
+                  {m.role === "user" && !loading && (
+                    <button
+                      type="button"
+                      onClick={() => beginEdit(m)}
+                      className="mt-1 inline-flex items-center gap-1 text-[10px] text-white/70 hover:text-white"
+                    >
+                      <Pencil className="h-3 w-3" />
+                      Edit & resend
+                    </button>
+                  )}
                 </div>
               </div>
               {m.role === "assistant" && idx === messages.length - 1 && !loading && (
@@ -533,7 +606,57 @@ export function ChatMode({
               connectedLabel={subscriptionOn ? "Connected AI" : "Platform AI"}
             />
           </div>
+          {fileNote && <p className="mb-2 text-[11px] text-amber-300">{fileNote}</p>}
+          {pendingFiles.length > 0 && (
+            <div className="mb-2 flex flex-wrap gap-1.5">
+              {pendingFiles.map((f) => (
+                <span
+                  key={f.id}
+                  className="inline-flex items-center gap-1 rounded-full border border-white/10 bg-white/5 px-2 py-0.5 text-[11px] text-zinc-200"
+                >
+                  {f.name}
+                  <button
+                    type="button"
+                    aria-label={`Remove ${f.name}`}
+                    onClick={() => setPendingFiles((p) => p.filter((x) => x.id !== f.id))}
+                  >
+                    <X className="h-3 w-3" />
+                  </button>
+                </span>
+              ))}
+            </div>
+          )}
+          {editingId && (
+            <p className="mb-2 text-[11px] text-violet-300">
+              Editing a previous prompt — later messages were dropped so the thread stays consistent.
+            </p>
+          )}
+          <p className="mb-2 text-[10px] text-zinc-600">
+            Files stay on this device. We only send a short text extract to the model (Vercel/Supabase
+            aren’t used as a file dump).
+          </p>
           <div className="flex items-end gap-2">
+            <input
+              ref={fileRef}
+              type="file"
+              multiple
+              className="hidden"
+              accept="image/*,.pdf,.txt,.md,.csv,.json,.html,.xml,.log,application/pdf,text/*"
+              onChange={(e) => {
+                void onPickFiles(e.target.files);
+                e.target.value = "";
+              }}
+            />
+            <button
+              type="button"
+              onClick={() => fileRef.current?.click()}
+              disabled={loading}
+              className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border border-white/10 text-zinc-300 hover:bg-white/5 disabled:opacity-40"
+              aria-label="Attach files"
+              title="Attach images or documents (stored on this device)"
+            >
+              <Paperclip className="h-4 w-4" />
+            </button>
             <textarea
               value={input}
               onChange={(e) => setInput(e.target.value)}
@@ -544,13 +667,17 @@ export function ChatMode({
                 }
               }}
               rows={1}
-              placeholder="Say anything…"
+              placeholder={
+                editingId
+                  ? "Edit prompt and send…"
+                  : "Say anything, or attach a file…"
+              }
               className="max-h-32 min-h-[44px] flex-1 resize-none rounded-2xl border border-white/10 bg-black/40 px-3.5 py-2.5 text-sm text-white placeholder:text-zinc-600 focus:border-violet-500/40 focus:outline-none"
             />
             <button
               type="button"
               onClick={() => void sendText(input)}
-              disabled={loading || !input.trim()}
+              disabled={loading || (!input.trim() && pendingFiles.length === 0)}
               className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-violet-600 text-white hover:bg-violet-500 disabled:opacity-40"
               aria-label="Send"
             >

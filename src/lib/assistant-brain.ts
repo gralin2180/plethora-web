@@ -27,6 +27,7 @@ export interface ChatMessage {
   role: "user" | "assistant" | "system";
   content: string;
   at: string;
+  files?: { name: string; kind: string; thumb?: string }[];
 }
 
 export function newMessage(role: ChatMessage["role"], content: string): ChatMessage {
