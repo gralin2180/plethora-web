@@ -271,14 +271,8 @@ export function ChatMode({
       setPending({ text, assessment: safety });
       return;
     }
-    if (safety.needsWarning && !adultSession && !unrestricted) {
+    if (safety.needsWarning && !adultSession) {
       setPending({ text, assessment: safety });
-      return;
-    }
-    if (safety.needsWarning && unrestricted) {
-      saveAdultSession();
-      setAdultSession(true);
-      await runSend(text, true);
       return;
     }
     await runSend(text, adultSession);

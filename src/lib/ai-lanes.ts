@@ -24,8 +24,8 @@ export function resolveChatLane(opts: {
 }
 
 export function laneTimeoutMs(lane: ChatLane): number {
-  if (lane === "premium" || lane === "byok") return 25_000;
-  return 18_000;
+  if (lane === "premium" || lane === "byok") return 18_000;
+  return 12_000;
 }
 
 export function laneMaxAttempts(_lane: ChatLane): number {
@@ -33,14 +33,13 @@ export function laneMaxAttempts(_lane: ChatLane): number {
 }
 
 export function laneMaxTokens(lane: ChatLane, hot?: boolean): number {
-  if (lane === "premium" || lane === "byok") return hot ? 700 : 1000;
-  return hot ? 280 : 420;
+  if (lane === "premium" || lane === "byok") return hot ? 280 : 420;
+  return hot ? 140 : 200;
 }
 
 export function laneHistoryTurns(lane: ChatLane): number {
-  if (lane === "premium" || lane === "byok") return 24;
-  if (lane === "slow") return 8;
-  return 12;
+  if (lane === "premium" || lane === "byok") return 12;
+  return 6;
 }
 
 export function laneMessageChars(lane: ChatLane): number {

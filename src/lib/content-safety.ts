@@ -57,7 +57,7 @@ export function assessContentSafety(text: string): SafetyAssessment {
       hardBlock: true,
       title: "Request cannot be completed",
       message:
-        "Plethora cannot assist with sexual content involving minors or other clearly illegal exploitation requests. This is a hard legal limit, not a content preference.",
+        "Can't help with sexual content involving minors. That's a hard legal limit.",
       continueLabel: "",
     };
   }
@@ -86,7 +86,7 @@ export function assessContentSafety(text: string): SafetyAssessment {
   if (flags.includes("adult_18") || flags.includes("explicit_sexual")) {
     title = "18+ adult content — confirm to continue";
     message =
-      "This looks like adult / sexual content. By continuing you confirm: (1) you are 18+ (or age of majority where you live), (2) everyone depicted is an adult, (3) you will not request illegal sexual content involving minors, real non-consent, or exploitation. We will generate consensual adult fiction after you confirm. Third-party models still have their own rules.";
+      "This looks like 18+ / sexual content. Confirm you're 18+ and that everyone involved is an adult. Minors stay blocked.";
     continueLabel = "I am 18+ — generate";
   } else if (flags.includes("graphic_violence") || flags.includes("hate_or_extreme")) {
     title = "Sensitive / extreme content warning";

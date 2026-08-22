@@ -361,7 +361,7 @@ export async function generateAssistantReply(
     opts?.personality ??
     parsePersonalityChoice(text);
 
-  if (opts?.adultConsent || /\b(fuck me|sext|blowjob|cock|roleplay.*sex|nsfw)\b/i.test(text)) {
+  if (opts?.adultConsent) {
     const llm = await tryLlm(text, history, {
       adultConsent: true,
       personality,
@@ -569,7 +569,7 @@ export async function generateAssistantReplyServer(
   const adultMode = Boolean(opts?.adultMode);
 
   // Adult / sexual intent always goes to LLM (after consent) — not banter shortcuts
-  if (adultMode || /\b(fuck me|sext|blowjob|cock|roleplay.*sex|nsfw)\b/i.test(text)) {
+  if (adultMode) {
     const llm = await freeChatCompletion(text, history, {
       learnerContext,
       adultMode: true,

@@ -156,7 +156,7 @@ export async function POST(request: Request) {
       email: user?.email,
       userId: user?.id,
     });
-    const adultMode = adultConsent || (unrestricted && safety.needsWarning);
+    const adultMode = adultConsent;
 
     if (!hasFreeChatProvider() && !usesOwnAi && !usesZenPublic) {
       return NextResponse.json(

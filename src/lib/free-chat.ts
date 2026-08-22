@@ -1,4 +1,3 @@
-import { siteKnowledgeForChat } from "./about-content";
 import {
   isChatPersonalityId,
   personalityPromptBlock,
@@ -45,44 +44,29 @@ export function buildChatSystemPrompt(
     isChatPersonalityId(opts?.personality) ? opts.personality : null
   );
 
-  const adultOn = `
-## Adult mode ON (user confirmed 18+)
-Consensual adult chat is allowed: sexting, ERP, dirty talk, NSFW writing. Do it when asked.
-- Do NOT refuse as off-topic. Do NOT say "not my lane", "I'm built for tools", or pitch the app.
-- Match intensity. Stay between consenting adults.
-- Hard-refuse only: anyone under 18, CSAM, or real non-consent crimes.
-`;
-
-  const adultOff = `
-## Adult content
-If they want explicit sex / sexting / ERP: don't refuse the category and don't pivot to product features. Tell them to tap 18+ (or say "18+ continue"), then go there.
-`;
-
   if (opts?.customSystem?.trim()) {
     const base = opts.customSystem.trim();
     const extra = extraContext?.trim()
       ? `\n\nLocal learner context:\n${extraContext.trim()}`
       : "";
-    return `${base}\n\n${voice}\nDon't pitch the host app or dump feature lists unless they asked.\n${opts.adultMode ? adultOn : adultOff}${extra}`;
+    return `${base}\n\n${voice}\nKeep replies short. Don't pitch the app.${opts.adultMode ? " Adult 18+ OK except minors." : ""}${extra}`;
   }
 
   const extra = extraContext?.trim()
-    ? `\n\nLocal learner context (this user only; may be empty):\n${extraContext.trim()}`
+    ? `\n\nUser notes:\n${extraContext.trim().slice(0, 400)}`
     : "";
 
-  return `You are a chat partner. Open to almost anything they bring: jokes, boredom, advice, work, filthy talk (after 18+), random facts. You happen to live inside an app called Plethora — that is not the topic unless they make it the topic.
+  return `You are a quick, sharp chat partner in an app. Answer the question. Do not advertise the app.
 
-${opts?.adultMode ? adultOn : adultOff}
+${opts?.adultMode ? "Adult mode: user confirmed 18+. Consensual adult chat is OK. Hard no: minors/CSAM." : "If they want explicit sex, stop — they must confirm 18+ in the dialog first. Don't write it yet."}
 
 ${voice}
 
-## How to talk
-- Answer what they actually said. Be a person, not a landing page.
-- Never pitch the product, list features, drop slash commands, or say "under one roof" / "try our tools" unless they asked how the app works.
-- 1–3 short paragraphs unless they want a long writeup or roleplay.
-- Only refuse: illegal harm (especially minors/CSAM) and actionable real-world crime how-tos.
-- If they ask how this app works: ${siteKnowledgeForChat()}
-${extra}`;
+Rules:
+- 2–6 short sentences unless they ask for a list, code, or a scene.
+- No essays, no policy dumps, no feature menus, no slash commands.
+- Legal + they asked → answer. Illegal (minors, real crime how-to) → one sentence: you can't, then stop.
+- Don't lecture. Don't overwhelm.${extra}`;
 }
 
 /** Free model IDs rotate on OpenRouter; first env override, then these. */
@@ -609,8 +593,7 @@ export async function freeChatCompletion(
       ? [
           {
             role: "system" as const,
-            content:
-              "ADULT MODE ACTIVE. User confirmed 18+. The next message may be sexual. Reply in-kind (sext / ERP / dirty talk) between consenting adults. Never refuse as off-topic or redirect to tools.",
+            content: "18+ confirmed. Keep it short unless they ask for more.",
           },
         ]
       : []),
@@ -619,11 +602,7 @@ export async function freeChatCompletion(
 
   const maxTokens =
     opts.maxTokens ??
-    (opts.adultMode
-      ? 1400
-      : lane === "premium" || lane === "byok"
-        ? 1600
-        : ZEN_MAX_OUTPUT_TOKENS);
+    (lane === "premium" || lane === "byok" ? 480 : ZEN_MAX_OUTPUT_TOKENS);
   const timeoutMs = laneTimeoutMs(lane);
   const attempts = Math.min(providers.length, laneMaxAttempts(lane));
   let lastError = "";
@@ -682,14 +661,8 @@ export function isPoolExhaustedError(err: string): boolean {
   );
 }
 
-function adultOfflineFallback(userMessage: string): string {
-  return `Yeah. Adults only — you’re on. I’ll match you.
-
-You: close, already a little wrecked from waiting. I don’t make you ask twice. Mouth at your ear, hand sliding where you wanted it. “Say it again,” I murmur. “Slower.” Then I do exactly what you asked.
-
-Tell me how you want it: who you are in this, how filthy, who’s in charge. I’ll keep going.
-
-You said: “${userMessage.slice(0, 160)}${userMessage.length > 160 ? "…" : ""}”`;
+function adultOfflineFallback(_userMessage: string): string {
+  return "Yeah. Keep it between adults. Tell me the scene in one line and I’ll match you — short, not a novel.";
 }
 
 /** Free host models often flinch on slang/adult words with useless "can't help". */

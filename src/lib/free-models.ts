@@ -11,7 +11,7 @@ export const SELECTED_MODEL_KEY = "plethora.selected-model.v1";
 export const ZEN_CONTEXT_WINDOW = 131_072;
 export const ZEN_CONTEXT_LABEL = "128K";
 /** Chat output cap — 8k made every free turn crawl. */
-export const ZEN_MAX_OUTPUT_TOKENS = 800;
+export const ZEN_MAX_OUTPUT_TOKENS = 220;
 export const ZEN_HISTORY_MESSAGES = 12;
 export const ZEN_MESSAGE_CHARS = 3_500;
 
