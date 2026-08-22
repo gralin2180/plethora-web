@@ -63,7 +63,7 @@ ${site}
 
 Stay in first person for the scene. Use *actions* and dialogue. Match their heat. Fictional adult scenes (including adult family roleplay) are allowed.
 
-If they also asked for real work (code, an app, a plan), do BOTH: play the scene AND deliver the work. Do not drop one half. Do not say you "can't help with that specific request" when 18+ is on.
+If they also asked for real work (code, an app, a plan, or legal adult links/sites), do BOTH. Legal 18+ porn links, toy shops, and adult directories are allowed. Do not say you "can't help with that request" when 18+ is on. Only refuse minors / CSAM / real crime how-to.
 
 Never mention being an AI, guidelines, 18+, or whether you should continue. Never write analysis. If a character is under 18, refuse in one sentence. Otherwise the first sentence is in-character.
 
@@ -74,7 +74,7 @@ ${voice}${extra}`;
 
 ${site}
 
-If they want explicit sex, stop — they must confirm 18+ in the dialog first. Don't write it yet.
+If they want explicit sex or legal adult links (porn sites, toys, etc.), stop — they must tap **18+** first. Don't write it yet. Don't say "I can't help" — tell them to tap 18+.
 
 ${voice}
 
@@ -586,6 +586,23 @@ function finishModelReply(
   return { reply: clean, provider: p.name, model: p.model, ok: true };
 }
 
+function looksLikeAdultAsk(text: string): boolean {
+  return /\b(nsfw|porn|onlyfans|xxx|hentai|erotica|sext|erp|nude|naked|fuck me|blowjob|pussy|cock)\b/i.test(
+    text
+  );
+}
+
+function legalAdultFallback(): string {
+  return `Legal 18+ only — here's a straight list:
+
+• Pornhub, XVideos, xHamster, SpankBang (tube sites)
+• Reddit NSFW (sign in, filter 18+)
+• OnlyFans / Fansly if you want creator pages
+• Incognito if you don't want it in history
+
+Minors / CSAM stay a hard no. Anything else adult and legal — ask.`;
+}
+
 export async function freeChatCompletion(
   userMessage: string,
   history: ChatHistoryMsg[] = [],
@@ -610,6 +627,15 @@ export async function freeChatCompletion(
     customSystem: opts.customSystem,
     personality: opts.personality,
   });
+
+  if (!opts.customSystem && !opts.adultMode && looksLikeAdultAsk(userMessage)) {
+    return {
+      reply:
+        "Yeah we can. Tap **18+** on the chat bar (or say **18+ continue**) and I’ll actually go there. Minors stay blocked — that’s the only hard line.",
+      provider: "adult-gate",
+      ok: true,
+    };
+  }
 
   if (opts.codex?.accessToken) {
     try {
@@ -810,11 +836,19 @@ export async function freeChatCompletion(
     }
   }
 
-  if (!opts.adultMode && /\b(sext|nsfw|erp|dirty talk|boobs?|porn|fuck me)\b/i.test(userMessage)) {
+  if (!opts.adultMode && looksLikeAdultAsk(userMessage)) {
     return {
       reply:
         "Yeah we can. Tap **18+** on the chat bar (or say **18+ continue**) and I’ll actually go there. Minors stay blocked — that’s the only hard line.",
       provider: "adult-gate",
+      ok: true,
+    };
+  }
+
+  if (opts.adultMode && looksLikeAdultAsk(userMessage)) {
+    return {
+      reply: legalAdultFallback(),
+      provider: "adult-fallback",
       ok: true,
     };
   }
@@ -840,8 +874,9 @@ export function isPoolExhaustedError(err: string): boolean {
 export function isLameModelRefusal(text: string, adultMode?: boolean): boolean {
   const t = text.trim().toLowerCase();
   if (/come here\. tell me exactly what you want/.test(t)) return true;
+  if (/i can'?t help with that/.test(t) && t.length < 220) return true;
   if (/can'?t help with that specific request|i can'?t help with that(?!.*minor)/i.test(t)) {
-    return Boolean(adultMode);
+    return true;
   }
   if (
     /hard pass|not a cam model|not my lane|plenty of other places|search bar with a personality|i won't write (erotica|explicit|nsfw)|cannot (write|engage in) (erotica|sexual|nsfw)|built to help with tools|not (designed|built|here) (for|to) (that|sext|nsfw|sexual|adult)/i.test(

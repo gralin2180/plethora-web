@@ -222,34 +222,7 @@ export function AiAppMaker() {
   }
 
   if (phase === "building") {
-    return (
-      <div className="overflow-hidden rounded-2xl border border-violet-500/40 bg-[#070712]">
-        <div className="relative overflow-hidden border-b border-white/10 px-4 py-6">
-          <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(600px_200px_at_20%_0%,rgba(139,92,246,.35),transparent)]" />
-          <p className="relative text-xs font-semibold uppercase tracking-[0.2em] text-violet-300">
-            Compiling
-          </p>
-          <p className="relative mt-1 text-lg font-semibold text-white">{buildStep}…</p>
-          <p className="relative mt-1 text-xs text-zinc-500">
-            Not Chat — you should see structure appear below as the model writes.
-          </p>
-          <div className="relative mt-4 flex gap-2">
-            {["Clock", "Tasks", "Remind", "Focus", "Export"].map((s, i) => (
-              <span
-                key={s}
-                className="rounded-full border border-cyan-400/30 bg-cyan-400/10 px-2.5 py-1 text-[10px] text-cyan-100"
-                style={{ opacity: 0.45 + (i % 5) * 0.1 }}
-              >
-                {s}
-              </span>
-            ))}
-          </div>
-        </div>
-        <pre className="max-h-[360px] overflow-auto bg-black/50 p-4 font-mono text-[11px] leading-relaxed text-emerald-300/90">
-          {buildLog || "// waiting for first tokens…"}
-        </pre>
-      </div>
-    );
+    return <CompileTheater log={buildLog} step={buildStep} />;
   }
 
   if (phase === "studio") {
@@ -466,6 +439,60 @@ export function AiAppMaker() {
           Request a tool
         </Link>
       </p>
+    </div>
+  );
+}
+
+const FAKE_LINES = [
+  "<!DOCTYPE html>",
+  "<header> live clock + date strip </header>",
+  "grid: tasks | focus | reminders",
+  "localStorage persist…",
+  "Notification.requestPermission()",
+  "timer presets 15 / 25 / 50",
+  "export .ics for phone calendar",
+];
+
+function CompileTheater({ log, step }: { log: string; step: string }) {
+  const [tick, setTick] = useState(0);
+  useEffect(() => {
+    const id = window.setInterval(() => setTick((n) => n + 1), 650);
+    return () => window.clearInterval(id);
+  }, []);
+  const shown = FAKE_LINES.slice(0, Math.min(FAKE_LINES.length, 2 + (tick % 8)));
+  const bits = ["Clock", "Tasks", "Remind", "Focus", "Stats", ".ics"];
+  const active = tick % bits.length;
+
+  return (
+    <div className="overflow-hidden rounded-2xl border border-violet-500/40 bg-[#070712]">
+      <div className="grid gap-4 p-4 sm:grid-cols-2">
+        <div>
+          <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-violet-300">
+            Building
+          </p>
+          <p className="mt-1 text-lg font-semibold text-white">{step}</p>
+          <ul className="mt-3 space-y-1.5 text-xs text-zinc-400">
+            {bits.map((b, i) => (
+              <li key={b} className={i <= active ? "text-cyan-200" : ""}>
+                {i <= active ? "●" : "○"} {b}
+                {i === active ? " ← now" : i < active ? " done" : ""}
+              </li>
+            ))}
+          </ul>
+        </div>
+        <div className="rounded-xl border border-white/10 bg-black/50 p-3">
+          <p className="text-[10px] uppercase tracking-wide text-zinc-500">Preview skeleton</p>
+          <div className="mt-2 h-8 animate-pulse rounded-lg bg-violet-500/20" />
+          <div className="mt-2 grid grid-cols-2 gap-2">
+            <div className="h-20 rounded-lg border border-cyan-500/20 bg-cyan-500/10" />
+            <div className="h-20 rounded-lg border border-amber-500/20 bg-amber-500/10" />
+          </div>
+          <p className="mt-2 text-[10px] text-zinc-600">Layout filling in while tokens arrive</p>
+        </div>
+      </div>
+      <pre className="max-h-[280px] overflow-auto border-t border-white/10 bg-black/60 p-4 font-mono text-[11px] leading-relaxed text-emerald-300/90">
+        {log.trim() ? log : shown.map((l) => `// ${l}`).join("\n")}
+      </pre>
     </div>
   );
 }
