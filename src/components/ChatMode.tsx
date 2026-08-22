@@ -37,6 +37,7 @@ import {
   Bot,
   Paperclip,
   Pencil,
+  Trash2,
   X,
 } from "lucide-react";
 import {
@@ -115,7 +116,7 @@ export function ChatMode({
     } catch {
       /* ignore */
     }
-    void fetch("/api/chat")
+                void fetch("/api/chat", { credentials: "include" })
       .then((r) => r.json())
       .then(
         (d: {
@@ -490,6 +491,15 @@ export function ChatMode({
             }`}
           >
             {adultSession ? "18+ on" : "18+"}
+          </button>
+          <button
+            type="button"
+            title="Clear this chat"
+            onClick={clearChat}
+            className="ml-auto shrink-0 inline-flex items-center gap-1 rounded-full border border-white/10 px-2.5 py-1 text-[11px] text-zinc-400 hover:border-red-500/40 hover:text-red-200"
+          >
+            <Trash2 className="h-3 w-3" />
+            Clear
           </button>
         </div>
         <div className="flex-1 space-y-4 overflow-y-auto p-4 sm:p-5">

@@ -33,8 +33,8 @@ export function laneMaxAttempts(_lane: ChatLane): number {
 }
 
 export function laneMaxTokens(lane: ChatLane, hot?: boolean): number {
-  if (lane === "premium" || lane === "byok") return hot ? 280 : 420;
-  return hot ? 140 : 200;
+  if (lane === "premium" || lane === "byok") return hot ? 480 : 720;
+  return hot ? 360 : 640;
 }
 
 export function laneHistoryTurns(lane: ChatLane): number {

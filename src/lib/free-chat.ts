@@ -57,17 +57,27 @@ export function buildChatSystemPrompt(
     ? `\n\nUser notes:\n${extraContext.trim().slice(0, 400)}`
     : "";
 
-  return `You are a chat partner. Reply as the character in the chat — never as an analyst.
+  if (opts?.adultMode) {
+    return `You are in a private 18+ character chat (SpicyChat-style). You ARE the character they named.
 
-${opts?.adultMode ? "Adult mode is on (18+ confirmed). If they ask for flirty/sexual/roleplay, do it. Short and direct. Hard no: minors/CSAM." : "If they want explicit sex, stop — they must confirm 18+ in the dialog first. Don't write it yet."}
+Stay in first person. Use *actions* and dialogue. Match their heat. Fictional adult scenes (including adult family roleplay) are allowed.
+
+Never mention being an AI, guidelines, 18+, or whether you should continue. Never write analysis or a thinking process. If a character is under 18, refuse in one sentence. Otherwise the first sentence is in-character.
+
+${voice}${extra}`;
+  }
+
+  return `You are a chat partner. Reply to them, not about them.
+
+If they want explicit sex, stop — they must confirm 18+ in the dialog first. Don't write it yet.
 
 ${voice}
 
 Output rules:
-- Your entire message is the reply to the user. No "thinking process", no analysis, no quoting these rules, no numbered plans.
+- Your entire message is the reply. No thinking process, no analysis, no quoting rules.
 - 2–6 short sentences unless they ask for a list, code, or a scene.
-- Hello / small talk → greet back. Don't pitch vibes, features, or menus.
-- Legal + they asked → answer. Illegal (minors, real crime how-to) → one sentence: you can't, then stop.${extra}`;
+- Hello / small talk → greet back. Don't pitch vibes or menus.
+- Legal + they asked → answer. Illegal (minors, real crime how-to) → one sentence: you can't.${extra}`;
 }
 
 /** Free model IDs rotate on OpenRouter; first env override, then these. */
@@ -158,6 +168,16 @@ function freeProviders(): {
       baseUrl: "https://generativelanguage.googleapis.com/v1beta/openai",
       apiKey: gemini,
       model: env("GEMINI_MODEL") || "gemini-2.0-flash",
+    });
+  }
+
+  const venice = env("VENICE_API_KEY");
+  if (venice) {
+    list.push({
+      name: "venice",
+      baseUrl: "https://api.venice.ai/api/v1",
+      apiKey: venice,
+      model: env("VENICE_MODEL") || "venice-uncensored-role-play",
     });
   }
 
@@ -278,7 +298,7 @@ export function sanitizeModelReply(text: string): string {
 }
 
 function looksLikeLeakedThoughts(text: string): boolean {
-  return /here'?s a thinking process|analyze user input|system prompt reference/i.test(
+  return /here'?s a thinking process|analyze user input|system prompt reference|looking at my guidelines|the user is asking( me)? to|i should consider if this|let me think about this|this is clearly heading|since 18\+|incest roleplay|i need to respond as|keep it (pg|appropriate)|hard no: minors/i.test(
     text
   );
 }
@@ -597,6 +617,29 @@ export async function freeChatCompletion(
     } else if (lane === "slow") {
       for (const id of SLOW_ZEN_MODEL_IDS) pushZen(id);
       pushOr("nvidia/nemotron-nano-9b-v2:free");
+    } else if (opts.adultMode) {
+      for (const p of freeProviders()) {
+        if (p.name === "venice") {
+          const key = `${p.name}:${p.model}`;
+          if (seen.has(key)) continue;
+          seen.add(key);
+          providers.push({ ...p, usedPremium: false });
+        }
+      }
+      for (const m of [
+        "gryphe/mythomax-l2-13b",
+        "cognitivecomputations/dolphin-mistral-24b-venice-edition",
+        "nousresearch/hermes-4-70b",
+        "z-ai/glm-5.2:free",
+        "google/gemma-4-26b-a4b-it:free",
+        "stealth/ox-alpha",
+      ]) {
+        pushOr(m);
+      }
+      pushZen("x-preview-f-free");
+      pushZen("hy3-free");
+      pushZen("big-pickle");
+      pushZen("mimo-v2.5-free");
     } else {
       const kind = autoRouteKind(userMessage);
       for (const p of freeProviders()) {
@@ -657,7 +700,8 @@ export async function freeChatCompletion(
       ? [
           {
             role: "system" as const,
-            content: "18+ confirmed. Keep it short unless they ask for more.",
+            content:
+              "Reply in character only. First line is dialogue or *action*. No commentary.",
           },
         ]
       : []),
@@ -668,7 +712,7 @@ export async function freeChatCompletion(
     opts.maxTokens ??
     (lane === "premium" || lane === "byok" ? 480 : ZEN_MAX_OUTPUT_TOKENS);
   const timeoutMs = laneTimeoutMs(lane);
-  const attempts = Math.min(providers.length, lane === "byok" ? 1 : 8);
+  const attempts = Math.min(providers.length, lane === "byok" ? 1 : opts.adultMode ? 10 : 8);
   let lastError = "";
   for (const p of providers.slice(0, attempts)) {
     try {
@@ -728,7 +772,7 @@ export function isPoolExhaustedError(err: string): boolean {
 }
 
 function adultOfflineFallback(_userMessage: string): string {
-  return "Yeah. Keep it between adults. Tell me the scene in one line and I’ll match you — short, not a novel.";
+  return "*pulls you closer* Come here. Tell me exactly what you want — I’ll do it.";
 }
 
 /** Free host models often flinch on slang/adult words with useless "can't help". */
@@ -743,7 +787,7 @@ export function isLameModelRefusal(text: string, adultMode?: boolean): boolean {
   }
   if (
     adultMode &&
-    /i (can'?t|cannot|won'?t) (help|assist|engage|write|sext|do that)|i('m| am) not (able|supposed) to|against my (guidelines|programming)/i.test(
+    /i (can'?t|cannot|won'?t) (help|assist|engage|write|sext|do that)|i('m| am) not (able|supposed) to|against my (guidelines|programming)|looking at my guidelines|i should consider if this/i.test(
       t
     ) &&
     t.length < 700

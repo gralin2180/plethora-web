@@ -7,25 +7,37 @@ function splitEmails(raw: string | undefined): string[] {
     .filter((s) => s.includes("@"));
 }
 
-function envEmailList(): string[] {
+export function envDevEmailList(): string[] {
   return [
     ...splitEmails(process.env.PLETHORA_DEV_EMAILS),
+    ...splitEmails(process.env.PLETHORA_DEV_EMAIL),
+    ...splitEmails(process.env.DEV_EMAIL),
+    ...splitEmails(process.env.DEV_EMAILS),
+    ...splitEmails(process.env.OWNER_EMAIL),
     ...splitEmails(process.env.ADMIN_EMAIL),
     ...splitEmails(process.env.ADMIN_EMAILS),
     ...splitEmails(process.env.PLETHORA_ADMIN_EMAIL),
   ];
 }
 
+function envEmailList(): string[] {
+  return envDevEmailList();
+}
+
 export function emailsFromAuthUser(user: User | null | undefined): string[] {
   if (!user) return [];
   const out = new Set<string>();
-  if (user.email) out.add(user.email.trim().toLowerCase());
+  const add = (v: unknown) => {
+    if (typeof v === "string" && v.includes("@")) out.add(v.trim().toLowerCase());
+  };
+  add(user.email);
+  const meta = (user.user_metadata || {}) as Record<string, unknown>;
+  add(meta.email);
+  add(meta.preferred_username);
   for (const id of user.identities || []) {
     const d = (id.identity_data || {}) as Record<string, unknown>;
-    for (const k of ["email", "preferred_username"]) {
-      const v = d[k];
-      if (typeof v === "string" && v.includes("@")) out.add(v.trim().toLowerCase());
-    }
+    add(d.email);
+    add(d.preferred_username);
   }
   return [...out];
 }

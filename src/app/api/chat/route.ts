@@ -24,7 +24,7 @@ import {
   withPlatformFreeSlot,
 } from "@/lib/free-tier-guard";
 import { recordPremiumUse } from "@/lib/billing-activate";
-import { emailsFromAuthUser, isDevUnrestricted } from "@/lib/dev-access";
+import { emailsFromAuthUser, envDevEmailList, isDevUnrestricted } from "@/lib/dev-access";
 
 const ANON_COOKIE = "Plethora_anon_id";
 const PROFILE_ENT_COLS =
@@ -69,6 +69,7 @@ export async function GET() {
       userId: user?.id,
       emails: emailsFromAuthUser(user),
     }),
+    devAllowlistConfigured: envDevEmailList().length > 0,
     requiresAuth: false,
     guestDailyLimit: platformChatDailyLimit("guest"),
     freeDailyLimit: platformChatDailyLimit("free"),
