@@ -346,6 +346,7 @@ export async function generateAssistantReply(
     adultConsent?: boolean;
     personality?: ChatPersonalityId | null;
     onDelta?: (chunk: string) => void;
+    quality?: import("./chat-quality").ChatQuality;
   }
 ): Promise<string> {
   const text = userText.trim();
@@ -369,6 +370,7 @@ export async function generateAssistantReply(
       adultConsent: true,
       personality,
       onDelta: opts?.onDelta,
+      quality: opts?.quality,
     });
     if (llm) return llm;
   }
@@ -381,6 +383,7 @@ export async function generateAssistantReply(
     adultConsent: opts?.adultConsent,
     personality,
     onDelta: opts?.onDelta,
+    quality: opts?.quality,
   });
   if (llm) return llm;
 
@@ -426,6 +429,7 @@ async function tryLlm(
     adultConsent?: boolean;
     personality?: ChatPersonalityId | null;
     onDelta?: (chunk: string) => void;
+    quality?: import("./chat-quality").ChatQuality;
   }
 ): Promise<string | null> {
   const learner = learnerBundle();
@@ -455,6 +459,7 @@ async function tryLlm(
         learnerContext: learner,
         adultConsent: opts?.adultConsent,
         personality,
+        quality: opts?.quality,
         ...auth,
         history: prior,
       }),
@@ -559,6 +564,7 @@ export type ServerChatOpts = {
   lane?: import("./ai-lanes").ChatLane;
   onDelta?: (chunk: string) => void;
   unrestricted?: boolean;
+  quality?: import("./chat-quality").ChatQuality;
 };
 
 /** Server-side entry used by /api/chat */
@@ -598,6 +604,7 @@ export async function generateAssistantReplyServer(
       lane: opts?.lane,
       onDelta: opts?.onDelta,
       unrestricted: opts?.unrestricted,
+      quality: opts?.quality,
     });
     if (llm.ok) return { reply: llm.reply, source: llm.provider, usedPremium: llm.usedPremium };
     if (llm.code === "pool_exhausted") {
@@ -623,6 +630,7 @@ export async function generateAssistantReplyServer(
     lane: opts?.lane,
     onDelta: opts?.onDelta,
     unrestricted: opts?.unrestricted,
+    quality: opts?.quality,
   };
 
   const llm = await freeChatCompletion(text, history, chatOpts);

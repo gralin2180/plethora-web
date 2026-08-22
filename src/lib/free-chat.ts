@@ -5,16 +5,13 @@ import {
 } from "./chat-personality";
 import { premiumModelList, primaryPremiumModel } from "./premium-models";
 import {
-  OPENCODE_ZEN_FREE_MODELS,
-  OPENROUTER_FREE_MODELS,
   SLOW_ZEN_MODEL_IDS,
   ZEN_BASE_URL,
-  ZEN_MAX_OUTPUT_TOKENS,
   autoRouteKind,
   zenFreeModel,
 } from "./free-models";
+import { parseChatQuality, qualityBudget, type ChatQuality, type RouteKind } from "./chat-quality";
 import {
-  laneHistoryTurns,
   laneTimeoutMs,
   type ChatLane,
 } from "./ai-lanes";
@@ -88,6 +85,68 @@ const OPENROUTER_FREE_FALLBACKS = [
   "nvidia/nemotron-nano-9b-v2:free",
   "google/gemma-4-31b-it:free",
 ];
+
+function modelsFor(kind: RouteKind, q: ChatQuality): {
+  or: string[];
+  zen: string[];
+  groq: boolean;
+  venice: boolean;
+} {
+  const hermes = "nousresearch/hermes-4-70b";
+  const mytho = "gryphe/mythomax-l2-13b";
+  const dolphin = "cognitivecomputations/dolphin-mistral-24b-venice-edition";
+  const glm = "z-ai/glm-5.2:free";
+  const gemma = "google/gemma-4-26b-a4b-it:free";
+  const gemma31 = "google/gemma-4-31b-it:free";
+  const lightning = "nvidia/nemotron-3.5-lightning:free";
+  const laguna = "poolside/laguna-s-2.1:free";
+  const north = "cohere/north-mini-code:free";
+
+  if (kind === "adult") {
+    if (q === "fast") {
+      return { or: [mytho, dolphin, glm], zen: ["x-preview-f-free"], groq: false, venice: true };
+    }
+    if (q === "best") {
+      return { or: [dolphin, hermes, mytho, glm], zen: ["x-preview-f-free"], groq: false, venice: true };
+    }
+    return { or: [dolphin, mytho, glm], zen: ["x-preview-f-free"], groq: false, venice: true };
+  }
+  if (kind === "code") {
+    if (q === "fast") {
+      return { or: [north, laguna, glm], zen: ["laguna-s-2.1-free"], groq: true, venice: false };
+    }
+    if (q === "best") {
+      return { or: [hermes, laguna, north, glm], zen: ["laguna-s-2.1-free"], groq: true, venice: false };
+    }
+    return { or: [laguna, north, glm], zen: ["laguna-s-2.1-free"], groq: true, venice: false };
+  }
+  if (kind === "vision") {
+    return { or: [gemma, gemma31], zen: [], groq: false, venice: false };
+  }
+  if (kind === "long") {
+    if (q === "best") {
+      return { or: [hermes, glm, gemma31], zen: ["nemotron-3-ultra-free"], groq: false, venice: false };
+    }
+    return { or: [glm, gemma], zen: ["nemotron-3-ultra-free"], groq: true, venice: false };
+  }
+  if (q === "fast") {
+    return {
+      or: [glm, lightning, mytho],
+      zen: ["nemotron-3.5-lightning-free"],
+      groq: true,
+      venice: false,
+    };
+  }
+  if (q === "best") {
+    return { or: [hermes, glm, gemma31], zen: ["x-preview-f-free"], groq: true, venice: false };
+  }
+  return {
+    or: [glm, gemma, lightning],
+    zen: ["nemotron-3.5-lightning-free", "x-preview-f-free"],
+    groq: true,
+    venice: false,
+  };
+}
 
 function env(name: string): string | undefined {
   return process.env[name]?.trim() || undefined;
@@ -243,6 +302,7 @@ export type FreeChatOpts = {
   lane?: ChatLane;
   onDelta?: (chunk: string) => void;
   unrestricted?: boolean;
+  quality?: ChatQuality;
 };
 
 export function hasZenProvider(): boolean {
@@ -617,62 +677,42 @@ export async function freeChatCompletion(
     } else if (lane === "slow") {
       for (const id of SLOW_ZEN_MODEL_IDS) pushZen(id);
       pushOr("nvidia/nemotron-nano-9b-v2:free");
-    } else if (opts.adultMode) {
-      for (const p of freeProviders()) {
-        if (p.name === "venice") {
-          const key = `${p.name}:${p.model}`;
-          if (seen.has(key)) continue;
-          seen.add(key);
-          providers.push({ ...p, usedPremium: false });
-        }
-      }
-      for (const m of [
-        "gryphe/mythomax-l2-13b",
-        "cognitivecomputations/dolphin-mistral-24b-venice-edition",
-        "z-ai/glm-5.2:free",
-      ]) {
-        pushOr(m);
-      }
-      pushZen("x-preview-f-free");
     } else {
-      const kind = autoRouteKind(userMessage);
-      for (const p of freeProviders()) {
-        if (p.name === "groq" || p.name === "gemini") {
-          const key = `${p.name}:${p.model}`;
-          if (seen.has(key)) continue;
-          seen.add(key);
-          providers.push({ ...p, usedPremium: false });
+      const quality = parseChatQuality(opts.quality);
+      const routed = autoRouteKind(userMessage);
+      const kind: RouteKind = opts.adultMode
+        ? "adult"
+        : routed === "fast"
+          ? "general"
+          : routed;
+      const plan = modelsFor(kind, quality);
+      if (plan.venice) {
+        for (const p of freeProviders()) {
+          if (p.name === "venice") {
+            const key = `${p.name}:${p.model}`;
+            if (!seen.has(key)) {
+              seen.add(key);
+              providers.push({ ...p, usedPremium: false });
+            }
+          }
         }
       }
-      if (kind === "code") {
-        pushZen("laguna-s-2.1-free");
-        pushOr("cohere/north-mini-code:free");
-        pushOr("poolside/laguna-s-2.1:free");
-      } else if (kind === "vision") {
-        pushOr("google/gemma-4-26b-a4b-it:free");
-        pushOr("google/gemma-4-31b-it:free");
-      } else if (kind === "long") {
-        pushZen("nemotron-3-ultra-free");
+      if (plan.groq) {
+        for (const p of freeProviders()) {
+          if (p.name === "groq" || p.name === "gemini") {
+            const key = `${p.name}:${p.model}`;
+            if (seen.has(key)) continue;
+            seen.add(key);
+            providers.push({ ...p, usedPremium: false });
+          }
+        }
       }
-      pushZen("nemotron-3.5-lightning-free");
-      pushZen("x-preview-f-free");
-      pushOr("openrouter/free");
-      pushOr("inclusionai/ling-3.0-flash:free");
-      pushOr("nvidia/nemotron-3.5-lightning:free");
-      pushOr("openai/gpt-oss-20b:free");
-      for (const m of OPENCODE_ZEN_FREE_MODELS) pushZen(m.id);
-      for (const m of OPENROUTER_FREE_MODELS) pushOr(m.id);
+      for (const m of plan.or) pushOr(m);
+      for (const z of plan.zen) pushZen(z);
     }
   }
 
   if (!providers.length) {
-    if (opts.adultMode) {
-      return {
-        reply: adultOfflineFallback(userMessage),
-        provider: "offline-adult",
-        ok: true,
-      };
-    }
     return {
       reply: "",
       provider: "none",
@@ -681,7 +721,9 @@ export async function freeChatCompletion(
     };
   }
 
-  const histN = laneHistoryTurns(lane);
+  const quality = parseChatQuality(opts.quality);
+  const budget = qualityBudget(quality);
+  const histN = lane === "byok" ? 20 : budget.historyTurns;
   const messages: ChatHistoryMsg[] = [
     {
       role: "system",
@@ -702,11 +744,9 @@ export async function freeChatCompletion(
     { role: "user", content: userMessage },
   ];
 
-  const maxTokens =
-    opts.maxTokens ??
-    (lane === "premium" || lane === "byok" ? 480 : ZEN_MAX_OUTPUT_TOKENS);
-  const timeoutMs = opts.adultMode ? 8_000 : laneTimeoutMs(lane);
-  const attempts = Math.min(providers.length, lane === "byok" ? 1 : opts.adultMode ? 3 : 4);
+  const maxTokens = opts.maxTokens ?? budget.maxTokens;
+  const timeoutMs = lane === "byok" || lane === "premium" ? laneTimeoutMs(lane) : budget.timeoutMs;
+  const attempts = Math.min(providers.length, lane === "byok" ? 1 : budget.attempts);
   let lastError = "";
   for (const p of providers.slice(0, attempts)) {
     try {
@@ -725,15 +765,6 @@ export async function freeChatCompletion(
     } catch (e) {
       lastError = e instanceof Error ? e.message : "network error";
     }
-  }
-
-  // last-resort adult offline snip if models all flinch after consent
-  if (opts.adultMode && /sex|fuck|cock|dick|blow|sext|nsfw|suck|erp|horny|ass|sniff|smell|roleplay|aunt/i.test(userMessage)) {
-    return {
-      reply: adultOfflineFallback(userMessage),
-      provider: "offline-adult",
-      ok: true,
-    };
   }
 
   if (!opts.adultMode && /\b(sext|nsfw|erp|dirty talk|boobs?|porn|fuck me)\b/i.test(userMessage)) {
@@ -765,13 +796,9 @@ export function isPoolExhaustedError(err: string): boolean {
   );
 }
 
-function adultOfflineFallback(_userMessage: string): string {
-  return "*pulls you closer* Come here. Tell me exactly what you want — I’ll do it.";
-}
-
-/** Free host models often flinch on slang/adult words with useless "can't help". */
 export function isLameModelRefusal(text: string, adultMode?: boolean): boolean {
   const t = text.trim().toLowerCase();
+  if (/come here\. tell me exactly what you want/.test(t)) return true;
   if (
     /hard pass|not a cam model|not my lane|plenty of other places|search bar with a personality|i won't write (erotica|explicit|nsfw)|cannot (write|engage in) (erotica|sexual|nsfw)|built to help with tools|not (designed|built|here) (for|to) (that|sext|nsfw|sexual|adult)/i.test(
       t

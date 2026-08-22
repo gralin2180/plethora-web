@@ -33,6 +33,14 @@ import {
   type ChatPersonalityId,
 } from "@/lib/chat-personality";
 import {
+  loadChatQuality,
+  qualityFromIndex,
+  qualityIndex,
+  qualityLabel,
+  saveChatQuality,
+  type ChatQuality,
+} from "@/lib/chat-quality";
+import {
   Loader2,
   Send,
   Sparkles,
@@ -79,6 +87,7 @@ export function ChatMode({
   const [personality, setPersonality] = useState<ChatPersonalityId | null>(null);
   const [pickingPersonality, setPickingPersonality] = useState(false);
   const [adultSession, setAdultSession] = useState(false);
+  const [quality, setQuality] = useState<ChatQuality>("balanced");
   const [unrestricted, setUnrestricted] = useState(false);
   const [pendingFiles, setPendingFiles] = useState<PreparedChatFile[]>([]);
   const [fileNote, setFileNote] = useState<string | null>(null);
@@ -106,6 +115,7 @@ export function ChatMode({
     try {
       setPersonality(loadChatPersonality());
       setAdultSession(loadAdultSession());
+      setQuality(loadChatQuality());
     } catch {
       /* */
     }
@@ -230,6 +240,7 @@ export function ChatMode({
       const reply = await generateAssistantReply(outbound, next, {
         adultConsent,
         personality,
+        quality,
         onDelta: (chunk) => {
           setMessages((m) =>
             m.map((x) =>
@@ -643,6 +654,15 @@ export function ChatMode({
               Editing a previous prompt — later messages were dropped so the thread stays consistent.
             </p>
           )}
+          <div className="mb-2 flex items-center gap-3 px-0.5">
+            <QualitySlider
+              value={quality}
+              onChange={(q) => {
+                setQuality(q);
+                saveChatQuality(q);
+              }}
+            />
+          </div>
           <div className="flex items-end gap-2">
             <input
               ref={fileRef}
@@ -728,6 +748,34 @@ function MessageBody({ text }: { text: string }) {
         );
       })}
     </div>
+  );
+}
+
+function QualitySlider({
+  value,
+  onChange,
+}: {
+  value: ChatQuality;
+  onChange: (q: ChatQuality) => void;
+}) {
+  return (
+    <label className="flex min-w-0 flex-1 items-center gap-2">
+      <span className="shrink-0 text-[10px] uppercase tracking-wide text-zinc-600">Faster</span>
+      <input
+        type="range"
+        min={0}
+        max={2}
+        step={1}
+        value={qualityIndex(value)}
+        onChange={(e) => onChange(qualityFromIndex(Number(e.target.value)))}
+        className="h-1.5 w-full cursor-pointer accent-violet-500"
+        aria-label="Reply speed versus quality"
+      />
+      <span className="shrink-0 text-[10px] uppercase tracking-wide text-zinc-600">Best</span>
+      <span className="shrink-0 rounded-full border border-white/10 px-2 py-0.5 text-[10px] text-violet-200">
+        {qualityLabel(value)}
+      </span>
+    </label>
   );
 }
 

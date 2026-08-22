@@ -24,6 +24,7 @@ import {
   withPlatformFreeSlot,
 } from "@/lib/free-tier-guard";
 import { recordPremiumUse } from "@/lib/billing-activate";
+import { parseChatQuality, qualityBudget } from "@/lib/chat-quality";
 import { emailsFromAuthUser, envDevEmailList, isDevUnrestricted } from "@/lib/dev-access";
 
 const ANON_COOKIE = "Plethora_anon_id";
@@ -317,6 +318,8 @@ export async function POST(request: Request) {
       );
     }
     const maxTokens = laneMaxTokens(lane, freeLoadResult.load === "hot");
+    const quality = parseChatQuality(body.quality);
+    const budget = qualityBudget(quality);
 
     const wantStream = Boolean(body.stream);
     const chatOpts = {
@@ -336,11 +339,12 @@ export async function POST(request: Request) {
         typeof body.customSystem === "string" ? body.customSystem.slice(0, 6000) : undefined,
       personality: isChatPersonalityId(body.personality) ? body.personality : undefined,
       preferPremium,
-      maxTokens,
+      maxTokens: lane === "premium" || lane === "byok" ? maxTokens : budget.maxTokens,
       preferredModel,
       preferredSource,
       lane,
       unrestricted,
+      quality,
     };
 
     if (wantStream) {
