@@ -61,6 +61,24 @@ import {
   RegexLab,
 } from "@/components/DomainToolLabs";
 import {
+  DcaLab,
+  KellyLab,
+  LeverageLiqLab,
+  PipLab,
+  TradePnlLab,
+} from "@/components/TradingCalcLabs";
+import {
+  Base64Lab,
+  ContrastLab,
+  HashLab,
+  ImageCompressLab,
+  LoremLab,
+  TextDiffLab,
+  TimestampLab,
+  UnitLab,
+  UrlEncodeLab,
+} from "@/components/DemandToolLabs";
+import {
   ExcelHubLab,
   PdfToDocLab,
   PdfToImagesLab,
@@ -126,7 +144,21 @@ export type FreeRunnerKind =
   | "percentage-calc"
   | "custom-assistant"
   | "password-generator"
-  | "regex-helper";
+  | "regex-helper"
+  | "trade-pnl"
+  | "leverage-liq"
+  | "dca-calculator"
+  | "pip-calculator"
+  | "kelly-sizer"
+  | "timestamp-converter"
+  | "base64-coder"
+  | "hash-generator"
+  | "url-encoder"
+  | "color-contrast"
+  | "unit-converter"
+  | "image-compress"
+  | "lorem-ipsum"
+  | "text-diff";
 
 export function FreeToolRunner({ kind, title }: { kind: FreeRunnerKind; title: string }) {
   const [status, setStatus] = useState("");
@@ -320,6 +352,20 @@ export function FreeToolRunner({ kind, title }: { kind: FreeRunnerKind; title: s
   if (kind === "percentage-calc") return <PercentageLab />;
   if (kind === "password-generator") return <PasswordLab />;
   if (kind === "regex-helper") return <RegexLab />;
+  if (kind === "trade-pnl") return <TradePnlLab />;
+  if (kind === "leverage-liq") return <LeverageLiqLab />;
+  if (kind === "dca-calculator") return <DcaLab />;
+  if (kind === "pip-calculator") return <PipLab />;
+  if (kind === "kelly-sizer") return <KellyLab />;
+  if (kind === "timestamp-converter") return <TimestampLab />;
+  if (kind === "base64-coder") return <Base64Lab />;
+  if (kind === "hash-generator") return <HashLab />;
+  if (kind === "url-encoder") return <UrlEncodeLab />;
+  if (kind === "color-contrast") return <ContrastLab />;
+  if (kind === "unit-converter") return <UnitLab />;
+  if (kind === "image-compress") return <ImageCompressLab />;
+  if (kind === "lorem-ipsum") return <LoremLab />;
+  if (kind === "text-diff") return <TextDiffLab />;
 
   if (kind === "doc-converter") {
     return (

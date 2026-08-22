@@ -233,6 +233,11 @@ export function ToolsGrid() {
     }
 
     if (category !== "All") list = list.filter((t) => t.category === category);
+    if (tab === "all") {
+      list = [...list].sort((a, b) =>
+        a.name.localeCompare(b.name, undefined, { sensitivity: "base" })
+      );
+    }
     return list;
   }, [category, q, tab, tick]);
 

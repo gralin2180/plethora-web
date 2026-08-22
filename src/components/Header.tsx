@@ -23,86 +23,35 @@ type NavItem = {
   accent?: "local" | "hardcore";
 };
 
-/** Primary destinations — keep scannable */
+/** Primary: the rooms people live in. Everything else is More. */
 const PRIMARY: NavItem[] = [
-  { href: "/get-started", label: "Connect", tour: "nav-get-started" },
-  { href: "/chat", label: "Chat", tour: "nav-chat" },
-  { href: "/spicy", label: "Spicy", tour: "nav-spicy", hint: "18+ chat" },
   { href: "/tools", label: "Tools", tour: "nav-tools" },
+  { href: "/chat", label: "Chat", tour: "nav-chat" },
   { href: "/local-llms", label: "Local", tour: "nav-backends", accent: "local" },
   { href: "/projects", label: "Projects", tour: "nav-projects" },
 ];
 
 const MORE: NavItem[] = [
-  { href: "/prompt-assistant", label: "Prompts", tour: "nav-prompt", hint: "Turn a messy goal into a prompt" },
-  { href: "/ai-finder", label: "Finder", tour: "nav-ai-finder", hint: "Find a tool for a task" },
-  { href: "/mcp", label: "MCP", tour: "nav-mcp", hint: "Agent tools" },
   { href: "/about", label: "About", tour: "nav-about" },
-  { href: "/design", label: "Design", tour: "nav-design", hint: "How AI routing works" },
+  { href: "/settings/ai-keys", label: "AI keys (BYOK)", tour: "nav-byok", hint: "Your OpenRouter key" },
+  { href: "/settings/billing", label: "Billing & AI", tour: "nav-billing", hint: "Pro, try packs, limits" },
+  { href: "/get-started", label: "Connect AI", tour: "nav-get-started", hint: "Logins you already pay for" },
+  { href: "/connect", label: "Connect apps", tour: "nav-connect", hint: "Canva, Slack, Figma…" },
+  { href: "/ai-finder", label: "Finder", tour: "nav-ai-finder", hint: "Find a tool for a task" },
+  { href: "/hardcore", label: "Hardcore", tour: "nav-hardcore", hint: "Full access tier", accent: "hardcore" },
+  { href: "/install", label: "Install Hub", tour: "nav-install", hint: "Apps & local stack" },
+  { href: "/learn", label: "Learn AI", tour: "nav-learn", hint: "Practical lessons" },
+  { href: "/settings/backends", label: "Local backends", tour: "nav-local-settings", hint: "Ollama URL on this PC", accent: "local" },
+  { href: "/mcp", label: "MCP", tour: "nav-mcp", hint: "Agent tools" },
+  { href: "/tools?category=Marketing%20%26%20Ads", label: "Marketing tools", tour: "nav-marketing", hint: "Ads, email, SEO" },
+  { href: "/settings/personal", label: "Personal context", tour: "nav-personal", hint: "What the assistant should know" },
   { href: "/pricing", label: "Pricing", tour: "nav-pricing" },
-  {
-    href: "/settings/billing",
-    label: "Billing & AI",
-    tour: "nav-billing",
-    hint: "Pro, try packs, usage limits",
-  },
-  {
-    href: "/settings/ai-keys",
-    label: "AI keys (BYOK)",
-    tour: "nav-byok",
-    hint: "Your OpenRouter key — unlimited",
-  },
-  {
-    href: "/connect",
-    label: "Connect apps",
-    tour: "nav-connect",
-    hint: "Canva, Slack, Figma, Notion…",
-  },
-  {
-    href: "/learn",
-    label: "Learn AI",
-    tour: "nav-learn",
-    hint: "Practical lessons for any level",
-  },
-  {
-    href: "/install",
-    label: "Install Hub",
-    tour: "nav-install",
-    hint: "Apps & local stack",
-  },
-  {
-    href: "/settings/backends",
-    label: "Local AI backends",
-    tour: "nav-backends",
-    hint: "Install Ollama, OpenClaw, Odysseus…",
-    accent: "local",
-  },
-  {
-    href: "/settings/personal",
-    label: "Personal context",
-    tour: "nav-personal",
-    hint: "What the assistant should know",
-  },
-  {
-    href: "/tools?category=Trading",
-    label: "Trading tools",
-    tour: "nav-trading",
-    hint: "Position size, journals, briefs",
-  },
-  {
-    href: "/tools?category=Marketing%20%26%20Ads",
-    label: "Marketing tools",
-    tour: "nav-marketing",
-    hint: "Ads, email, SEO, calendars",
-  },
-  {
-    href: "/hardcore",
-    label: "Hardcore",
-    tour: "nav-hardcore",
-    hint: "Full access tier",
-    accent: "hardcore",
-  },
-];
+  { href: "/prompt-assistant", label: "Prompts", tour: "nav-prompt", hint: "Messy goal → prompt" },
+  { href: "/spicy", label: "Spicy chat (18+)", tour: "nav-spicy", hint: "Adult companion landing" },
+  { href: "/tools?category=Trading", label: "Trading tools", tour: "nav-trading", hint: "P&L, liq, pip, Kelly" },
+] as NavItem[];
+
+MORE.sort((a, b) => a.label.localeCompare(b.label, undefined, { sensitivity: "base" }));
 
 function linkTone(href: string, pathname: string, accent?: NavItem["accent"]) {
   const active = pathname === href || (href !== "/" && pathname.startsWith(href));
@@ -220,7 +169,9 @@ export function Header({ user = null }: { user?: SupaUser | null }) {
                     onClick={() => setMoreOpen(false)}
                     className={`block rounded-lg px-3 py-2 transition hover:bg-white/5 ${linkTone(item.href, pathname, item.accent)}`}
                   >
-                    <span className="block text-sm font-medium">{item.label}</span>
+                    <span className="block text-sm font-medium">
+                      {item.href === "/get-started" ? aiHubLabel : item.label}
+                    </span>
                     {item.hint && (
                       <span className="mt-0.5 block text-[11px] font-normal text-zinc-500">
                         {item.hint}
@@ -244,14 +195,6 @@ export function Header({ user = null }: { user?: SupaUser | null }) {
             <Map className="h-3.5 w-3.5" />
             Tour
           </button>
-          <Link
-            href="/local-llms"
-            className="hidden items-center gap-1.5 rounded-lg border border-cyan-500/35 bg-cyan-500/10 px-2.5 py-1.5 text-sm font-medium text-cyan-200 hover:bg-cyan-500/20 lg:inline-flex"
-            title="Add, create, and train local models"
-          >
-            <HardDrive className="h-3.5 w-3.5" />
-            Local AI
-          </Link>
           <UserMenu user={user} />
           <button
             type="button"
@@ -303,7 +246,9 @@ export function Header({ user = null }: { user?: SupaUser | null }) {
                 data-tour={item.tour}
                 className={`block rounded-lg px-3 py-2.5 text-sm ${linkTone(item.href, pathname, item.accent)}`}
               >
-                <span className="font-medium">{item.label}</span>
+                <span className="font-medium">
+                  {item.href === "/get-started" ? aiHubLabel : item.label}
+                </span>
                 {item.hint && (
                   <span className="mt-0.5 block text-[11px] font-normal text-zinc-500">
                     {item.hint}
@@ -391,11 +336,6 @@ export function Footer() {
               <li>
                 <Link href="/learn" className="hover:text-white">
                   Learn AI
-                </Link>
-              </li>
-              <li>
-                <Link href="/design" className="hover:text-white">
-                  Design
                 </Link>
               </li>
             </ul>

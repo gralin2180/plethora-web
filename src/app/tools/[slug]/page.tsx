@@ -67,6 +67,20 @@ const FREE_RUNNERS = new Set<string>([
   "custom-assistant",
   "password-generator",
   "regex-helper",
+  "trade-pnl",
+  "leverage-liq",
+  "dca-calculator",
+  "pip-calculator",
+  "kelly-sizer",
+  "timestamp-converter",
+  "base64-coder",
+  "hash-generator",
+  "url-encoder",
+  "color-contrast",
+  "unit-converter",
+  "image-compress",
+  "lorem-ipsum",
+  "text-diff",
 ]);
 
 const APP_REDIRECTS: Record<string, string> = {

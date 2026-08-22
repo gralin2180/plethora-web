@@ -78,7 +78,21 @@ export default function TermsPage() {
           convenience. We do not control or endorse every listed site or model.
         </p>
 
-        <h2 className="mt-8 text-lg font-semibold text-white">10. Changes</h2>
+        <h2 className="mt-8 text-lg font-semibold text-white">10. Trading & markets</h2>
+        <p className="mt-2">
+          Calculators, journals, briefs, and “trade plans” are educational toys. They are not
+          investment, tax, or trading advice. You can lose money. You will not sue Plethora because a
+          number, model, or prompt was wrong.
+        </p>
+
+        <h2 className="mt-8 text-lg font-semibold text-white">11. Accounts & sign-in</h2>
+        <p className="mt-2">
+          Signing in with email, Google, Apple, GitHub, Discord, or any other provider means you
+          accepted these Terms, the Privacy Policy, and Acceptable Use at the checkbox on the sign-in
+          form. If you do not agree, do not create an account or use the service.
+        </p>
+
+        <h2 className="mt-8 text-lg font-semibold text-white">12. Changes</h2>
         <p className="mt-2">We may update these Terms; continued use means acceptance of the updated Terms.</p>
 
         <p className="mt-10">

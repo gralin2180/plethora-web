@@ -8,7 +8,8 @@ function t(partial: PlatformTool): PlatformTool {
   return { runner: partial.runner ?? "prompt-studio", ...partial };
 }
 
-export const PLATFORM_TOOLS: PlatformTool[] = [
+const PLATFORM_TOOLS_RAW: PlatformTool[] = [
+
   // ——— AI Basics ———
   t({
     id: "prompt-assistant",
@@ -675,18 +676,22 @@ export const PLATFORM_TOOLS: PlatformTool[] = [
   ...INDUSTRY_EXPANSION_TOOLS.map((x) => t(x)),
 ];
 
+export const PLATFORM_TOOLS: PlatformTool[] = [...PLATFORM_TOOLS_RAW].sort((a, b) =>
+  a.name.localeCompare(b.name, undefined, { sensitivity: "base" })
+);
+
 export const TOOL_CATEGORIES = [
   "All",
-  "Free Utilities",
   "AI Tools",
-  "Marketing & Ads",
-  "Trading",
-  "Office",
-  "Writer",
+  "Automation",
   "Content",
   "Developer",
-  "Automation",
+  "Free Utilities",
+  "Marketing & Ads",
+  "Office",
   "Productivity",
+  "Trading",
+  "Writer",
 ] as const;
 
 export function getToolBySlug(slug: string): PlatformTool | undefined {

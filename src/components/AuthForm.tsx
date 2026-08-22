@@ -71,14 +71,46 @@ const SOCIAL: { id: Provider; label: string; icon: ReactNode }[] = [
   },
 ];
 
+const TERMS_KEY = "plethora.legal.accept.v1";
+
+function loadTermsOk() {
+  try {
+    return localStorage.getItem(TERMS_KEY) === "1";
+  } catch {
+    return false;
+  }
+}
+
 export function AuthForm({ mode }: { mode: "login" | "signup" }) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [oauthLoading, setOauthLoading] = useState<Provider | null>(null);
   const [message, setMessage] = useState<string | null>(null);
+  const [terms, setTerms] = useState(false);
   const router = useRouter();
   const supabase = createClient();
+
+  useEffect(() => {
+    const err = new URLSearchParams(window.location.search).get("error");
+    if (err) setMessage(err);
+    setTerms(loadTermsOk());
+  }, []);
+
+  function rememberTerms() {
+    try {
+      localStorage.setItem(TERMS_KEY, "1");
+      localStorage.setItem("plethora.legal.accept.at", new Date().toISOString());
+    } catch {
+      /* */
+    }
+  }
+
+  function needTerms() {
+    if (terms) return false;
+    setMessage("Agree to the Terms before signing in with any account.");
+    return true;
+  }
 
   useEffect(() => {
     const err = new URLSearchParams(window.location.search).get("error");
@@ -86,6 +118,8 @@ export function AuthForm({ mode }: { mode: "login" | "signup" }) {
   }, []);
 
   async function signInSocial(provider: Provider) {
+    if (needTerms()) return;
+    rememberTerms();
     setOauthLoading(provider);
     setMessage(null);
     const next = mode === "signup" ? "/onboarding" : "/dashboard";
@@ -109,6 +143,8 @@ export function AuthForm({ mode }: { mode: "login" | "signup" }) {
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
+    if (needTerms()) return;
+    rememberTerms();
     setLoading(true);
     setMessage(null);
 
@@ -146,12 +182,36 @@ export function AuthForm({ mode }: { mode: "login" | "signup" }) {
 
   return (
     <div className="space-y-4">
+      <label className="flex items-start gap-2 rounded-xl border border-white/10 bg-black/30 p-3 text-xs leading-relaxed text-zinc-400">
+        <input
+          type="checkbox"
+          checked={terms}
+          onChange={(e) => setTerms(e.target.checked)}
+          className="mt-0.5"
+        />
+        <span>
+          I am 18+ if I use adult features, and I agree to the{" "}
+          <Link href="/legal/terms" className="text-violet-300 hover:underline" target="_blank">
+            Terms
+          </Link>
+          ,{" "}
+          <Link href="/legal/privacy" className="text-violet-300 hover:underline" target="_blank">
+            Privacy
+          </Link>
+          , and{" "}
+          <Link href="/legal/acceptable-use" className="text-violet-300 hover:underline" target="_blank">
+            Acceptable Use
+          </Link>{" "}
+          policies. Plethora is not legal, medical, or financial advice. Third-party AI and markets
+          can be wrong.
+        </span>
+      </label>
       <div className="grid grid-cols-2 gap-2">
         {SOCIAL.map((p) => (
           <button
             key={p.id}
             type="button"
-            disabled={busy}
+            disabled={busy || !terms}
             onClick={() => void signInSocial(p.id)}
             className="inline-flex items-center justify-center gap-2 rounded-xl border border-white/10 bg-white/[0.04] px-3 py-2.5 text-sm font-medium text-zinc-100 hover:bg-white/[0.08] disabled:opacity-60"
           >
@@ -200,7 +260,7 @@ export function AuthForm({ mode }: { mode: "login" | "signup" }) {
         )}
         <button
           type="submit"
-          disabled={busy}
+          disabled={busy || !terms}
           className="flex w-full items-center justify-center gap-2 rounded-xl bg-violet-600 py-3 font-medium text-white hover:bg-violet-500 disabled:opacity-60"
         >
           {loading && <Loader2 className="h-4 w-4 animate-spin" />}

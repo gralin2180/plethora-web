@@ -1,17 +1,6 @@
-import type { Metadata } from "next";
-import { SiteShell } from "@/components/SiteShell";
-import { DesignDoc } from "@/components/DesignDoc";
+import { redirect } from "next/navigation";
 
-export const metadata: Metadata = {
-  title: "AI architecture — Plethora",
-  description:
-    "How the Windows coding app (OpenCode-shaped) and the web free gateway split. Print to PDF.",
-};
-
+/** Internal architecture notes are not a product surface. */
 export default function DesignPage() {
-  return (
-    <SiteShell>
-      <DesignDoc />
-    </SiteShell>
-  );
+  redirect("/about");
 }
