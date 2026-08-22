@@ -4,12 +4,15 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { Flame, HardDrive, Hammer, Shield, Wrench } from "lucide-react";
 import { ChatMode } from "@/components/ChatMode";
+import { SpicyAvatarStudio } from "@/components/SpicyAvatarStudio";
 import { saveAdultSession, loadAdultSession } from "@/lib/chat-personality";
+import type { SpicyAvatar } from "@/lib/spicy-avatars";
 
 const AGE_KEY = "plethora.spicy.age.v1";
 
 export function SpicyChatLanding() {
   const [ok, setOk] = useState(false);
+  const [companion, setCompanion] = useState<SpicyAvatar | null>(null);
 
   useEffect(() => {
     try {
@@ -73,9 +76,10 @@ export function SpicyChatLanding() {
       ) : (
         <div className="grid gap-6 lg:grid-cols-[1fr_280px]">
           <div className="min-h-[560px] rounded-2xl border border-white/10 bg-black/30 p-3">
-            <ChatMode embedded room="spicy" />
+            <ChatMode embedded room="spicy" companion={companion} />
           </div>
           <aside className="space-y-3 lg:sticky lg:top-20 lg:self-start">
+            <SpicyAvatarStudio onSelect={setCompanion} />
             <p className="text-xs font-semibold uppercase tracking-wider text-zinc-500">
               Also in Plethora
             </p>

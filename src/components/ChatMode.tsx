@@ -56,6 +56,8 @@ import {
   Square,
   ChevronDown,
   Trash2,
+  Volume2,
+  Mic,
   X,
 } from "lucide-react";
 import {
@@ -63,6 +65,11 @@ import {
   prepareChatFile,
   type PreparedChatFile,
 } from "@/lib/chat-files";
+import {
+  companionDirective,
+  speakAsAvatar,
+  type SpicyAvatar,
+} from "@/lib/spicy-avatars";
 
 const HISTORY_KEY = "plethora.chat.history.v1";
 const SPICY_HISTORY_KEY = "plethora.spicy.history.v1";
@@ -72,11 +79,13 @@ export function ChatMode({
   initialPrompt,
   onClearHistory,
   room = "main",
+  companion = null,
 }: {
   embedded?: boolean;
   initialPrompt?: string;
   onClearHistory?: () => void;
   room?: "main" | "spicy";
+  companion?: SpicyAvatar | null;
 }) {
   const router = useRouter();
   const [messages, setMessages] = useState<ChatMessage[]>([]);
@@ -110,7 +119,12 @@ export function ChatMode({
   const scrollerRef = useRef<HTMLDivElement>(null);
   const stickBottom = useRef(true);
 
-  const histKey = room === "spicy" ? SPICY_HISTORY_KEY : HISTORY_KEY;
+  const histKey =
+    room === "spicy"
+      ? companion?.id
+        ? `plethora.spicy.history.${companion.id}`
+        : SPICY_HISTORY_KEY
+      : HISTORY_KEY;
   const spicy = room === "spicy";
 
   function clearChat() {
@@ -142,16 +156,7 @@ export function ChatMode({
     } catch {
       /* */
     }
-    try {
-      const raw = localStorage.getItem(histKey);
-      if (raw) setMessages(JSON.parse(raw));
-      else {
-        setMessages([newMessage("assistant", openingMessage(spicy ? "spicy" : loadChatPersonality()))]);
-      }
-    } catch {
-      /* ignore */
-    }
-                void fetch("/api/chat", { credentials: "include" })
+    void fetch("/api/chat", { credentials: "include" })
       .then((r) => r.json())
       .then(
         (d: {
@@ -199,7 +204,22 @@ export function ChatMode({
         setLlmReady(false);
         setSignedIn(false);
       });
-  }, []);
+  }, [spicy]);
+
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem(histKey);
+      if (raw) setMessages(JSON.parse(raw));
+      else {
+        const hello = companion
+          ? `Hey — I’m ${companion.name}. ${companion.traits || "Tell me how you want me."}`
+          : openingMessage(spicy ? "spicy" : loadChatPersonality());
+        setMessages([newMessage("assistant", hello)]);
+      }
+    } catch {
+      /* ignore */
+    }
+  }, [histKey, spicy]);
 
   useEffect(() => {
     function onWarn(e: Event) {
@@ -298,9 +318,14 @@ export function ChatMode({
 
       const draft = newMessage("assistant", "");
       setMessages((m) => [...m, draft]);
-      const llmText = appAsk
-        ? `${outbound}\n\n[They are building the app in /tools/build-your-tool now. Do not output HTML or source. Short in-character only.]`
-        : outbound;
+      const llmText = [
+        companion ? companionDirective(companion) : "",
+        appAsk
+          ? `${outbound}\n\n[They are building the app in /tools/build-your-tool now. Do not output HTML or source. Short in-character only.]`
+          : outbound,
+      ]
+        .filter(Boolean)
+        .join("\n\n");
       const reply = await generateAssistantReply(llmText, next, {
         adultConsent,
         personality,
@@ -781,6 +806,61 @@ export function ChatMode({
             >
               <Paperclip className="h-4 w-4" />
             </button>
+            {spicy ? (
+              <>
+                <button
+                  type="button"
+                  className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border border-white/10 text-zinc-300 hover:bg-white/5"
+                  aria-label="Speak last reply"
+                  title="Speak last reply in this avatar’s voice"
+                  onClick={() => {
+                    const last = [...messages].reverse().find((m) => m.role === "assistant");
+                    if (last?.content) speakAsAvatar(last.content, companion?.voice || "warm-f");
+                  }}
+                >
+                  <Volume2 className="h-4 w-4" />
+                </button>
+                <button
+                  type="button"
+                  className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border border-white/10 text-zinc-300 hover:bg-white/5"
+                  aria-label="Talk"
+                  title="Talk — fills the box (browser speech)"
+                  onClick={() => {
+                    const W = window as unknown as {
+                      webkitSpeechRecognition?: new () => {
+                        lang: string;
+                        start: () => void;
+                        onresult:
+                          | ((e: {
+                              results: { 0?: { 0?: { transcript?: string } } };
+                            }) => void)
+                          | null;
+                      };
+                      SpeechRecognition?: new () => {
+                        lang: string;
+                        start: () => void;
+                        onresult:
+                          | ((e: {
+                              results: { 0?: { 0?: { transcript?: string } } };
+                            }) => void)
+                          | null;
+                      };
+                    };
+                    const Ctor = W.webkitSpeechRecognition || W.SpeechRecognition;
+                    if (!Ctor) return;
+                    const rec = new Ctor();
+                    rec.lang = "en-US";
+                    rec.onresult = (e) => {
+                      const t = e.results[0]?.[0]?.transcript;
+                      if (t) setInput((cur) => (cur ? `${cur} ${t}` : t));
+                    };
+                    rec.start();
+                  }}
+                >
+                  <Mic className="h-4 w-4" />
+                </button>
+              </>
+            ) : null}
             <textarea
               value={input}
               onChange={(e) => setInput(e.target.value)}

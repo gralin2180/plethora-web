@@ -365,8 +365,8 @@ export async function generateAssistantReply(
   }
 
   const personality =
-    (typeof window !== "undefined" ? loadChatPersonality() : null) ??
     opts?.personality ??
+    (typeof window !== "undefined" ? loadChatPersonality() : null) ??
     parsePersonalityChoice(text);
 
   if (opts?.adultConsent) {
@@ -449,8 +449,8 @@ async function tryLlm(
   const { collectChatAuth, notifyAiExhausted } = await import("./platform-ai-client");
   const auth = await collectChatAuth();
   const personality =
-    (typeof window !== "undefined" ? loadChatPersonality() : null) ??
-    opts?.personality;
+    opts?.personality ??
+    (typeof window !== "undefined" ? loadChatPersonality() : null);
 
   const wide = auth.preferredSource === "zen";
   const prior = history

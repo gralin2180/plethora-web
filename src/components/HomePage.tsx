@@ -21,15 +21,6 @@ const ROOMS = [
   { href: "/ai-finder", title: "Finder", desc: "What should I use?", icon: Search },
 ];
 
-const ROOMS = [
-  { href: "/chat", title: "Chat", desc: "Normal talk", icon: MessageSquare },
-  { href: "/spicy", title: "Spicy 18+", desc: "Companion chat", icon: Flame },
-  { href: "/local-llms", title: "Local LLMs", desc: "Your PC", icon: HardDrive },
-  { href: "/tools", title: "Tools", desc: "The whole roof", icon: Wrench },
-  { href: "/tools/build-your-tool", title: "App Maker", desc: "Build a web app", icon: Hammer },
-  { href: "/ai-finder", title: "Finder", desc: "What should I use?", icon: Search },
-];
-
 export function HomePage() {
   return (
     <>
