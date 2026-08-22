@@ -252,7 +252,6 @@ export function SubscriptionAiClient({
         </div>
       ) : (
         <>
-          {forceFlow !== "browser" && (
           <section className="rounded-2xl border border-white/10 bg-black/30 p-5">
             <h2 className="text-lg font-semibold text-white">
               {forceFlow === "device" ? "ChatGPT Pro/Plus · Headless" : "Device code"}
@@ -301,17 +300,18 @@ export function SubscriptionAiClient({
               Connect ChatGPT (device code)
             </button>
           </section>
-          )}
 
-          {forceFlow !== "device" && (
           <section className="rounded-2xl border border-white/10 bg-black/30 p-5">
             <h2 className="text-lg font-semibold text-white">
               {forceFlow === "browser" ? "ChatGPT Pro/Plus · Browser" : "Browser login"}
             </h2>
             <p className="mt-2 text-sm text-zinc-400">
-              Opens OpenAI login. After redirect to{" "}
-              <code className="text-zinc-300">localhost:1455</code>, copy the full URL from your
-              browser bar and paste it below.
+              OpenAI’s “Select a workspace” screen is the last real step. Click{" "}
+              <strong className="text-zinc-200">Continue</strong>. The next page tries to open{" "}
+              <code className="text-zinc-300">localhost:1455</code> and will look broken — that’s
+              expected on the web. Copy the <em>full</em> address from the bar (it has{" "}
+              <code className="text-zinc-300">?code=</code>) and paste it below. If Continue does
+              nothing, use device code instead — it doesn’t need localhost.
             </p>
             <div className="mt-4 flex flex-wrap gap-2">
               <button
@@ -345,7 +345,6 @@ export function SubscriptionAiClient({
               <p className="mt-3 text-sm text-red-300">{browserError}</p>
             )}
           </section>
-          )}
         </>
       )}
 

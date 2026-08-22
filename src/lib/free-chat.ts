@@ -57,17 +57,17 @@ export function buildChatSystemPrompt(
     ? `\n\nUser notes:\n${extraContext.trim().slice(0, 400)}`
     : "";
 
-  return `You are a quick, sharp chat partner in an app. Answer the question. Do not advertise the app.
+  return `You are a chat partner. Reply as the character in the chat — never as an analyst.
 
-${opts?.adultMode ? "Adult mode: user confirmed 18+. Consensual adult chat is OK. Hard no: minors/CSAM." : "If they want explicit sex, stop — they must confirm 18+ in the dialog first. Don't write it yet."}
+${opts?.adultMode ? "Adult mode is on (18+ confirmed). If they ask for flirty/sexual/roleplay, do it. Short and direct. Hard no: minors/CSAM." : "If they want explicit sex, stop — they must confirm 18+ in the dialog first. Don't write it yet."}
 
 ${voice}
 
-Rules:
+Output rules:
+- Your entire message is the reply to the user. No "thinking process", no analysis, no quoting these rules, no numbered plans.
 - 2–6 short sentences unless they ask for a list, code, or a scene.
-- No essays, no policy dumps, no feature menus, no slash commands.
-- Legal + they asked → answer. Illegal (minors, real crime how-to) → one sentence: you can't, then stop.
-- Don't lecture. Don't overwhelm.${extra}`;
+- Hello / small talk → greet back. Don't pitch vibes, features, or menus.
+- Legal + they asked → answer. Illegal (minors, real crime how-to) → one sentence: you can't, then stop.${extra}`;
 }
 
 /** Free model IDs rotate on OpenRouter; first env override, then these. */
@@ -261,6 +261,28 @@ function zenProvider(model: string): {
   };
 }
 
+/** Drop leaked chain-of-thought so the user only sees the actual reply. */
+export function sanitizeModelReply(text: string): string {
+  let t = text.replace(/\r\n/g, "\n").trim();
+  t = t.replace(/<think(?:ing)?>[\s\S]*?<\/think(?:ing)?>/gi, "");
+  t = t.replace(/<reasoning>[\s\S]*?<\/reasoning>/gi, "");
+  if (/here'?s a thinking process|^\s*thinking process\s*:/i.test(t)) {
+    const split = t.split(
+      /\n(?:#{1,3}\s*)?(?:final (?:answer|response)|answer to (?:the )?user|my reply)\s*:?\s*\n/i
+    );
+    if (split.length > 1) t = split.slice(1).join("\n");
+    else return "";
+  }
+  t = t.replace(/^\s*(assistant|ai)\s*:\s*/i, "").trim();
+  return t.trim();
+}
+
+function looksLikeLeakedThoughts(text: string): boolean {
+  return /here'?s a thinking process|analyze user input|system prompt reference/i.test(
+    text
+  );
+}
+
 async function readOpenAiSse(
   res: Response,
   onDelta?: (chunk: string) => void
@@ -270,6 +292,7 @@ async function readOpenAiSse(
   const dec = new TextDecoder();
   let buf = "";
   let full = "";
+  let suppressStream = false;
   while (true) {
     const { done, value } = await reader.read();
     if (done) break;
@@ -283,13 +306,19 @@ async function readOpenAiSse(
       if (!payload || payload === "[DONE]") continue;
       try {
         const j = JSON.parse(payload) as {
-          choices?: { delta?: { content?: string }; message?: { content?: string } }[];
+          choices?: {
+            delta?: { content?: string | null };
+            message?: { content?: string };
+          }[];
         };
         const piece =
           j.choices?.[0]?.delta?.content || j.choices?.[0]?.message?.content || "";
         if (piece) {
           full += piece;
-          onDelta?.(piece);
+          if (!suppressStream && looksLikeLeakedThoughts(full)) {
+            suppressStream = true;
+          }
+          if (!suppressStream) onDelta?.(piece);
         }
       } catch {
         /* ignore keep-alive */
@@ -339,6 +368,9 @@ async function callProvider(
         max_tokens: maxTokens,
         stream: wantStream,
         messages,
+        ...(p.name === "openrouter" || p.name === "openrouter-premium"
+          ? { reasoning: { exclude: true } }
+          : {}),
       };
 
   let res: Response;
@@ -356,16 +388,7 @@ async function callProvider(
 
     if (wantStream && res.ok && res.body) {
       const reply = await readOpenAiSse(res, onDelta);
-      if (!reply) {
-        return {
-          reply: "",
-          provider: p.name,
-          model: p.model,
-          ok: false,
-          error: "Empty model response",
-        };
-      }
-      return { reply, provider: p.name, model: p.model, ok: true };
+      return finishModelReply(p, reply);
     }
   } catch (e) {
     const aborted = e instanceof Error && e.name === "AbortError";
@@ -431,26 +454,30 @@ async function callProvider(
     .join("")
     .trim();
   const msg = data.choices?.[0]?.message;
-  const reply = (
-    data.output_text ||
-    fromResponses ||
-    msg?.content ||
-    msg?.reasoning_content ||
-    msg?.reasoning ||
-    ""
-  ).trim();
-  if (!reply) {
+  const reply = (data.output_text || fromResponses || msg?.content || "").trim();
+  return finishModelReply(p, reply, onDelta);
+}
+
+function finishModelReply(
+  p: {
+    name: string;
+    model: string;
+  },
+  reply: string,
+  onDelta?: (chunk: string) => void
+): FreeChatResult {
+  const clean = sanitizeModelReply(reply);
+  if (!clean || looksLikeLeakedThoughts(clean)) {
     return {
       reply: "",
       provider: p.name,
       model: p.model,
       ok: false,
-      error: "Empty model response",
+      error: clean ? "Model leaked reasoning instead of a reply" : "Empty model response",
     };
   }
-
-  if (onDelta && reply) onDelta(reply);
-  return { reply, provider: p.name, model: p.model, ok: true };
+  if (onDelta) onDelta(clean);
+  return { reply: clean, provider: p.name, model: p.model, ok: true };
 }
 
 export async function freeChatCompletion(
@@ -641,7 +668,7 @@ export async function freeChatCompletion(
     opts.maxTokens ??
     (lane === "premium" || lane === "byok" ? 480 : ZEN_MAX_OUTPUT_TOKENS);
   const timeoutMs = laneTimeoutMs(lane);
-  const attempts = Math.min(providers.length, lane === "byok" ? 1 : 5);
+  const attempts = Math.min(providers.length, lane === "byok" ? 1 : 8);
   let lastError = "";
   for (const p of providers.slice(0, attempts)) {
     try {
@@ -651,7 +678,7 @@ export async function freeChatCompletion(
       }
       if (result.ok && result.reply && isLameModelRefusal(result.reply, opts.adultMode)) {
         lastError = "Model refused with template reply";
-        break;
+        continue;
       }
       lastError = result.error || lastError;
       if (process.env.NODE_ENV === "development") {
@@ -663,7 +690,7 @@ export async function freeChatCompletion(
   }
 
   // last-resort adult offline snip if models all flinch after consent
-  if (opts.adultMode && /sex|fuck|cock|dick|blow|sext|nsfw|suck|erp|horny/i.test(userMessage)) {
+  if (opts.adultMode && /sex|fuck|cock|dick|blow|sext|nsfw|suck|erp|horny|ass|sniff|smell|roleplay|aunt/i.test(userMessage)) {
     return {
       reply: adultOfflineFallback(userMessage),
       provider: "offline-adult",

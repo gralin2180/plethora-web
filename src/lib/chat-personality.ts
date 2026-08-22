@@ -128,7 +128,7 @@ export function saveAdultSession(): void {
 export function personalityPromptBlock(id: ChatPersonalityId | null | undefined): string {
   const p = getPersonality(id ?? null);
   if (!p) {
-    return `Voice: not picked yet. Sound like a real person in a chat. On an early turn, naturally offer vibes once (witty / warm / blunt / pro / chaotic / flirty) — don't nag every message. Match their energy until they pick.`;
+    return `Voice: casual mate. Match their energy. Don't offer a vibe menu unless they ask how you should talk.`;
   }
   return p.prompt;
 }
@@ -164,9 +164,7 @@ export function parsePersonalityChoice(text: string): ChatPersonalityId | null {
 export function openingMessage(personality: ChatPersonalityId | null): string {
   const p = getPersonality(personality);
   if (p) return p.hello;
-  return `Hey. I’m here — not a menu, not a tour kiosk.
-
-How should I talk? Pick a vibe (you can change it anytime), or just start and I’ll match you.`;
+  return `Hey. What’s up?`;
 }
 
 const PICK_VIBE = "__pick_personality__";

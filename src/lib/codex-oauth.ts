@@ -76,7 +76,7 @@ export function buildCodexAuthorizeUrl(
     id_token_add_organizations: "true",
     codex_cli_simplified_flow: "true",
     state,
-    originator: "plethora",
+    originator: "codex_cli_rs",
   });
   return `${CODEX_AUTHORIZE_URL}?${params.toString()}`;
 }
