@@ -127,13 +127,22 @@ export async function runPlatformAi(
   opts?: { history?: { role: "user" | "assistant"; content: string }[]; adultConsent?: boolean }
 ): Promise<PlatformAiResult> {
   const auth = await collectChatAuth();
+  let adultConsent = Boolean(opts?.adultConsent);
+  if (!adultConsent) {
+    try {
+      const { loadAdultSession } = await import("./chat-personality");
+      adultConsent = loadAdultSession();
+    } catch {
+      /* */
+    }
+  }
   const res = await fetch("/api/chat", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
       message,
       history: opts?.history ?? [],
-      adultConsent: opts?.adultConsent,
+      adultConsent,
       ...auth,
     }),
   });

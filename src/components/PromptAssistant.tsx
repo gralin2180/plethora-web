@@ -18,6 +18,7 @@ import {
 import { detectIntent } from "@/lib/prompt-engine";
 import { assessContentSafety, type SafetyAssessment } from "@/lib/content-safety";
 import { ContentWarningDialog } from "@/components/ContentWarningDialog";
+import { loadAdultSession, saveAdultSession } from "@/lib/chat-personality";
 import {
   contextToPromptBlock,
   loadPersonalContext,
@@ -128,6 +129,7 @@ export function PromptAssistant() {
           answers,
           draftPrompt: draft,
           plan: "free",
+          adultConsent: loadAdultSession(),
         }),
       });
       if (res.ok) {
@@ -201,6 +203,7 @@ export function PromptAssistant() {
             const action = pendingAction;
             setWarning(null);
             setPendingAction(null);
+            void saveAdultSession();
             if (action === "start") {
               const qs = generateClarifyingQuestions(rawInput);
               if (qs.length === 0) {

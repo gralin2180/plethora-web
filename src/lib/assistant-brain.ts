@@ -4,13 +4,17 @@
  */
 
 import { freeChatCompletion, hasFreeChatProvider } from "./free-chat";
+import {
+  loadChatPersonality,
+  parsePersonalityChoice,
+  type ChatPersonalityId,
+} from "./chat-personality";
 import { recommendAiForTask } from "./recommender";
 import { buildRefinedPrompt } from "./prompt-engine";
 import { loadPersonalContext, contextToPromptBlock } from "./personal-context";
 import { PLATFORM_TOOLS, searchTools } from "./tools-registry";
-import { ABOUT_FAQS, siteKnowledgeForAssistant } from "./about-content";
+import { ABOUT_FAQS } from "./about-content";
 import {
-  getForYouTools,
   getPopularTools,
   getRecentTools,
   learnFromChat,
@@ -66,17 +70,20 @@ export function classifyChatIntent(text: string): ChatIntent {
   }
 
   if (
-    /^(hi|hello|hey|yo|sup|howdy|good (morning|evening|afternoon))([\s,.!]|$)/i.test(t) &&
-    t.split(/\s+/).length <= 4
+    /^(hi|hello|hey|yo|sup|howdy|good (morning|evening|afternoon))([\s,.!?]*)$/i.test(t)
   ) {
     return "greeting";
   }
 
-  if (
-    /\b(what is plethora|who are you|what do you do|personal context|privacy|pricing|hardcore|mcp hub|install hub|prompt assistant|middleman|under one roof|how (do|does|to)|where (is|do)|sign in|login|api key|openrouter|workspace|device|about|faq|free limit|upgrade)\b/i.test(
+  const productAsk =
+    /\b(what is plethora|who are you|what do you do|personal context|privacy|pricing|hardcore|mcp hub|install hub|prompt assistant|middleman|under one roof|sign in|login|api key|openrouter|workspace|device|\bfaq\b|free limit|upgrade)\b/i.test(
       t
-    )
-  ) {
+    ) ||
+    (/\b(how (do|does|to)|where (is|do))\b/i.test(t) &&
+      /\b(plethora|prompt assistant|mcp|api key|sign ?in|limit|pricing|workspace|byok|install)\b/i.test(
+        t
+      ));
+  if (productAsk && !/\b(18\+|eighteen|boobs?|tits|nsfw|sex)\b/i.test(t)) {
     return "app_help";
   }
 
@@ -120,27 +127,27 @@ function websiteTour(): string {
 function banterReply(text: string): string {
   const t = text.toLowerCase().trim();
   if (/poop|💩|fart/.test(t)) {
-    return `Peak discourse. If you’re stress-testing the filter: it passed. Real ask whenever you’re ready.`;
+    return `Peak discourse. Filter’s awake. You actually want something, or are we stress-testing scat jokes?`;
   }
   if (/boob|tit|ass|butt|penis|dick|balls/.test(t)) {
-    return `Noticed. Adult silliness is fine — I’m not a school hall monitor. Want a joke, an image prompt, or a normal question?`;
+    return `Yeah I caught that. If you want it explicit, tap 18+ when it pops — then I’ll actually go there. Otherwise we can just mess around. What’s the mood?`;
   }
   if (/lol|lmao|haha|hehe|😂/.test(t)) {
-    return `Glad one of us is entertained. Want a joke, a tool, or more nonsense?`;
+    return `Ok you’re giggling. Want a joke, a roast, or are you stalling?`;
   }
   if (/^(ok|okay|k|cool|nice)\b/.test(t)) {
-    return `Heard. Drop a real sentence (or a messier one) when you want.`;
+    return `Cool. Keep going — I’m not going anywhere.`;
   }
   if (/^(test|ping|boop)\b/.test(t)) {
-    return `Signal received. Online and not a FAQ kiosk.`;
+    return `Pong. Still a person on this side, not a FAQ.`;
   }
   if (/idk|hmm/.test(t)) {
-    return `Valid. Options: **tour**, a random thought, or **/tools** → Popular.`;
+    return `Valid. Bored, stuck, or just poking the chat? Pick one and I’ll meet you there.`;
   }
   if (t.length <= 3) {
-    return `Short signal received. Mood, problem, or chaos — expand a bit.`;
+    return `That’s a crumb. Give me a sentence and I’ll talk back.`;
   }
-  return `Got “${text.slice(0, 40)}”. Not a form letter — ask something, or keep the chaos going.`;
+  return `Got “${text.slice(0, 40)}”. I’m listening — say more or change the subject.`;
 }
 
 function moodReply(text: string): string {
@@ -154,13 +161,7 @@ You said: “${text.slice(0, 100)}”`;
 }
 
 function greetingReply(): string {
-  const forYou = typeof window !== "undefined" ? getForYouTools(2) : [];
-  const tip = forYou[0]
-    ? ` Quick path: **${forYou[0].name}**.`
-    : "";
-  return `Hey. One roof for tools, prompts, local AI — not Cursor cosplay.${tip}
-
-Talk about anything. Or **tour** for highlights. What’s up?`;
+  return `Hey. I’m here. What’s going on?`;
 }
 
 function appHelp(text: string): string {
@@ -269,37 +270,25 @@ function findToolsReply(text: string): string {
 }
 
 function smartOfflineGeneral(text: string): string {
-  // Knowledge / opinion without LLM
   if (/\b(meaning of life|why (are )?we here)\b/i.test(text)) {
-    return `42 is overrated. Short version: reduce unnecessary suffering, make a few things you care about, stay curious. Want a tool for journaling that out, or just more philosophy?`;
+    return `42 is overrated. Short version: reduce unnecessary suffering, make a few things you care about, stay curious. Want more philosophy or a smaller take?`;
   }
   if (/\b(joke|funny|make me laugh)\b/i.test(text)) {
-    return `Why did the directory list 40 “best AI PDF tools”? Because nobody wanted to be the middleman and put drop-zones in one place. …I’ll see myself out. Want a better joke niche?`;
+    return `A SQL query walks into a bar, walks up to two tables, and asks: “Can I join you?” …I’ll stop. Want a dirtier one or a drier one?`;
   }
   if (/\b(how (do|to) (i )?start|where do i begin)\b/i.test(text)) {
-    return `Start in **/tools → For you** (learns as you go). Stuck on wording? **/prompt-assistant**. Searching the whole AI jungle? **/ai-finder**. Live walkthrough? Say **tour**.`;
-  }
-
-  const hits = searchTools(text).slice(0, 3);
-  if (hits.length && text.length > 12) {
-    return (
-      `I can riff more deeply when the free cloud brain is online — meanwhile these match what you typed:\n\n` +
-      hits.map((t) => `• **${t.name}** — /tools/${t.slug}`).join("\n") +
-      `\n\nOr keep chatting about it. What outcome do you want?`
-    );
+    return `Start with the next smallest move you can finish in 10 minutes. If you tell me what you’re trying to do, I’ll pick one with you.`;
   }
 
   return `I’m with you on: “${text.slice(0, 160)}${text.length > 160 ? "…" : ""}”
 
-Offline mode has limits, but I’m not empty: ask a sharper Q, say **tour**, hit **/tools**, or “find tools for ___”. When OpenRouter is configured, answers get a lot smarter.
-
-One thing you want next?`;
+Brain’s offline so I’m thinner than usual — keep talking anyway. What’s the actual thing you want out of this?`;
 }
 
 export async function generateAssistantReply(
   userText: string,
   history: ChatMessage[] = [],
-  opts?: { adultConsent?: boolean }
+  opts?: { adultConsent?: boolean; personality?: ChatPersonalityId | null }
 ): Promise<string> {
   const text = userText.trim();
   if (!text) return "I’m here. Drop a thought, a task, or pure chaos.";
@@ -312,23 +301,29 @@ export async function generateAssistantReply(
     }
   }
 
+  const personality =
+    (typeof window !== "undefined" ? loadChatPersonality() : null) ??
+    opts?.personality ??
+    parsePersonalityChoice(text);
+
   if (opts?.adultConsent || /\b(fuck me|sext|blowjob|cock|roleplay.*sex|nsfw)\b/i.test(text)) {
-    const llm = await tryLlm(text, history, { adultConsent: true });
+    const llm = await tryLlm(text, history, { adultConsent: true, personality });
     if (llm) return llm;
   }
 
   const intent = classifyChatIntent(text);
 
   if (intent === "tour") return websiteTour();
+
+  const llm = await tryLlm(text, history, {
+    adultConsent: opts?.adultConsent,
+    personality,
+  });
+  if (llm) return llm;
+
   if (intent === "greeting") return greetingReply();
-  if (intent === "banter") {
-    return banterReply(text);
-  }
-  if (intent === "mood") {
-    const llm = await tryLlm(text, history, opts);
-    if (llm) return llm;
-    return moodReply(text);
-  }
+  if (intent === "banter") return banterReply(text);
+  if (intent === "mood") return moodReply(text);
   if (intent === "app_help") return appHelp(text);
   if (intent === "convert_tools") return convertToolsReply();
   if (intent === "find_tools") {
@@ -344,8 +339,6 @@ export async function generateAssistantReply(
     return findToolsReply(text);
   }
 
-  const llm = await tryLlm(text, history, opts);
-  if (llm) return llm;
   return smartOfflineGeneral(text);
 }
 
@@ -359,10 +352,6 @@ function learnerBundle(): string {
       const b = contextToPromptBlock(personal);
       if (b) parts.push(b);
     }
-    const forYou = getForYouTools(3)
-      .map((t) => t.name)
-      .join(", ");
-    if (forYou) parts.push(`For-you shortcuts: ${forYou}`);
   }
   return parts.join("\n");
 }
@@ -370,20 +359,23 @@ function learnerBundle(): string {
 async function tryLlm(
   text: string,
   history: ChatMessage[],
-  opts?: { adultConsent?: boolean }
+  opts?: { adultConsent?: boolean; personality?: ChatPersonalityId | null }
 ): Promise<string | null> {
   const learner = learnerBundle();
   const { collectChatAuth, notifyAiExhausted } = await import("./platform-ai-client");
   const auth = await collectChatAuth();
+  const personality =
+    (typeof window !== "undefined" ? loadChatPersonality() : null) ??
+    opts?.personality;
 
   const wide = auth.preferredSource === "zen";
   const prior = history
     .filter((m) => m.role === "user" || m.role === "assistant")
     .filter((m) => m.content?.trim())
-    .slice(-(wide ? 64 : 20))
+    .slice(-(wide ? 16 : 12))
     .map((m) => ({
       role: m.role as "user" | "assistant",
-      content: m.content.slice(0, wide ? 24000 : 3500),
+      content: m.content.slice(0, wide ? 4000 : 2500),
     }));
 
   try {
@@ -394,6 +386,7 @@ async function tryLlm(
         message: text,
         learnerContext: learner,
         adultConsent: opts?.adultConsent,
+        personality,
         ...auth,
         history: prior,
       }),
@@ -407,7 +400,7 @@ async function tryLlm(
       softWarnMessage?: string;
       softWarn?: boolean;
       usedPremium?: boolean;
-      quota?: { mode?: string; used?: number; limit?: number; label?: string };
+      quota?: { mode?: string; used?: number; limit?: number; label?: string; lane?: string };
     };
     if (
       data.code === "pool_exhausted" ||
@@ -437,9 +430,10 @@ async function tryLlm(
         })
       );
     } else if (typeof window !== "undefined" && data.quota?.mode && data.quota.mode !== "byok") {
+      const laneBit = data.quota.label ? `${data.quota.label} · ` : "";
       window.dispatchEvent(
         new CustomEvent("plethora:quota-label", {
-          detail: `Free AI ${data.quota.used ?? "?"}/${data.quota.limit ?? "?"}`,
+          detail: `${laneBit}${data.quota.mode === "premium" ? "Included" : "Free"} ${data.quota.used ?? "?"}/${data.quota.limit ?? "?"}`,
         })
       );
     }
@@ -449,11 +443,11 @@ async function tryLlm(
   }
 
   if (typeof window === "undefined" && hasFreeChatProvider()) {
-    const r = await freeChatCompletion(
-      text,
-      prior,
-      { learnerContext: learner, adultMode: opts?.adultConsent }
-    );
+    const r = await freeChatCompletion(text, prior, {
+      learnerContext: learner,
+      adultMode: opts?.adultConsent,
+      personality,
+    });
     if (r.ok && r.reply) return r.reply;
   }
 
@@ -462,6 +456,7 @@ async function tryLlm(
 
 export type ServerChatOpts = {
   adultMode?: boolean;
+  personality?: ChatPersonalityId | null;
   codex?: { accessToken: string; accountId?: string };
   copilot?: { sessionToken: string };
   byok?: { apiKey: string; baseUrl?: string; model?: string };
@@ -470,6 +465,7 @@ export type ServerChatOpts = {
   maxTokens?: number;
   preferredModel?: string;
   preferredSource?: "zen" | "openrouter";
+  lane?: import("./ai-lanes").ChatLane;
 };
 
 /** Server-side entry used by /api/chat */
@@ -488,6 +484,7 @@ export async function generateAssistantReplyServer(
     const llm = await freeChatCompletion(text, history, {
       learnerContext,
       adultMode: true,
+      personality: opts?.personality,
       codex: opts?.codex,
       copilot: opts?.copilot,
       byok: opts?.byok,
@@ -496,6 +493,7 @@ export async function generateAssistantReplyServer(
       maxTokens: opts?.maxTokens,
       preferredModel: opts?.preferredModel,
       preferredSource: opts?.preferredSource,
+      lane: opts?.lane,
     });
     if (llm.ok) return { reply: llm.reply, source: llm.provider, usedPremium: llm.usedPremium };
     if (llm.code === "pool_exhausted") {
@@ -505,15 +503,36 @@ export async function generateAssistantReplyServer(
   }
 
   if (intent === "tour") return { reply: websiteTour(), source: "tour" };
+
+  const chatOpts = {
+    learnerContext,
+    adultMode,
+    personality: opts?.personality,
+    codex: opts?.codex,
+    copilot: opts?.copilot,
+    byok: opts?.byok,
+    customSystem: opts?.customSystem,
+    preferPremium: opts?.preferPremium,
+    maxTokens: opts?.maxTokens,
+    preferredModel: opts?.preferredModel,
+    preferredSource: opts?.preferredSource,
+    lane: opts?.lane,
+  };
+
+  const llm = await freeChatCompletion(text, history, chatOpts);
+  if (llm.ok) return { reply: llm.reply, source: llm.provider, usedPremium: llm.usedPremium };
+  if (llm.code === "pool_exhausted") {
+    return { reply: llm.reply, source: "exhausted", code: "pool_exhausted" };
+  }
+
   if (intent === "greeting") {
-    return {
-      reply: `Hey. One roof for tools, prompts, and local AI. What’s up?`,
-      source: "greeting",
-    };
+    return { reply: greetingReply(), source: "greeting" };
   }
   if (intent === "banter") {
-    // Local banter is snappier than free models that go flat on one-word inputs
     return { reply: banterReply(text), source: "banter" };
+  }
+  if (intent === "mood") {
+    return { reply: moodReply(text), source: "offline-mood" };
   }
   if (intent === "app_help") return { reply: appHelp(text), source: "app" };
   if (intent === "convert_tools") {
@@ -538,35 +557,6 @@ export async function generateAssistantReplyServer(
     };
   }
 
-  const chatOpts = {
-    learnerContext,
-    adultMode,
-    codex: opts?.codex,
-    copilot: opts?.copilot,
-    byok: opts?.byok,
-    customSystem: opts?.customSystem,
-    preferPremium: opts?.preferPremium,
-    maxTokens: opts?.maxTokens,
-    preferredModel: opts?.preferredModel,
-    preferredSource: opts?.preferredSource,
-  };
-
-  if (intent === "mood") {
-    const llm = await freeChatCompletion(text, history, chatOpts);
-    if (llm.ok) return { reply: llm.reply, source: llm.provider, usedPremium: llm.usedPremium };
-    if (llm.code === "pool_exhausted") {
-      return { reply: llm.reply, source: "exhausted", code: "pool_exhausted" };
-    }
-    return { reply: moodReply(text), source: "offline-mood" };
-  }
-
-  const llm = await freeChatCompletion(text, history, chatOpts);
-  if (llm.ok) return { reply: llm.reply, source: llm.provider, usedPremium: llm.usedPremium };
-  if (llm.code === "pool_exhausted") {
-    return { reply: llm.reply, source: "exhausted", code: "pool_exhausted" };
-  }
-
-  // Fall back if free models flinch on normal talk
   return { reply: smartOfflineGeneral(text), source: "offline" };
 }
 

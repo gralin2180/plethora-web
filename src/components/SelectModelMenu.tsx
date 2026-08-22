@@ -102,7 +102,7 @@ export function SelectModelMenu({
           <div className="border-b border-white/10 px-3 py-2.5">
             <p className="text-sm font-semibold text-white">Select model</p>
             <p className="mt-0.5 text-[11px] text-zinc-500">
-              Free models — no sign-in
+              Free models from OpenCode Zen — no sign-in
             </p>
             <label className="mt-2 flex items-center gap-2 rounded-md border border-white/10 bg-black/30 px-2 py-1">
               <Search className="h-3 w-3 text-zinc-500" />
@@ -127,7 +127,7 @@ export function SelectModelMenu({
             </button>
 
             <ModelGroup
-              title="Free models"
+              title="Free models provided by OpenCode"
               models={zenList}
               selectedId={selected.kind === "zen" ? selected.id : null}
               available
@@ -146,8 +146,8 @@ export function SelectModelMenu({
           </div>
 
           <p className="border-t border-white/10 px-3 py-2 text-[10px] leading-snug text-zinc-600">
-            Each model has a 128K context window. Some trial models may train on chats — don’t send
-            secrets.
+            Public trial models (NVIDIA / OpenCode / OpenRouter :free) stay free. We don’t sell
+            that pool. Some trials may train on chats — don’t send secrets.
           </p>
         </div>
       )}

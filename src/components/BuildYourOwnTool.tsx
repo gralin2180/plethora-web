@@ -18,6 +18,9 @@ import {
   Trash2,
 } from "lucide-react";
 import { trackToolUse } from "@/lib/self-learn";
+import { assessContentSafety, type SafetyAssessment } from "@/lib/content-safety";
+import { ContentWarningDialog } from "@/components/ContentWarningDialog";
+import { loadAdultSession, saveAdultSession } from "@/lib/chat-personality";
 
 const CUSTOM_KEY = "plethora.customTools.v1";
 const REQUEST_KEY = "plethora.toolRequests.v1";
@@ -141,6 +144,7 @@ export function BuildYourOwnTool() {
   const [busy, setBusy] = useState(false);
   const [saved, setSaved] = useState<CustomTool[]>([]);
   const [status, setStatus] = useState("");
+  const [warning, setWarning] = useState<SafetyAssessment | null>(null);
 
   useEffect(() => {
     setSaved(loadCustom());
@@ -183,6 +187,19 @@ export function BuildYourOwnTool() {
       } else if (built.kind === "list") {
         setOutput(runList(input));
       } else {
+        const blob = [built.need, built.prompt, input].join("\n");
+        const safety = assessContentSafety(blob);
+        if (safety.hardBlock) {
+          setWarning(safety);
+          setBusy(false);
+          return;
+        }
+        if (safety.needsWarning && !loadAdultSession()) {
+          setWarning(safety);
+          setBusy(false);
+          return;
+        }
+        if (safety.needsWarning) saveAdultSession();
         const { runPlatformAi } = await import("@/lib/platform-ai-client");
         const data = await runPlatformAi(
           [
@@ -222,6 +239,21 @@ export function BuildYourOwnTool() {
 
   return (
     <div className="space-y-5">
+      {warning && (
+        <ContentWarningDialog
+          assessment={warning}
+          onCancel={() => setWarning(null)}
+          onContinue={() => {
+            if (warning.hardBlock) {
+              setWarning(null);
+              return;
+            }
+            saveAdultSession();
+            setWarning(null);
+            void runBuilt();
+          }}
+        />
+      )}
       <div className="rounded-2xl border border-violet-500/30 bg-gradient-to-br from-violet-500/15 to-transparent p-4">
         <p className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-violet-300">
           <Hammer className="h-3.5 w-3.5" />

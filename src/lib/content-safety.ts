@@ -21,7 +21,14 @@ export interface SafetyAssessment {
 }
 
 const ADULT =
-  /\b(nsfw|porn|onlyfans|18\+|xxx|erotica|erotic|sexual|sex toy|fetish|nude|naked|bdsm|adult content|hentai|sext|roleplay sex|erp|cybersex)\b/i;
+  /\b(nsfw|porn|onlyfans|18\+|xxx|erotica|erotic|sexual|sex toy|fetish|nude|naked|bdsm|adult content|hentai|sext|roleplay sex|erp|cybersex|boobs?|tits)\b/i;
+
+/** “How do I confirm 18+?” is a product question, not a request for porn. */
+function isAgeGateHowTo(text: string): boolean {
+  const t = text.toLowerCase();
+  if (!/\b(18\+|eighteen)\b/.test(t)) return false;
+  return /\b(how|where|confirm|congirm|verify|enable|turn on|button|gate)\b/.test(t);
+}
 
 const EXPLICIT =
   /\b(explicit sex|hardcore porn|cum|blowjob|anal sex|genital|deepthroat|suck(ing)? (my |your )?cock|dick|pussy|fuck me|fucking me|make (me )?(cum|orgasm)|handjob|titjob|rimjob|creampie|facial cum|jerk off|jerking)\b/i;
@@ -55,7 +62,11 @@ export function assessContentSafety(text: string): SafetyAssessment {
     };
   }
 
-  if (ADULT.test(text) || EXPLICIT.test(text) || SEXUAL_INTENT.test(text)) {
+  const adultHit = ADULT.test(text) || EXPLICIT.test(text) || SEXUAL_INTENT.test(text);
+  const onlyAskingHowToConfirm =
+    isAgeGateHowTo(text) && !EXPLICIT.test(text) && !SEXUAL_INTENT.test(text);
+
+  if (adultHit && !onlyAskingHowToConfirm) {
     flags.push("adult_18");
     if (EXPLICIT.test(text) || SEXUAL_INTENT.test(text)) flags.push("explicit_sexual");
   }

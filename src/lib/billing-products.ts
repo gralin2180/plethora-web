@@ -39,7 +39,7 @@ export const BILLING_PRODUCTS: Record<BillingSku, BillingProduct> = {
   pro: {
     sku: "pro",
     name: "Pro",
-    description: "Creators & power users — premium AI budget, then free models like Cursor.",
+    description: "Creators & power users — included paid models, then slow cheap fallback.",
     priceLabel: "$19",
     periodLabel: "/month",
     amountCents: 1900,
@@ -50,8 +50,8 @@ export const BILLING_PRODUCTS: Record<BillingSku, BillingProduct> = {
     features: [
       "Unlimited free utilities & Pro tools",
       "20 workspaces · 8 devices",
-      "Premium models with monthly included budget",
-      "Auto-fallback to free models when budget is used",
+      "Premium models with monthly included budget (models we buy)",
+      "Then slower cheap models; extra usage is billed — we don’t resell free trials",
       "Self usage limits + soft warnings",
       "BYOK always available",
       "Priority support",

@@ -118,16 +118,16 @@ export function resolveAiEntitlement(
   const ratio = premiumEffectiveLimit > 0 ? premiumUsed / premiumEffectiveLimit : 0;
   const softWarn = premiumEffectiveLimit > 0 && ratio >= caps.softWarnRatio && premiumAllowed;
   const softWarnMessage = softWarn
-    ? `Soft warning: you've used ${premiumUsed}/${premiumEffectiveLimit} premium AI messages this period. When the budget hits the limit, Plethora keeps working on free models (or use BYOK).`
+    ? `Soft warning: you've used ${premiumUsed}/${premiumEffectiveLimit} included paid-model messages this period. After that, Plethora stays on slower cheap models, then asks for extra usage.`
     : undefined;
 
-  let routeLabel = `${caps.name} · free models`;
+  let routeLabel = `${caps.name} · free pool`;
   if (premiumAllowed) {
     routeLabel = trialActive && !planActive
-      ? `Trial pack · premium (${premiumUsed}/${premiumEffectiveLimit})`
-      : `${caps.name} · premium (${premiumUsed}/${premiumEffectiveLimit})`;
+      ? `Trial pack · included models (${premiumUsed}/${premiumEffectiveLimit})`
+      : `${caps.name} · included models (${premiumUsed}/${premiumEffectiveLimit})`;
   } else if (premiumLimit > 0) {
-    routeLabel = `${caps.name} · free models (premium budget used)`;
+    routeLabel = `${caps.name} · slow fallback (included budget used)`;
   }
 
   return {

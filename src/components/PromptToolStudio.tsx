@@ -5,6 +5,9 @@ import Link from "next/link";
 import { Check, Copy, Loader2, Sparkles } from "lucide-react";
 import type { PlatformTool } from "@/lib/types";
 import { buildRefinedPrompt } from "@/lib/prompt-engine";
+import { assessContentSafety, type SafetyAssessment } from "@/lib/content-safety";
+import { ContentWarningDialog } from "@/components/ContentWarningDialog";
+import { loadAdultSession, saveAdultSession } from "@/lib/chat-personality";
 
 const STUDIO_HINTS: Record<string, { placeholder: string; lead: string }> = {
   "blog-writer": {
@@ -188,6 +191,7 @@ export function PromptToolStudio({ tool }: { tool: PlatformTool }) {
   const [copied, setCopied] = useState(false);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState("");
+  const [warning, setWarning] = useState<SafetyAssessment | null>(null);
 
   const models = tool.bestModels ?? ["Claude Sonnet", "GPT-4o"];
 
@@ -219,6 +223,20 @@ export function PromptToolStudio({ tool }: { tool: PlatformTool }) {
   }
 
   async function generate() {
+    const safety = assessContentSafety(input);
+    if (safety.hardBlock) {
+      setWarning(safety);
+      return;
+    }
+    if (safety.needsWarning && !loadAdultSession()) {
+      setWarning(safety);
+      return;
+    }
+    if (safety.needsWarning) saveAdultSession();
+    await generateNow();
+  }
+
+  async function generateNow() {
     const prompt = buildPrompt();
     setPromptUsed(prompt);
     setErr("");
@@ -253,6 +271,21 @@ export function PromptToolStudio({ tool }: { tool: PlatformTool }) {
 
   return (
     <div className="space-y-4">
+      {warning && (
+        <ContentWarningDialog
+          assessment={warning}
+          onCancel={() => setWarning(null)}
+          onContinue={() => {
+            if (warning.hardBlock) {
+              setWarning(null);
+              return;
+            }
+            saveAdultSession();
+            setWarning(null);
+            void generateNow();
+          }}
+        />
+      )}
       {models.length > 0 && (
         <p className="text-[11px] text-zinc-500">
           Writes a real draft with your connected AI (or free chat). Fallback: a pasteable prompt.

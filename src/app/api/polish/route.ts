@@ -52,6 +52,7 @@ export async function POST(request: Request) {
         userTask: task,
         plan,
         preferMode,
+        adultMode: Boolean(body.adultConsent),
       });
 
   if (result.mode === "exhausted") {

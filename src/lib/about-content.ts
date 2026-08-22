@@ -37,7 +37,7 @@ export const ABOUT_FAQS: { q: string; a: string }[] = [
   },
   {
     q: "Adult content?",
-    a: "Consensual adult content between adults is allowed after an 18+ confirm. Sexual content involving minors is hard-blocked. You stay responsible for what you generate.",
+    a: "Yes. Consensual adult / NSFW between adults is in-scope after you tap 18+. Chat, Prompt Assistant, Write it, and custom tools all use the same confirm. Sexual content involving minors is hard-blocked. You stay responsible for what you generate.",
   },
   {
     q: "Can I connect Slack, Canva, Figma, Notion…?",
@@ -49,12 +49,7 @@ export const ABOUT_FAQS: { q: string; a: string }[] = [
   },
 ];
 
-/** Compact site knowledge block for chat system prompt */
-export function siteKnowledgeForAssistant(): string {
-  return `## Product facts (answer user questions about Plethora accurately)
-${ABOUT_FAQS.map((f) => `Q: ${f.q}\nA: ${f.a}`).join("\n\n")}
-
-Key routes: / · /about · /connect · /tools · /prompt-assistant · /ai-finder · /chat · /mcp · /install · /pricing · /learn · /settings/backends · /settings/ai-keys · /settings/personal · /workspaces · /dashboard · /hardcore · /legal/terms · /legal/privacy
-
-When users ask how something on the site works, answer with exact paths and next clicks. Prefer internal /tools/... over sending them away. If unsure, say what you know and link /about or /chat for clarification.`;
+/** Tiny on-demand facts — do NOT dump this as a pitch in every reply. */
+export function siteKnowledgeForChat(): string {
+  return `If — and only if — they ask how this app works: you're the chat on Plethora. Paths: /tools, /prompt-assistant, /ai-finder, /mcp, /settings/ai-keys, /pricing, /about. Do not volunteer a feature list, slash commands, or an upgrade pitch.`;
 }

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import {
   classifyChatIntent,
@@ -18,23 +18,27 @@ import { hasByok } from "@/lib/byok";
 import { hasAnyConnectedAi } from "@/lib/connected-ai";
 import { SelectModelMenu } from "@/components/SelectModelMenu";
 import {
+  CHAT_PERSONALITIES,
+  followUpSuggestions,
+  getPersonality,
+  isPickVibeCommand,
+  loadAdultSession,
+  loadChatPersonality,
+  openingMessage,
+  parsePersonalityChoice,
+  personalityChipText,
+  saveAdultSession,
+  saveChatPersonality,
+  type ChatPersonalityId,
+} from "@/lib/chat-personality";
+import {
   Loader2,
   Send,
   Sparkles,
-  Compass,
-  Wrench,
-  MessageCircle,
   Bot,
 } from "lucide-react";
 
 const HISTORY_KEY = "plethora.chat.history.v1";
-
-const QUICK = [
-  { label: "Feeling meh", text: "hi im feeling dull today, help", icon: MessageCircle },
-  { label: "Tour", text: "give me a tour of the website", icon: Compass },
-  { label: "Quick dinner", text: "what's a good 10-minute dinner idea", icon: Sparkles },
-  { label: "Find tools", text: "find tools for ugc money", icon: Wrench },
-];
 
 export function ChatMode({
   embedded = false,
@@ -62,10 +66,13 @@ export function ChatMode({
   const [zenConfigured, setZenConfigured] = useState(false);
   const [openrouterConfigured, setOpenrouterConfigured] = useState(false);
   const [lastUserText, setLastUserText] = useState("");
+  const [personality, setPersonality] = useState<ChatPersonalityId | null>(null);
+  const [pickingPersonality, setPickingPersonality] = useState(false);
+  const [adultSession, setAdultSession] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
 
   function clearChat() {
-    setMessages([newMessage("assistant", "Clean slate. What’s on your mind?")]);
+    setMessages([newMessage("assistant", openingMessage(personality))]);
     try {
       localStorage.removeItem(HISTORY_KEY);
     } catch {
@@ -82,15 +89,16 @@ export function ChatMode({
       /* */
     }
     try {
+      setPersonality(loadChatPersonality());
+      setAdultSession(loadAdultSession());
+    } catch {
+      /* */
+    }
+    try {
       const raw = localStorage.getItem(HISTORY_KEY);
       if (raw) setMessages(JSON.parse(raw));
       else {
-        setMessages([
-          newMessage(
-            "assistant",
-            "Hey — chat, tools, chaos. Not a hall monitor. Try me."
-          ),
-        ]);
+        setMessages([newMessage("assistant", openingMessage(loadChatPersonality()))]);
       }
     } catch {
       /* ignore */
@@ -126,10 +134,10 @@ export function ChatMode({
             setQuotaNote(d.entitlement.routeLabel);
           } else if (!d.signedIn && d.guestDailyLimit) {
             setQuotaNote(
-              `Free models — no sign-in. Optional: Connect ChatGPT / Copilot or add your own key.`
+              `Free pool — ${d.guestDailyLimit}/day, no sign-in. Connect or extra usage if you run out.`
             );
           } else if (d.signedIn) {
-            setQuotaNote(`Free models with 128K context · Connect is optional`);
+            setQuotaNote(`Free pool with a daily cap · Connect is optional`);
           }
         }
       )
@@ -181,7 +189,15 @@ export function ChatMode({
         return;
       }
 
-      const reply = await generateAssistantReply(text, next, { adultConsent });
+      if (adultConsent) {
+        saveAdultSession();
+        setAdultSession(true);
+      }
+
+      const reply = await generateAssistantReply(text, next, {
+        adultConsent,
+        personality,
+      });
       setMessages((m) => [...m, newMessage("assistant", reply)]);
       if (loadPersonalContext().enabled && text.length > 20) {
         appendPattern(`Talked about: ${text.slice(0, 120)}`);
@@ -199,17 +215,63 @@ export function ChatMode({
     const text = textRaw.trim();
     if (!text || loading) return;
 
+    if (isPickVibeCommand(text)) {
+      setPickingPersonality(true);
+      setMessages((m) => [
+        ...m,
+        newMessage(
+          "assistant",
+          "How do you want me to talk? Witty, warm, blunt, pro, chaotic, or flirty — tap one. You can change it anytime."
+        ),
+      ]);
+      return;
+    }
+
+    const picked = parsePersonalityChoice(text);
+    if (picked) {
+      saveChatPersonality(picked);
+      setPersonality(picked);
+      setPickingPersonality(false);
+      const p = getPersonality(picked);
+      if (p && !messages.some((m) => m.role === "user")) {
+        setMessages([newMessage("assistant", p.hello)]);
+        return;
+      }
+      await runSend(`Talk ${p?.label.toLowerCase() ?? picked} from now on.`, adultSession);
+      return;
+    }
+
+    if (/^18\+\s*continue$/i.test(text)) {
+      saveAdultSession();
+      setAdultSession(true);
+      await runSend(text, true);
+      return;
+    }
+
     const safety = assessContentSafety(text);
     if (safety.hardBlock) {
       setPending({ text, assessment: safety });
       return;
     }
-    if (safety.needsWarning) {
+    if (safety.needsWarning && !adultSession) {
       setPending({ text, assessment: safety });
       return;
     }
-    await runSend(text, false);
+    await runSend(text, adultSession);
   }
+
+  const lastAssistant = [...messages].reverse().find((m) => m.role === "assistant");
+  const suggestionChips = useMemo(
+    () =>
+      followUpSuggestions({
+        lastUser: lastUserText,
+        lastAssistant: lastAssistant?.content,
+        personality,
+        pickingPersonality,
+        adultSession,
+      }),
+    [lastUserText, lastAssistant?.content, personality, pickingPersonality, adultSession]
+  );
 
   function saveAsAssistant() {
     const draft = createAssistantDraft(
@@ -254,8 +316,8 @@ export function ChatMode({
             <div>
               <h1 className="text-2xl font-bold tracking-tight text-white sm:text-3xl">Chat</h1>
               <p className="mt-1 text-sm text-zinc-400">
-                Pick a free model and talk. No account. 128K context. Connect is optional if you
-                want ChatGPT, Copilot, or your own key.
+                Talk like a person, not a menu. Pick a vibe, or just start — suggested replies
+                follow the chat.
               </p>
               {llmReady !== null && (
                 <span
@@ -330,6 +392,48 @@ export function ChatMode({
           embedded ? "min-h-0 flex-1" : "min-h-[480px]"
         }`}
       >
+        <div className="flex items-center gap-2 overflow-x-auto border-b border-white/5 px-3 py-2 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+          <span className="shrink-0 text-[10px] font-medium uppercase tracking-wide text-zinc-500">
+            {personality && !pickingPersonality ? "Vibe" : "How I talk"}
+          </span>
+          {CHAT_PERSONALITIES.map((p) => {
+            const active = personality === p.id && !pickingPersonality;
+            return (
+              <button
+                key={p.id}
+                type="button"
+                title={p.tagline}
+                onClick={() => void sendText(personalityChipText(p.id))}
+                className={`shrink-0 rounded-full px-2.5 py-1 text-[11px] ${
+                  active
+                    ? "bg-violet-600 text-white"
+                    : "border border-white/10 bg-white/[0.03] text-zinc-400 hover:border-violet-500/40 hover:text-zinc-200"
+                }`}
+              >
+                {p.chip}
+              </button>
+            );
+          })}
+          <button
+            type="button"
+            title={
+              adultSession
+                ? "18+ on — consensual adult chat is allowed"
+                : "Enable 18+ adult content for this browser"
+            }
+            onClick={() => {
+              if (adultSession) return;
+              void sendText("I want to enable nsfw on chat");
+            }}
+            className={`shrink-0 rounded-full px-2.5 py-1 text-[11px] ${
+              adultSession
+                ? "bg-amber-600 text-white"
+                : "border border-amber-500/30 bg-amber-500/10 text-amber-100 hover:bg-amber-500/20"
+            }`}
+          >
+            {adultSession ? "18+ on" : "18+"}
+          </button>
+        </div>
         <div className="flex-1 space-y-4 overflow-y-auto p-4 sm:p-5">
           {messages.map((m, idx) => (
             <div key={m.id}>
@@ -351,27 +455,38 @@ export function ChatMode({
                   <MessageBody text={m.content} />
                 </div>
               </div>
-              {m.role === "assistant" &&
-                idx === messages.length - 1 &&
-                !loading &&
-                messages.some((x) => x.role === "user") && (
-                  <div className="mt-2 flex flex-wrap gap-2 pl-10">
+              {m.role === "assistant" && idx === messages.length - 1 && !loading && (
+                <div className="mt-2 flex flex-wrap gap-2 pl-10">
+                  {suggestionChips.map((c) => (
                     <button
+                      key={c.label}
                       type="button"
-                      onClick={saveAsAssistant}
-                      className="inline-flex items-center gap-1 rounded-lg border border-violet-500/30 bg-violet-500/10 px-2 py-1 text-[11px] text-violet-200 hover:bg-violet-500/20"
+                      onClick={() => void sendText(c.text)}
+                      className="rounded-full border border-violet-500/25 bg-violet-500/10 px-2.5 py-1 text-[11px] text-violet-100 hover:bg-violet-500/20"
                     >
-                      <Bot className="h-3 w-3" />
-                      Create assistant from this
+                      {c.label}
                     </button>
-                    <Link
-                      href="/tools/custom-assistant"
-                      className="inline-flex items-center gap-1 rounded-lg border border-white/10 px-2 py-1 text-[11px] text-zinc-400 hover:text-white"
-                    >
-                      Modify assistants
-                    </Link>
-                  </div>
-                )}
+                  ))}
+                  {!embedded && messages.some((x) => x.role === "user") && (
+                    <>
+                      <button
+                        type="button"
+                        onClick={saveAsAssistant}
+                        className="inline-flex items-center gap-1 rounded-lg border border-white/10 px-2 py-1 text-[11px] text-zinc-400 hover:text-white"
+                      >
+                        <Bot className="h-3 w-3" />
+                        Create assistant from this
+                      </button>
+                      <Link
+                        href="/tools/custom-assistant"
+                        className="inline-flex items-center gap-1 rounded-lg border border-white/10 px-2 py-1 text-[11px] text-zinc-400 hover:text-white"
+                      >
+                        Modify assistants
+                      </Link>
+                    </>
+                  )}
+                </div>
+              )}
             </div>
           ))}
           {loading && (
@@ -382,34 +497,6 @@ export function ChatMode({
           )}
           <div ref={bottomRef} />
         </div>
-
-        {!embedded && (
-          <div className="flex gap-2 overflow-x-auto border-t border-white/5 px-3 py-2.5 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-            {QUICK.map((c) => (
-              <button
-                key={c.label}
-                type="button"
-                onClick={() => void sendText(c.text)}
-                className="flex shrink-0 items-center gap-1.5 rounded-full border border-white/10 bg-white/[0.03] px-3 py-1.5 text-[11px] text-zinc-400 hover:border-violet-500/40 hover:text-zinc-200"
-              >
-                <c.icon className="h-3 w-3 text-violet-400" />
-                {c.label}
-              </button>
-            ))}
-          </div>
-        )}
-
-        {embedded && (
-          <div className="border-t border-white/5 px-3 py-1.5">
-            <button
-              type="button"
-              onClick={() => void sendText("give me a tour of the website")}
-              className="text-[11px] text-violet-400 hover:underline"
-            >
-              Tour highlights
-            </button>
-          </div>
-        )}
 
         <div className="border-t border-white/10 bg-black/20 p-3">
           {quotaNote && (

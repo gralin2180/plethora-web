@@ -35,7 +35,7 @@ export function FloatingAssistant() {
           <div className="flex items-center justify-between border-b border-white/10 px-3 py-2">
             <div>
               <p className="text-sm font-semibold text-white">Plethora Assistant</p>
-              <p className="text-[10px] text-zinc-500">One roof · tools · anything</p>
+              <p className="text-[10px] text-zinc-500">Pick a vibe · talk like a person</p>
             </div>
             <div className="flex items-center gap-2">
               <button

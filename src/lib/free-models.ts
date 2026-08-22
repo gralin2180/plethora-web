@@ -10,9 +10,10 @@ export const SELECTED_MODEL_KEY = "plethora.selected-model.v1";
 /** Input window we actually send (chars ≈ tokens * 4). */
 export const ZEN_CONTEXT_WINDOW = 131_072;
 export const ZEN_CONTEXT_LABEL = "128K";
-export const ZEN_MAX_OUTPUT_TOKENS = 8_192;
-export const ZEN_HISTORY_MESSAGES = 64;
-export const ZEN_MESSAGE_CHARS = 24_000;
+/** Chat output cap — 8k made every free turn crawl. */
+export const ZEN_MAX_OUTPUT_TOKENS = 800;
+export const ZEN_HISTORY_MESSAGES = 12;
+export const ZEN_MESSAGE_CHARS = 3_500;
 
 export type FreeModelSource = "zen" | "openrouter";
 
@@ -23,17 +24,12 @@ export type FreeModelDef = {
   badge: "Free";
   context: string;
   note?: string;
+  /** OpenCode Zen: most models use chat/completions; Muse Spark free uses /responses. */
+  zenApi?: "chat" | "responses";
 };
 
-/** Same order as OpenCode’s “Free models provided by OpenCode” picker. */
+/** Same order as OpenCode’s “Free models provided by OpenCode” picker, plus extras that still work. */
 export const OPENCODE_ZEN_FREE_MODELS: FreeModelDef[] = [
-  {
-    id: "laguna-s-2.1-free",
-    name: "Laguna S 2.1",
-    source: "zen",
-    badge: "Free",
-    context: ZEN_CONTEXT_LABEL,
-  },
   {
     id: "nemotron-3.5-lightning-free",
     name: "Nemotron 3.5 Lightning",
@@ -41,13 +37,6 @@ export const OPENCODE_ZEN_FREE_MODELS: FreeModelDef[] = [
     badge: "Free",
     context: ZEN_CONTEXT_LABEL,
     note: "NVIDIA trial — don’t send secrets",
-  },
-  {
-    id: "deepseek-v4-flash-free",
-    name: "DeepSeek V4 Flash",
-    source: "zen",
-    badge: "Free",
-    context: ZEN_CONTEXT_LABEL,
   },
   {
     id: "nemotron-3-ultra-free",
@@ -58,9 +47,47 @@ export const OPENCODE_ZEN_FREE_MODELS: FreeModelDef[] = [
     note: "NVIDIA trial — don’t send secrets",
   },
   { id: "hy3-free", name: "Hy3", source: "zen", badge: "Free", context: ZEN_CONTEXT_LABEL },
+  {
+    id: "muse-spark-1.2-contributor-free",
+    name: "Muse Spark 1.2",
+    source: "zen",
+    badge: "Free",
+    context: ZEN_CONTEXT_LABEL,
+    zenApi: "responses",
+    note: "Contributor free — may train on chats",
+  },
+  {
+    id: "x-preview-f-free",
+    name: "Ox Alpha Free (Unlimited)",
+    source: "zen",
+    badge: "Free",
+    context: ZEN_CONTEXT_LABEL,
+    note: "Zero-retention stealth model",
+  },
   { id: "mimo-v2.5-free", name: "MiMo V2.5", source: "zen", badge: "Free", context: ZEN_CONTEXT_LABEL },
   { id: "big-pickle", name: "Big Pickle", source: "zen", badge: "Free", context: ZEN_CONTEXT_LABEL },
+  {
+    id: "laguna-s-2.1-free",
+    name: "Laguna S 2.1",
+    source: "zen",
+    badge: "Free",
+    context: ZEN_CONTEXT_LABEL,
+  },
+  {
+    id: "deepseek-v4-flash-free",
+    name: "DeepSeek V4 Flash",
+    source: "zen",
+    badge: "Free",
+    context: ZEN_CONTEXT_LABEL,
+  },
 ];
+
+/** After premium budget: smaller/cheaper pool only (extended free, slower). */
+export const SLOW_ZEN_MODEL_IDS = [
+  "nemotron-3.5-lightning-free",
+  "x-preview-f-free",
+  "hy3-free",
+] as const;
 
 export const DEFAULT_ZEN_MODEL = OPENCODE_ZEN_FREE_MODELS[0];
 

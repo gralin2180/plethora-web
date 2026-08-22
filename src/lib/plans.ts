@@ -22,8 +22,9 @@ export interface PlanCapabilities {
   /** Platform free-model chat msgs per day (not BYOK, not premium) */
   freeAiDailyLimit: number;
   /**
-   * Included premium-model messages per billing month on our key.
-   * After this, auto-fallback to free models (Cursor-style).
+   * Included paid-model messages per billing month on our key.
+   * After this: slower cheap models (daily cap), then extra usage is billed.
+   * We do not resell NVIDIA/OpenCode/OpenRouter :free trial access as a paid SKU.
    */
   premiumAiMonthlyLimit: number;
   /** Soft warn when used/limit >= this (0–1) */

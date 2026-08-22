@@ -5,7 +5,7 @@ import { DesignDoc } from "@/components/DesignDoc";
 export const metadata: Metadata = {
   title: "AI architecture — Plethora",
   description:
-    "How Plethora runs free models, rotates until exhausted, then asks for a key or pay-as-you-go.",
+    "How the Windows coding app (OpenCode-shaped) and the web free gateway split. Print to PDF.",
 };
 
 export default function DesignPage() {

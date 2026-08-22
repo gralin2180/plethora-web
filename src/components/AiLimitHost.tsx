@@ -31,8 +31,8 @@ export function AiLimitHost() {
               Free AI limit reached
             </p>
             <p className="mt-1 text-sm leading-relaxed text-zinc-400">
-              We rotated through every free model until the pool was exhausted. To keep going,
-              add your own API key, or pay as you go.
+              Daily cheap-model allowance is used up, or the public pool is exhausted. Keep going
+              with your own API key, extra usage, or a subscription (included paid models we buy).
             </p>
           </div>
           <button
@@ -47,13 +47,13 @@ export function AiLimitHost() {
 
         <ol className="mt-4 space-y-2 text-sm text-zinc-300">
           <li className="rounded-xl border border-white/10 bg-white/[0.03] px-3 py-2">
-            1. Free models (no sign-in) — used first
+            1. Free public-pool models (unpaid, capped)
           </li>
           <li className="rounded-xl border border-white/10 bg-white/[0.03] px-3 py-2">
-            2. Next free model, until none remain
+            2. Included paid models on Pro, then slower cheap fallback
           </li>
           <li className="rounded-xl border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-amber-100">
-            3. Now: your key, or extra paid usage
+            3. Extra usage / key — never silent overage
           </li>
         </ol>
 

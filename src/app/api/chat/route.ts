@@ -1,11 +1,21 @@
 import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { generateAssistantReplyServer } from "@/lib/assistant-brain";
+import { isChatPersonalityId } from "@/lib/chat-personality";
+import {
+  EXTRA_USAGE_MESSAGE,
+  laneHistoryTurns,
+  laneLabel,
+  laneMaxTokens,
+  laneMessageChars,
+  resolveChatLane,
+  type ChatLane,
+} from "@/lib/ai-lanes";
 import { assessContentSafety } from "@/lib/content-safety";
 import { hasFreeChatProvider, hasOpenRouterProvider, hasZenProvider } from "@/lib/free-chat";
-import { OPENCODE_ZEN_FREE_MODELS, OPENROUTER_FREE_MODELS, ZEN_HISTORY_MESSAGES, ZEN_MAX_OUTPUT_TOKENS, ZEN_MESSAGE_CHARS } from "@/lib/free-models";
+import { OPENCODE_ZEN_FREE_MODELS, OPENROUTER_FREE_MODELS } from "@/lib/free-models";
 import { createClient } from "@/lib/supabase/server";
-import { GUEST_AI_BLOCK, platformChatDailyLimit } from "@/lib/ai-quota";
+import { platformChatDailyLimit } from "@/lib/ai-quota";
 import { getPlanCapabilities, type PlanId } from "@/lib/plans";
 import { resolveAiEntitlement, softWarnAt, type EntitlementRow } from "@/lib/entitlements";
 import {
@@ -87,7 +97,7 @@ export async function POST(request: Request) {
       );
     }
 
-    const adultMode = Boolean(body.adultConsent) && safety.needsWarning;
+    const adultMode = Boolean(body.adultConsent);
 
     const byokKey =
       typeof body.byokKey === "string" && body.byokKey.trim().length > 20
@@ -166,8 +176,9 @@ export async function POST(request: Request) {
       plan = entitlement.plan;
     }
 
-    // Free-path quota (BYOK + ChatGPT + Zen public skip platform daily)
-    if (!usesOwnAi && !usesZenPublic) {
+    // Free-path quota (BYOK / Connect skip). Public Zen still counts — otherwise
+    // the 12/day label never moves and every guest turn can hammer the pool.
+    if (!usesOwnAi) {
       if (user) {
         limit = entitlement.freeDailyLimit;
         try {
@@ -177,10 +188,10 @@ export async function POST(request: Request) {
             p_tool_id: "chat-llm",
           });
           usedBefore = typeof usageCount === "number" ? usageCount : 0;
-          if (usedBefore >= limit) {
+          if (usedBefore >= limit && !entitlement.premiumAllowed) {
             return NextResponse.json(
               {
-                reply: `Daily free AI limit (${limit}) hit on ${getPlanCapabilities(plan === "guest" ? "free" : plan).name}. Premium budget uses a separate counter — if you've exhausted both free daily and premium, use Settings → AI keys (BYOK) or wait until tomorrow.`,
+                reply: EXTRA_USAGE_MESSAGE,
                 ok: false,
                 code: "quota",
                 needsUpgrade: true,
@@ -208,7 +219,7 @@ export async function POST(request: Request) {
           if (usedBefore >= limit) {
             return NextResponse.json(
               {
-                reply: GUEST_AI_BLOCK,
+                reply: EXTRA_USAGE_MESSAGE,
                 ok: false,
                 code: "guest_quota",
                 needsLogin: true,
@@ -248,7 +259,14 @@ export async function POST(request: Request) {
       }
     }
 
-    const wideContext = usesZenPublic || preferredSource === "zen";
+    const lane: ChatLane = resolveChatLane({
+      usesOwnAi,
+      premiumAllowed: entitlement.premiumAllowed,
+      hasPaidBudget: entitlement.premiumEffectiveLimit > 0 || entitlement.planActive,
+    });
+
+    const histTurns = laneHistoryTurns(lane);
+    const histChars = laneMessageChars(lane);
     const history = Array.isArray(body.history)
       ? body.history
           .filter(
@@ -257,9 +275,9 @@ export async function POST(request: Request) {
           )
           .map((m: { role: "user" | "assistant"; content: string }) => ({
             role: m.role as "user" | "assistant",
-            content: String(m.content).slice(0, wideContext ? ZEN_MESSAGE_CHARS : 3500),
+            content: String(m.content).slice(0, histChars),
           }))
-          .slice(-(wideContext ? ZEN_HISTORY_MESSAGES : 24))
+          .slice(-histTurns)
       : [];
 
     const histForModel =
@@ -269,9 +287,9 @@ export async function POST(request: Request) {
         ? history.slice(0, -1)
         : history;
 
-    const preferPremium = !usesOwnAi && !usesZenPublic && entitlement.premiumAllowed;
+    const preferPremium = lane === "premium";
     const freeLoadResult =
-      usesOwnAi
+      usesOwnAi || preferPremium
         ? ({ ok: true, load: "normal" } as const)
         : assertPlatformFreeCapacity();
     if (!freeLoadResult.ok) {
@@ -285,22 +303,14 @@ export async function POST(request: Request) {
         { status: 429 }
       );
     }
-    const maxTokens = wideContext
-      ? freeLoadResult.load === "hot"
-        ? 4096
-        : ZEN_MAX_OUTPUT_TOKENS
-      : !usesOwnAi && freeLoadResult.load === "hot"
-        ? 600
-        : !usesOwnAi && freeLoadResult.load === "elevated"
-          ? 900
-          : 1200;
+    const maxTokens = laneMaxTokens(lane, freeLoadResult.load === "hot");
 
     const run = async () =>
       generateAssistantReplyServer(
         message,
         histForModel,
         typeof body.learnerContext === "string"
-          ? body.learnerContext.slice(0, wideContext ? 8000 : 2000)
+          ? body.learnerContext.slice(0, lane === "premium" || lane === "byok" ? 4000 : 1500)
           : undefined,
         {
           adultMode,
@@ -317,15 +327,17 @@ export async function POST(request: Request) {
           copilot: copilotSessionToken ? { sessionToken: copilotSessionToken } : undefined,
           customSystem:
             typeof body.customSystem === "string" ? body.customSystem.slice(0, 6000) : undefined,
+          personality: isChatPersonalityId(body.personality) ? body.personality : undefined,
           preferPremium,
           maxTokens,
           preferredModel,
           preferredSource,
+          lane,
         }
       );
 
     const result =
-      !usesOwnAi && !preferPremium
+      !usesOwnAi && lane !== "premium"
         ? await withPlatformFreeSlot(run)
         : await run();
 
@@ -353,7 +365,7 @@ export async function POST(request: Request) {
     }
 
     // Usage accounting
-    if (!usesOwnAi && !usesZenPublic && result.reply) {
+    if (!usesOwnAi && result.reply) {
       try {
         if (result.usedPremium && user) {
           await recordPremiumUse(supabase, user.id, {
@@ -405,7 +417,7 @@ export async function POST(request: Request) {
 
     let softWarnMessage = entitlement.softWarnMessage;
     if (freeSoft) {
-      softWarnMessage = `Soft warning: free AI ${usedBefore}/${limit} today. When free daily ends you can still use BYOK, or Pro premium budget if you have it.`;
+      softWarnMessage = `Soft warning: free AI ${usedBefore}/${limit} today. After that, extra usage is paid (try pack / subscribe) or BYOK.`;
     } else if (
       entitlement.premiumEffectiveLimit > 0 &&
       softWarnAt(
@@ -414,7 +426,7 @@ export async function POST(request: Request) {
         getPlanCapabilities(entitlement.plan).softWarnRatio
       )
     ) {
-      softWarnMessage = `Soft warning: premium AI ${entitlement.premiumUsed}/${entitlement.premiumEffectiveLimit} this period. After the limit, replies stay on free models (Cursor-style).`;
+      softWarnMessage = `Soft warning: included paid models ${entitlement.premiumUsed}/${entitlement.premiumEffectiveLimit} this period. After that you stay on slower cheap models, then extra usage is billed.`;
     }
 
     if (user && result.reply) {
@@ -461,8 +473,10 @@ export async function POST(request: Request) {
               mode: "premium" as const,
               used: entitlement.premiumUsed,
               limit: entitlement.premiumEffectiveLimit,
+              lane,
+              label: laneLabel(lane),
             }
-          : { mode: plan, used: usedBefore, limit },
+          : { mode: plan, used: usedBefore, limit, lane, label: laneLabel(lane) },
       entitlement: summarizeEnt(entitlement),
       contextTurns: histForModel.length,
     });

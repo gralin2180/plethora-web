@@ -15,6 +15,7 @@ export interface PolishRequest {
   userTask: string;
   plan: PlanId;
   preferMode?: PolishMode;
+  adultMode?: boolean;
 }
 
 export interface PolishResult {
@@ -71,6 +72,7 @@ export async function polishPrompt(req: PolishRequest): Promise<PolishResult> {
         customSystem: FREE_SYSTEM,
         preferredSource: "zen",
         maxTokens: 220,
+        adultMode: req.adultMode,
       });
       if (llm.code === "pool_exhausted") {
         return {

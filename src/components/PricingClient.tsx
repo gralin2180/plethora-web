@@ -7,8 +7,8 @@ import { HARDCORE_BUNDLE, HARDCORE_FEATURES } from "@/lib/hardcore-bundle";
 
 const FREE_FEATURES = [
   "Browse all tools & AI catalog",
-  "Free models with no sign-in (rotates until the pool is exhausted)",
-  "Then: your API key, or pay as you go / subscribe",
+  "Free public-pool models (capped daily) — not a paid SKU",
+  "When the cap hits: your API key, or extra usage / subscribe",
   "2 workspaces · up to 3 devices",
   "Prompt Assistant + AI Finder",
   "BYOK anytime (your OpenRouter key)",
@@ -18,9 +18,9 @@ const FREE_FEATURES = [
 const PRO_FEATURES = [
   "Unlimited tool runs · Pro tools unlock",
   "20 workspaces · 8 devices",
-  "~300 premium AI messages/mo then free models",
-  "Self monthly usage limits + soft warnings",
-  "Hourly / daily / weekly try packs available",
+  "~300 included paid-model msgs/mo (models we buy)",
+  "Then slower cheap models, then extra usage is billed",
+  "Hourly / daily / weekly extra-usage packs",
   "Priority support · BYOK still available",
 ];
 
@@ -75,8 +75,8 @@ export function PricingClient() {
         <div className="mx-auto max-w-5xl text-center">
           <h1 className="text-3xl font-bold text-white sm:text-4xl">Simple pricing</h1>
           <p className="mt-2 text-zinc-500">
-            Free models for everyone. When the free pool is exhausted, add your own key or pay as
-            you go. Pro adds a monthly premium budget.
+            Free pool for unpaid use. Paid plans buy models we pay for — then a slow cheap
+            fallback, then extra usage. Same shape as Cursor / Claude.
           </p>
           <div className="mt-4 flex flex-wrap justify-center gap-2">
             <Link
@@ -112,7 +112,7 @@ export function PricingClient() {
             name="Pro"
             price="$19"
             period="/month"
-            desc="Premium budget → free fallback"
+            desc="Included paid models → slow fallback"
             features={PRO_FEATURES}
             cta={busy === "pro" ? "…" : "Get Pro"}
             onCta={() => void checkout("pro")}
@@ -139,8 +139,7 @@ export function PricingClient() {
         <div className="mx-auto mt-10 max-w-5xl rounded-2xl border border-white/10 bg-white/[0.02] p-6">
           <h2 className="text-lg font-semibold text-white">Pay as you go (no monthly bill)</h2>
           <p className="mt-1 text-sm text-zinc-500">
-            Extra usage when the free pool is exhausted — an hour, a day, or a week — then free
-            pool + BYOK again.
+            Extra usage when included budget and cheap fallback are used up.
           </p>
           <div className="mt-4 grid gap-3 sm:grid-cols-3">
             {[

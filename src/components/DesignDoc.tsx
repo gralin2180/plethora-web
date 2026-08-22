@@ -37,16 +37,42 @@ export function DesignDoc() {
         How AI runs in Plethora
       </h1>
       <p className="mt-3 max-w-2xl text-base leading-relaxed text-zinc-400 design-muted">
-        One pipeline for every feature that needs a model. Free models first, rotate until the pool
-        is empty, then the user adds a key or pays for extra usage. No sign-in required to start.
+        Two surfaces. The Windows app is an OpenCode-shaped coding assistant on the PC. The web roof
+        talks to the public free gateway on a daily cap. Paid plans buy models we pay for, then a
+        slow cheap fallback, then extra usage. We do not resell NVIDIA / OpenCode trial access.
       </p>
 
       <section className="mt-10">
-        <h2 className="text-lg font-semibold text-white">The rule in one sentence</h2>
+        <h2 className="text-lg font-semibold text-white">Two surfaces</h2>
+        <div className="mt-3 grid gap-3 sm:grid-cols-2">
+          <div className="design-card rounded-2xl border border-white/10 bg-white/[0.03] p-4">
+            <p className="text-xs font-semibold uppercase tracking-wide text-zinc-500">Windows app</p>
+            <p className="mt-1 text-sm font-semibold text-white">Coding assistant</p>
+            <p className="mt-2 text-xs leading-relaxed text-zinc-400 design-muted">
+              Same job as OpenCode: files, terminal, sessions, connect a provider, pick a model.
+              Prefer a local model (Ollama / llama.cpp, small GGUF on weak PCs). Not Cursor. Not an
+              OpenCode clone. Repo work stays on the machine.
+            </p>
+            <p className="mt-3 text-[11px] text-zinc-500">Status: specced · not shipped yet</p>
+          </div>
+          <div className="design-card rounded-2xl border border-violet-500/30 bg-violet-500/10 p-4">
+            <p className="text-xs font-semibold uppercase tracking-wide text-violet-300">Web app</p>
+            <p className="mt-1 text-sm font-semibold text-white">Public free gateway</p>
+            <p className="mt-2 text-xs leading-relaxed text-zinc-400 design-muted">
+              Chat, prompts, Write it, resume solver, custom tools. No sign-in for the free pool
+              (daily cap). Paid SKUs are models we buy. Live today.
+            </p>
+            <p className="mt-3 text-[11px] text-zinc-500">Status: live on /chat · /tools · /design</p>
+          </div>
+        </div>
+      </section>
+
+      <section className="mt-10">
+        <h2 className="text-lg font-semibold text-white">Web rule (one sentence)</h2>
         <p className="mt-2 rounded-2xl border border-white/10 bg-white/[0.03] p-4 text-sm leading-relaxed text-zinc-300 design-card">
-          Try the selected free model. If it fails, try the next free model. Keep going until one
-          answers — or the whole pool is exhausted. Then stop and ask for an external API key or
-          pay-as-you-go / subscription. Extra usage is never silent.
+          Unpaid: public free pool (capped, fail-fast). Pro: included paid models we buy. Then
+          slower cheap models. Then extra usage / key. Never silent overage. Do not sell trial-pool
+          access as a paid SKU.
         </p>
       </section>
 
@@ -55,9 +81,9 @@ export function DesignDoc() {
         <ol className="mt-4 grid gap-3 sm:grid-cols-4">
           {[
             { n: "1", t: "User asks", d: "Chat, prompt polish, resume solver, Write it, custom tool." },
-            { n: "2", t: "Free chain", d: "Laguna → Nemotron → DeepSeek → Hy3 → MiMo → Big Pickle → OpenRouter/Groq." },
-            { n: "3", t: "Answer", d: "First model that works returns. 128K context on the Zen free set." },
-            { n: "4", t: "If empty", d: "Sheet: add API key, pay as you go (try packs), or subscribe." },
+            { n: "2", t: "Lane", d: "BYOK → included paid → free pool → slow fallback." },
+            { n: "3", t: "Answer", d: "Picked model first, then at most two backups. Short timeout." },
+            { n: "4", t: "If empty", d: "Sheet: extra usage, subscribe, or paste an API key." },
           ].map((s) => (
             <li key={s.n} className="design-card rounded-2xl border border-white/10 bg-white/[0.03] p-4">
               <p className="text-xs font-semibold uppercase tracking-wide text-zinc-500">{s.n}</p>
@@ -69,7 +95,7 @@ export function DesignDoc() {
       </section>
 
       <section className="mt-10">
-        <h2 className="text-lg font-semibold text-white">What uses this pipeline</h2>
+        <h2 className="text-lg font-semibold text-white">What uses the web gateway</h2>
         <div className="mt-3 overflow-hidden rounded-2xl border border-white/10 design-card">
           <table className="w-full text-left text-sm">
             <thead className="border-b border-white/10 text-xs uppercase tracking-wide text-zinc-500">
@@ -95,7 +121,8 @@ export function DesignDoc() {
           </table>
         </div>
         <p className="mt-2 text-xs text-zinc-500 design-muted">
-          Offline utilities (PDF merge, image compress, regex, CSV) never hit this pipeline.
+          Offline utilities (PDF merge, image compress, regex, CSV) never hit this pipeline. The
+          Windows coding app does not send your repo through this gateway.
         </p>
       </section>
 
@@ -162,17 +189,32 @@ export function DesignDoc() {
       </section>
 
       <section className="mt-10">
+        <h2 className="text-lg font-semibold text-white">Windows coding app (OpenCode-shaped)</h2>
+        <p className="mt-2 text-sm leading-relaxed text-zinc-400 design-muted">
+          When shipped, this is the place for assistant + coding: open a folder, run terminal, pick
+          a model, connect a provider. Local first so a weak PC can use a 1B–4B Q4 GGUF instead of
+          waiting on the public pool.
+        </p>
+        <ol className="mt-3 space-y-1 text-sm text-zinc-300">
+          <li>1. Local Ollama / llama.cpp / LM Studio (small quant on shit specs).</li>
+          <li>2. User-connected ChatGPT, Copilot, or BYOK — keys stay on the device.</li>
+          <li>3. Optional web free models for cheap chat only — not for dumping the whole repo.</li>
+        </ol>
+      </section>
+
+      <section className="mt-10">
         <h2 className="text-lg font-semibold text-white">Honesty</h2>
         <ul className="mt-3 list-disc space-y-1 pl-5 text-sm text-zinc-400 design-muted">
           <li>Users do not paste an OpenCode key to use the free list.</li>
           <li>Some trial models may train on chats — don’t send secrets.</li>
           <li>Claude.ai Pro login is blocked for third parties. API / OpenRouter only.</li>
           <li>We do not impersonate another product’s client. We identify as Plethora.</li>
+          <li>The Windows app is Plethora’s coding surface, not Cursor and not OpenCode itself.</li>
         </ul>
       </section>
 
       <p className="mt-12 text-xs text-zinc-600 design-muted">
-        Canonical product context: PROJECT_CONTEXT.md · Live app: /chat · Pricing: /pricing
+        Canonical product context: PROJECT_CONTEXT.md §16–17 · Live web: /chat · Pricing: /pricing
       </p>
     </article>
   );

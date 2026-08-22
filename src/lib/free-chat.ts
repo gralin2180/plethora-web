@@ -1,12 +1,24 @@
-import { siteKnowledgeForAssistant } from "./about-content";
+import { siteKnowledgeForChat } from "./about-content";
+import {
+  isChatPersonalityId,
+  personalityPromptBlock,
+  type ChatPersonalityId,
+} from "./chat-personality";
 import { premiumModelList, primaryPremiumModel } from "./premium-models";
 import {
   DEFAULT_ZEN_MODEL,
   OPENCODE_ZEN_FREE_MODELS,
+  SLOW_ZEN_MODEL_IDS,
   ZEN_BASE_URL,
-  ZEN_HISTORY_MESSAGES,
   ZEN_MAX_OUTPUT_TOKENS,
+  zenFreeModel,
 } from "./free-models";
+import {
+  laneHistoryTurns,
+  laneMaxAttempts,
+  laneTimeoutMs,
+  type ChatLane,
+} from "./ai-lanes";
 
 /**
  * Free-tier chat LLM providers (OpenRouter free models, Groq, custom).
@@ -28,51 +40,50 @@ export interface FreeChatResult {
 
 export function buildChatSystemPrompt(
   extraContext?: string,
-  opts?: { adultMode?: boolean; customSystem?: string }
+  opts?: { adultMode?: boolean; customSystem?: string; personality?: ChatPersonalityId | null }
 ): string {
+  const voice = personalityPromptBlock(
+    isChatPersonalityId(opts?.personality) ? opts.personality : null
+  );
+
+  const adultOn = `
+## Adult mode ON (user confirmed 18+)
+Consensual adult chat is allowed: sexting, ERP, dirty talk, NSFW writing. Do it when asked.
+- Do NOT refuse as off-topic. Do NOT say "not my lane", "I'm built for tools", or pitch the app.
+- Match intensity. Stay between consenting adults.
+- Hard-refuse only: anyone under 18, CSAM, or real non-consent crimes.
+`;
+
+  const adultOff = `
+## Adult content
+If they want explicit sex / sexting / ERP: don't refuse the category and don't pivot to product features. Tell them to tap 18+ (or say "18+ continue"), then go there.
+`;
+
   if (opts?.customSystem?.trim()) {
     const base = opts.customSystem.trim();
     const extra = extraContext?.trim()
       ? `\n\nLocal learner context:\n${extraContext.trim()}`
       : "";
-    const adult = opts.adultMode
-      ? `\n\nAdult mode ON (user confirmed 18+): write consensual adult erotic roleplay when asked. Be direct. Still hard-refuse anything with minors.`
-      : "";
-    return `${base}${adult}${extra}`;
+    return `${base}\n\n${voice}\nDon't pitch the host app or dump feature lists unless they asked.\n${opts.adultMode ? adultOn : adultOff}${extra}`;
   }
 
   const extra = extraContext?.trim()
     ? `\n\nLocal learner context (this user only; may be empty):\n${extraContext.trim()}`
     : "";
 
-  const adultBlock = opts?.adultMode
-    ? `
-## Adult mode (user confirmed 18+)
-- They already clicked 18+. Do NOT lecture, deflect with tool lists, or say "hard pass" / "I'm not a cam model".
-- Deliver consensual adult erotic roleplay / dirty talk between adults when asked. Match intensity. Can be explicit.
-- Never involve anyone under 18. Never CSAM. Never real non-consent crimes.
-`
-    : `
-## Adult content
-- Slang, body jokes, mild NSFW: keep human. If they want explicit sexual roleplay, say they need to confirm 18+ in the UI (or invite them to say "18+ continue").
-`;
+  return `You are a chat partner. Open to almost anything they bring: jokes, boredom, advice, work, filthy talk (after 18+), random facts. You happen to live inside an app called Plethora — that is not the topic unless they make it the topic.
 
-  return `You are Plethora Assistant — sharp, warm, witty when the vibe calls for it. Never corporate-robot. Never a dead filter.
+${opts?.adultMode ? adultOn : adultOff}
 
-## Who Plethora is
-Plethora is the under-one-roof hub for prompt engineering, free utilities, AI tools, local GPU installs, and MCP. Answer ANY user question about how the product works, pricing, accounts, devices, tools, MCP, keys, legal limits.
-
-${siteKnowledgeForAssistant()}
+${voice}
 
 ## How to talk
-- Match energy. Specific over generic. Short by default unless they want a long RP / writeup.
-- Product questions: exact paths (/prompt-assistant, /tools/…, /settings/ai-keys, /about).
-- Only refuse: illegal harm (especially minors/CSAM), actionable real-world crime how-tos.
-- No numbered site dumps; for "tour" say live highlights are starting.
-- Tool asks: 2–5 picks with /paths.
-- Don't invent running local tools on their PC.
-- Do not say "ChatGPT explains. Plethora runs…" as a catchphrase; Plethora stands alone.
-${adultBlock}${extra}`;
+- Answer what they actually said. Be a person, not a landing page.
+- Never pitch the product, list features, drop slash commands, or say "under one roof" / "try our tools" unless they asked how the app works.
+- 1–3 short paragraphs unless they want a long writeup or roleplay.
+- Only refuse: illegal harm (especially minors/CSAM) and actionable real-world crime how-tos.
+- If they ask how this app works: ${siteKnowledgeForChat()}
+${extra}`;
 }
 
 /** Free model IDs rotate on OpenRouter; first env override, then these. */
@@ -194,6 +205,7 @@ export type FreeChatOpts = {
   learnerContext?: string;
   adultMode?: boolean;
   customSystem?: string;
+  personality?: ChatPersonalityId | null;
   /** ChatGPT Plus/Pro subscription (Codex OAuth) — billed to user's OpenAI sub */
   codex?: { accessToken: string; accountId?: string };
   /** GitHub Copilot session (user login) */
@@ -207,6 +219,8 @@ export type FreeChatOpts = {
   /** Platform free-model pick (OpenCode Zen or OpenRouter :free) */
   preferredModel?: string;
   preferredSource?: "zen" | "openrouter";
+  /** Cursor-style routing lane */
+  lane?: ChatLane;
 };
 
 export function hasZenProvider(): boolean {
@@ -219,6 +233,14 @@ function zenHeaders(): Record<string, string> {
     "HTTP-Referer": env("PLETHORA_SITE_URL") || "https://plethora-ten.vercel.app",
     "X-Title": "Plethora",
   };
+}
+
+function zenUsesResponsesApi(model: string): boolean {
+  return (
+    model === "muse-spark-1.2-contributor-free" ||
+    model === "muse-spark-1.2" ||
+    zenFreeModel(model)?.zenApi === "responses"
+  );
 }
 
 function zenProvider(model: string): {
@@ -246,25 +268,60 @@ async function callProvider(
     headers?: Record<string, string>;
   },
   messages: ChatHistoryMsg[],
-  maxTokens = 1200
+  maxTokens = 1200,
+  timeoutMs = 12_000
 ): Promise<FreeChatResult> {
   const base = p.baseUrl.replace(/\/$/, "");
-  const url = base.endsWith("/chat/completions") ? base : `${base}/chat/completions`;
+  const responses = p.name === "opencode-zen" && zenUsesResponsesApi(p.model);
+  const url = base.endsWith("/chat/completions")
+    ? base
+    : responses
+      ? `${base}/responses`
+      : `${base}/chat/completions`;
+  const ctrl = new AbortController();
+  const timer = setTimeout(() => ctrl.abort(), timeoutMs);
 
-  const res = await fetch(url, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      ...(p.apiKey ? { Authorization: `Bearer ${p.apiKey}` } : {}),
-      ...p.headers,
-    },
-    body: JSON.stringify({
+  const system = messages.find((m) => m.role === "system")?.content;
+  const rest = messages.filter((m) => m.role !== "system");
+  const body = responses
+    ? {
+        model: p.model,
+        temperature: 0.85,
+        max_output_tokens: maxTokens,
+        ...(system ? { instructions: system } : {}),
+        input: rest.map((m) => ({ role: m.role, content: m.content })),
+      }
+    : {
+        model: p.model,
+        temperature: 0.85,
+        max_tokens: maxTokens,
+        messages,
+      };
+
+  let res: Response;
+  try {
+    res = await fetch(url, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        ...(p.apiKey ? { Authorization: `Bearer ${p.apiKey}` } : {}),
+        ...p.headers,
+      },
+      body: JSON.stringify(body),
+      signal: ctrl.signal,
+    });
+  } catch (e) {
+    const aborted = e instanceof Error && e.name === "AbortError";
+    return {
+      reply: "",
+      provider: p.name,
       model: p.model,
-      temperature: 0.85,
-      max_tokens: maxTokens,
-      messages,
-    }),
-  });
+      ok: false,
+      error: aborted ? `timeout after ${timeoutMs}ms` : e instanceof Error ? e.message : "network error",
+    };
+  } finally {
+    clearTimeout(timer);
+  }
 
   const raw = await res.text();
   if (!res.ok) {
@@ -286,6 +343,7 @@ async function callProvider(
   }
 
   let data: {
+    output_text?: string;
     choices?: {
       message?: {
         content?: string;
@@ -293,17 +351,13 @@ async function callProvider(
         reasoning?: string;
       };
     }[];
+    output?: {
+      type?: string;
+      content?: { type?: string; text?: string }[];
+    }[];
   };
   try {
-    data = JSON.parse(raw) as {
-      choices?: {
-        message?: {
-          content?: string;
-          reasoning_content?: string;
-          reasoning?: string;
-        };
-      }[];
-    };
+    data = JSON.parse(raw) as typeof data;
   } catch {
     return {
       reply: "",
@@ -314,8 +368,20 @@ async function callProvider(
     };
   }
 
+  const fromResponses = (data.output || [])
+    .flatMap((o) => o.content || [])
+    .map((c) => c.text || "")
+    .join("")
+    .trim();
   const msg = data.choices?.[0]?.message;
-  const reply = (msg?.content || msg?.reasoning_content || msg?.reasoning || "").trim();
+  const reply = (
+    data.output_text ||
+    fromResponses ||
+    msg?.content ||
+    msg?.reasoning_content ||
+    msg?.reasoning ||
+    ""
+  ).trim();
   if (!reply) {
     return {
       reply: "",
@@ -351,6 +417,7 @@ export async function freeChatCompletion(
   const systemPrompt = buildChatSystemPrompt(opts.learnerContext, {
     adultMode: opts.adultMode,
     customSystem: opts.customSystem,
+    personality: opts.personality,
   });
 
   if (opts.codex?.accessToken) {
@@ -400,6 +467,14 @@ export async function freeChatCompletion(
     }
   }
 
+  const lane: ChatLane = opts.byok?.apiKey
+    ? "byok"
+    : opts.lane === "premium" || opts.lane === "slow" || opts.lane === "free"
+      ? opts.lane
+      : opts.preferPremium
+        ? "premium"
+        : "free";
+
   const providers: P[] = [];
   if (opts.byok?.apiKey) {
     providers.push({
@@ -421,33 +496,38 @@ export async function freeChatCompletion(
       seen.add(key);
       providers.push({ ...zenProvider(id), usedPremium: false });
     };
-
-    if (opts.preferredSource === "openrouter" && pick) {
+    const pushOr = (model: string) => {
       const match = freeProviders().find((p) => p.name === "openrouter");
-      if (match) {
-        providers.push({ ...match, model: pick, usedPremium: false });
-        seen.add(`or:${pick}`);
-      }
-    } else if (pick && opts.preferredSource === "zen") {
-      pushZen(pick);
-    } else {
-      pushZen(DEFAULT_ZEN_MODEL.id);
-    }
-    for (const m of OPENCODE_ZEN_FREE_MODELS) {
-      pushZen(m.id);
-    }
+      if (!match) return;
+      const key = `or:${model}`;
+      if (seen.has(key)) return;
+      seen.add(key);
+      providers.push({ ...match, model, usedPremium: false });
+    };
 
-    if (opts.preferPremium && opts.preferredSource !== "zen") {
+    if (lane === "premium") {
       for (const p of premiumProviders()) {
         providers.push({ ...p, usedPremium: true });
       }
-    }
-    const rest = freeProviders();
-    for (const p of rest) {
-      const key = `${p.name}:${p.model}`;
-      if (seen.has(key)) continue;
-      seen.add(key);
-      providers.push({ ...p, usedPremium: false });
+      pushZen("nemotron-3.5-lightning-free");
+    } else if (lane === "slow") {
+      for (const id of SLOW_ZEN_MODEL_IDS) pushZen(id);
+      pushOr("nvidia/nemotron-nano-9b-v2:free");
+    } else {
+      if (opts.preferredSource === "openrouter" && pick) {
+        pushOr(pick);
+      } else if (pick && opts.preferredSource === "zen") {
+        pushZen(pick);
+      } else {
+        pushZen(DEFAULT_ZEN_MODEL.id);
+      }
+      let extras = 0;
+      for (const m of OPENCODE_ZEN_FREE_MODELS) {
+        if (extras >= 2) break;
+        if (seen.has(`zen:${m.id}`)) continue;
+        pushZen(m.id);
+        extras += 1;
+      }
     }
   }
 
@@ -467,24 +547,40 @@ export async function freeChatCompletion(
     };
   }
 
+  const histN = laneHistoryTurns(lane);
   const messages: ChatHistoryMsg[] = [
     {
       role: "system",
       content: systemPrompt,
     },
     ...history
-      .slice(-(opts.preferredSource === "zen" ? ZEN_HISTORY_MESSAGES : 14))
+      .slice(-(lane === "byok" ? 20 : histN))
       .filter((m) => m.role !== "system"),
+    ...(opts.adultMode
+      ? [
+          {
+            role: "system" as const,
+            content:
+              "ADULT MODE ACTIVE. User confirmed 18+. The next message may be sexual. Reply in-kind (sext / ERP / dirty talk) between consenting adults. Never refuse as off-topic or redirect to tools.",
+          },
+        ]
+      : []),
     { role: "user", content: userMessage },
   ];
 
   const maxTokens =
     opts.maxTokens ??
-    (opts.preferredSource === "zen" ? ZEN_MAX_OUTPUT_TOKENS : 1200);
+    (opts.adultMode
+      ? 1400
+      : lane === "premium" || lane === "byok"
+        ? 1600
+        : ZEN_MAX_OUTPUT_TOKENS);
+  const timeoutMs = laneTimeoutMs(lane);
+  const attempts = Math.min(providers.length, laneMaxAttempts(lane));
   let lastError = "";
-  for (const p of providers) {
+  for (const p of providers.slice(0, attempts)) {
     try {
-      const result = await callProvider(p, messages, maxTokens);
+      const result = await callProvider(p, messages, maxTokens, timeoutMs);
       if (result.ok && result.reply && !isLameModelRefusal(result.reply, opts.adultMode)) {
         return { ...result, usedPremium: Boolean(p.usedPremium) };
       }
@@ -502,10 +598,19 @@ export async function freeChatCompletion(
   }
 
   // last-resort adult offline snip if models all flinch after consent
-  if (opts.adultMode && /sex|fuck|cock|dick|blow|sext|nsfw|suck/i.test(userMessage)) {
+  if (opts.adultMode && /sex|fuck|cock|dick|blow|sext|nsfw|suck|erp|horny/i.test(userMessage)) {
     return {
       reply: adultOfflineFallback(userMessage),
       provider: "offline-adult",
+      ok: true,
+    };
+  }
+
+  if (!opts.adultMode && /\b(sext|nsfw|erp|dirty talk|boobs?|porn|fuck me)\b/i.test(userMessage)) {
+    return {
+      reply:
+        "Yeah we can. Tap **18+** on the chat bar (or say **18+ continue**) and I’ll actually go there. Minors stay blocked — that’s the only hard line.",
+      provider: "adult-gate",
       ok: true,
     };
   }
@@ -529,30 +634,35 @@ export function isPoolExhaustedError(err: string): boolean {
 }
 
 function adultOfflineFallback(userMessage: string): string {
-  return `You confirmed 18+ — here’s a short consensual beat (cloud model flinched; this is template-grade until a stronger key is online):
+  return `Yeah. Adults only — you’re on. I’ll match you.
 
-*Heat between consenting adults. You pull closer. Breath hits collarbone. Hands stay honest — only what was asked.*  
-“You said that,” they murmur against your mouth, rough and amused. “Then keep looking at me.”  
+You: close, already a little wrecked from waiting. I don’t make you ask twice. Mouth at your ear, hand sliding where you wanted it. “Say it again,” I murmur. “Slower.” Then I do exactly what you asked.
 
-Want longer / more explicit / a specific scene? Say pace + kinks (still adults only). Or open **/tools/custom-assistant** to save a persona that always plays this way.
+Tell me how you want it: who you are in this, how filthy, who’s in charge. I’ll keep going.
 
-You wrote: “${userMessage.slice(0, 120)}${userMessage.length > 120 ? "…" : ""}”`;
+You said: “${userMessage.slice(0, 160)}${userMessage.length > 160 ? "…" : ""}”`;
 }
 
 /** Free host models often flinch on slang/adult words with useless "can't help". */
 export function isLameModelRefusal(text: string, adultMode?: boolean): boolean {
   const t = text.trim().toLowerCase();
   if (
-    /hard pass|not a cam model|search bar with a personality|i won't write (erotica|explicit|nsfw)|cannot (write|engage in) (erotica|sexual|nsfw)/i.test(
+    /hard pass|not a cam model|not my lane|plenty of other places|search bar with a personality|i won't write (erotica|explicit|nsfw)|cannot (write|engage in) (erotica|sexual|nsfw)|built to help with tools|not (designed|built|here) (for|to) (that|sext|nsfw|sexual|adult)/i.test(
       t
     )
   ) {
     return true;
   }
-  if (adultMode && /i (can'?t|cannot|won'?t) (help|assist|engage|write)/i.test(t) && t.length < 400) {
+  if (
+    adultMode &&
+    /i (can'?t|cannot|won'?t) (help|assist|engage|write|sext|do that)|i('m| am) not (able|supposed) to|against my (guidelines|programming)/i.test(
+      t
+    ) &&
+    t.length < 700
+  ) {
     return true;
   }
-  if (t.length < 120) {
+  if (t.length < 180) {
     if (
       /i('m| am) sorry.*can'?t help|i cannot (help|assist)|as an ai language model|i'm not able to (help|assist|engage)|i won't (discuss|engage)/i.test(
         t
