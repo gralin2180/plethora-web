@@ -6,10 +6,20 @@ import {
   HardDrive,
   MessageSquare,
   Search,
+  Sparkles,
   Wrench,
 } from "lucide-react";
 import { PLATFORM_TOOLS } from "@/lib/tools-registry";
 import { StickyRails } from "@/components/StickyRails";
+
+const ROOMS = [
+  { href: "/chat", title: "Chat", desc: "Normal talk", icon: MessageSquare },
+  { href: "/spicy", title: "Spicy 18+", desc: "Companion chat", icon: Flame },
+  { href: "/local-llms", title: "Local LLMs", desc: "Your PC", icon: HardDrive },
+  { href: "/tools", title: "Tools", desc: "The whole roof", icon: Wrench },
+  { href: "/tools/build-your-tool", title: "App Maker", desc: "Build a web app", icon: Hammer },
+  { href: "/ai-finder", title: "Finder", desc: "What should I use?", icon: Search },
+];
 
 const ROOMS = [
   { href: "/chat", title: "Chat", desc: "Normal talk", icon: MessageSquare },
@@ -25,33 +35,34 @@ export function HomePage() {
     <>
       <section className="relative overflow-hidden px-4 pb-12 pt-14 sm:px-6 sm:pb-16 sm:pt-20">
         <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_top,_rgba(124,58,237,0.25)_0%,_transparent_50%)]" />
-        <div className="relative mx-auto max-w-2xl text-center">
-          <h1 className="text-4xl font-semibold tracking-tight text-white sm:text-5xl">
-            Connect your AI. Then use it.
+        <div className="relative mx-auto max-w-4xl text-center">
+          <div className="mb-5 inline-flex items-center gap-2 rounded-full border border-violet-500/40 bg-violet-500/15 px-4 py-1.5 text-sm font-medium text-violet-200">
+            <Sparkles className="h-4 w-4" />
+            Tools. AI. One place.
+          </div>
+          <h1 className="text-5xl font-semibold tracking-tight text-white sm:text-6xl">
+            Plethora
           </h1>
-          <p className="mx-auto mt-4 max-w-md text-base text-zinc-400">
-            Log in with ChatGPT, Copilot, Perplexity, Gemini — the accounts you already have. Then
-            chat, write prompts, or grab a tool.
+          <p className="mx-auto mt-4 max-w-xl text-base leading-relaxed text-zinc-400 sm:text-lg">
+            Everything you need to ship, without twenty open tabs. Free utilities, chat, local
+            models on your PC, and MCP so agents can run the work.
           </p>
           <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row">
             <Link
-              href="/get-started"
-              className="flex items-center gap-2 rounded-xl bg-white px-7 py-3 text-sm font-medium text-black hover:bg-zinc-200"
+              href="/tools"
+              className="flex items-center gap-2 rounded-xl bg-violet-600 px-7 py-3 text-sm font-medium text-white hover:bg-violet-500"
             >
-              Connect an AI
+              Browse tools
               <ArrowRight className="h-4 w-4" />
             </Link>
             <Link
               href="/chat"
-              className="flex items-center gap-2 rounded-xl bg-violet-600 px-7 py-3 text-sm font-medium text-white hover:bg-violet-500"
+              className="flex items-center gap-2 rounded-xl border border-white/15 px-7 py-3 text-sm font-medium text-zinc-100 hover:bg-white/[0.05]"
             >
               Open chat
             </Link>
-            <Link
-              href="/prompt-assistant"
-              className="text-sm text-zinc-400 hover:text-white"
-            >
-              Write a prompt →
+            <Link href="/get-started" className="text-sm text-zinc-500 hover:text-zinc-300">
+              Connect an AI →
             </Link>
           </div>
         </div>
