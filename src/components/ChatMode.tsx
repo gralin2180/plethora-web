@@ -45,6 +45,8 @@ import {
   Bot,
   Paperclip,
   Pencil,
+  Square,
+  ChevronDown,
   Trash2,
   X,
 } from "lucide-react";
@@ -85,6 +87,8 @@ export function ChatMode({
   const [personality, setPersonality] = useState<ChatPersonalityId | null>(null);
   const [pickingPersonality, setPickingPersonality] = useState(false);
   const [adultSession, setAdultSession] = useState(false);
+  const abortRef = useRef<AbortController | null>(null);
+  const [qualityOpen, setQualityOpen] = useState(false);
   const [qualitySmooth, setQualitySmooth] = useState(50);
   const [unrestricted, setUnrestricted] = useState(false);
   const [pendingFiles, setPendingFiles] = useState<PreparedChatFile[]>([]);
@@ -220,6 +224,9 @@ export function ChatMode({
     const next = [...messages, userMsg];
     setMessages(next);
     setLoading(true);
+    abortRef.current?.abort();
+    const ac = new AbortController();
+    abortRef.current = ac;
     try {
       if (classifyChatIntent(text) === "tour" && !adultConsent) {
         startProductTour();
@@ -240,6 +247,7 @@ export function ChatMode({
         personality,
         quality: qualityFromSmooth(qualitySmooth),
         qualitySmooth,
+        signal: ac.signal,
         onDelta: (chunk) => {
           setMessages((m) =>
             m.map((x) =>
@@ -254,13 +262,18 @@ export function ChatMode({
       if (loadPersonalContext().enabled && text.length > 20) {
         appendPattern(`Talked about: ${text.slice(0, 120)}`);
       }
-    } catch {
-      setMessages((m) => [
-        ...m,
-        newMessage("assistant", "Something went wrong. Try again in a moment."),
-      ]);
+    } catch (e) {
+      if (e instanceof Error && e.name === "AbortError") {
+        /* stopped */
+      } else {
+        setMessages((m) => [
+          ...m,
+          newMessage("assistant", "Something went wrong. Try again in a moment."),
+        ]);
+      }
     }
     setLoading(false);
+    abortRef.current = null;
   }
 
   async function sendText(textRaw: string) {
@@ -619,15 +632,16 @@ export function ChatMode({
         </div>
 
         <div className="border-t border-white/10 bg-[#08080f]/90 p-3 backdrop-blur-sm">
-          {quotaNote && (
-            <p className="mb-2 text-[11px] text-zinc-500">{quotaNote}</p>
-          )}
-          <div className="mb-2 flex justify-end">
-            <QualitySlider
+          <div className="mb-2 flex items-center justify-between gap-3">
+            <p className="min-w-0 text-[11px] text-zinc-500">{quotaNote}</p>
+            <QualityMenu
               value={qualitySmooth}
+              open={qualityOpen}
+              onOpen={setQualityOpen}
               onChange={(n) => {
                 setQualitySmooth(n);
                 saveSmoothQuality(n);
+                setQualityOpen(false);
               }}
             />
           </div>
@@ -687,6 +701,13 @@ export function ChatMode({
             <textarea
               value={input}
               onChange={(e) => setInput(e.target.value)}
+              onPaste={(e) => {
+                const files = e.clipboardData?.files;
+                if (files && files.length) {
+                  e.preventDefault();
+                  void onPickFiles(files);
+                }
+              }}
               onKeyDown={(e) => {
                 if (e.key === "Enter" && !e.shiftKey) {
                   e.preventDefault();
@@ -697,19 +718,31 @@ export function ChatMode({
               placeholder={
                 editingId
                   ? "Edit prompt and send…"
-                  : "Say anything, or attach a file…"
+                  : "Say anything, paste or attach a file…"
               }
-              className="max-h-32 min-h-[46px] flex-1 resize-none rounded-2xl border border-white/10 bg-white/[0.04] px-3.5 py-2.5 text-sm text-white placeholder:text-zinc-600 focus:border-violet-500/50 focus:outline-none"
+              className="max-h-32 min-h-[46px] flex-1 resize-none overflow-y-auto rounded-2xl border border-white/10 bg-white/[0.04] px-3.5 py-2.5 text-sm text-white placeholder:text-zinc-600 focus:border-violet-500/50 focus:outline-none [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
             />
+            {loading ? (
+              <button
+                type="button"
+                onClick={() => abortRef.current?.abort()}
+                className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-zinc-200 text-zinc-900 hover:bg-white"
+                aria-label="Stop generating"
+                title="Stop"
+              >
+                <Square className="h-3.5 w-3.5 fill-current" />
+              </button>
+            ) : (
             <button
               type="button"
               onClick={() => void sendText(input)}
-              disabled={loading || (!input.trim() && pendingFiles.length === 0)}
+              disabled={!input.trim() && pendingFiles.length === 0}
               className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-violet-600 text-white hover:bg-violet-500 disabled:opacity-40"
               aria-label="Send"
             >
               <Send className="h-4 w-4" />
             </button>
+            )}
           </div>
         </div>
       </div>
@@ -750,36 +783,56 @@ function MessageBody({ text }: { text: string }) {
   );
 }
 
-function QualitySlider({
+function QualityMenu({
   value,
+  open,
+  onOpen,
   onChange,
 }: {
   value: number;
+  open: boolean;
+  onOpen: (v: boolean) => void;
   onChange: (n: number) => void;
 }) {
   const band = qualityFromSmooth(value);
+  const options: { n: number; label: string; hint: string }[] = [
+    { n: 18, label: "Faster", hint: "Snappy replies" },
+    { n: 50, label: "Balanced", hint: "Default" },
+    { n: 92, label: "Best", hint: "Roleplay, code, long answers" },
+  ];
   return (
-    <div className="w-[min(100%,13.5rem)]">
-      <div className="flex items-center justify-between gap-2">
-        <span className="text-[10px] text-zinc-600">Speed</span>
-        <span className="text-[10px] font-medium text-violet-200">{qualityLabel(band)}</span>
-      </div>
-      <input
-        type="range"
-        min={0}
-        max={100}
-        step={1}
-        value={value}
-        onChange={(e) => onChange(Number(e.target.value))}
-        className="mt-1 h-1.5 w-full cursor-pointer accent-violet-500"
-        aria-valuemin={0}
-        aria-valuemax={100}
-        aria-valuenow={value}
-        aria-label="Reply quality. Left is faster, right is Best."
-      />
-      <p className="mt-1 text-[10px] leading-snug text-zinc-600">
-        Drag right toward Best for roleplay, code, and longer answers.
-      </p>
+    <div className="relative shrink-0">
+      <button
+        type="button"
+        onClick={() => onOpen(!open)}
+        className="inline-flex items-center gap-1.5 rounded-full border border-white/10 bg-white/[0.04] px-2.5 py-1 text-[11px] text-zinc-200 hover:border-violet-500/40"
+        aria-haspopup="listbox"
+        aria-expanded={open}
+      >
+        {qualityLabel(band)}
+        <ChevronDown className="h-3 w-3 text-zinc-500" />
+      </button>
+      {open ? (
+        <ul
+          role="listbox"
+          className="absolute bottom-full right-0 z-20 mb-1.5 w-52 overflow-hidden rounded-xl border border-white/10 bg-[#12121c] py-1 shadow-xl shadow-black/50"
+        >
+          {options.map((o) => (
+            <li key={o.n}>
+              <button
+                type="button"
+                role="option"
+                aria-selected={qualityFromSmooth(value) === qualityFromSmooth(o.n)}
+                onClick={() => onChange(o.n)}
+                className="flex w-full flex-col items-start px-3 py-2 text-left hover:bg-white/[0.06]"
+              >
+                <span className="text-xs text-white">{o.label}</span>
+                <span className="text-[10px] text-zinc-500">{o.hint}</span>
+              </button>
+            </li>
+          ))}
+        </ul>
+      ) : null}
     </div>
   );
 }

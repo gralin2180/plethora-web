@@ -348,6 +348,7 @@ export async function generateAssistantReply(
     onDelta?: (chunk: string) => void;
     quality?: import("./chat-quality").ChatQuality;
     qualitySmooth?: number;
+    signal?: AbortSignal;
   }
 ): Promise<string> {
   const text = userText.trim();
@@ -373,9 +374,12 @@ export async function generateAssistantReply(
       onDelta: opts?.onDelta,
       quality: opts?.quality,
       qualitySmooth: opts?.qualitySmooth,
+      signal: opts?.signal,
     });
     if (llm) return llm;
   }
+
+  if (opts?.signal?.aborted) return "";
 
   const intent = classifyChatIntent(text);
 
@@ -387,9 +391,11 @@ export async function generateAssistantReply(
     onDelta: opts?.onDelta,
     quality: opts?.quality,
     qualitySmooth: opts?.qualitySmooth,
+    signal: opts?.signal,
   });
   if (llm) return llm;
 
+  if (opts?.signal?.aborted) return "";
   if (intent === "greeting") return greetingReply();
   if (intent === "banter") return banterReply(text);
   if (intent === "mood") return moodReply(text);
@@ -434,6 +440,7 @@ async function tryLlm(
     onDelta?: (chunk: string) => void;
     quality?: import("./chat-quality").ChatQuality;
     qualitySmooth?: number;
+    signal?: AbortSignal;
   }
 ): Promise<string | null> {
   const learner = learnerBundle();
@@ -457,6 +464,7 @@ async function tryLlm(
     const res = await fetch("/api/chat", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
+      signal: opts?.signal,
       body: JSON.stringify({
         stream: Boolean(opts?.onDelta),
         message: text,
@@ -538,8 +546,8 @@ async function tryLlm(
       return data.reply.trim();
     }
     }
-  } catch {
-    /* fall through */
+  } catch (e) {
+    if (e instanceof Error && e.name === "AbortError") return "";
   }
 
   if (typeof window === "undefined" && hasFreeChatProvider()) {

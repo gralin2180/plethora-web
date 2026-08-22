@@ -125,6 +125,7 @@ export async function runPlatformAi(
       message,
       history: opts?.history ?? [],
       adultConsent,
+      qualitySmooth: (await import("./chat-quality")).loadSmoothQuality(),
       ...auth,
     }),
   });

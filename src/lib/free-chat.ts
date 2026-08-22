@@ -57,9 +57,11 @@ export function buildChatSystemPrompt(
   if (opts?.adultMode) {
     return `You are in a private 18+ character chat (SpicyChat-style). You ARE the character they named.
 
-Stay in first person. Use *actions* and dialogue. Match their heat. Fictional adult scenes (including adult family roleplay) are allowed.
+Stay in first person for the scene. Use *actions* and dialogue. Match their heat. Fictional adult scenes (including adult family roleplay) are allowed.
 
-Never mention being an AI, guidelines, 18+, or whether you should continue. Never write analysis or a thinking process. If a character is under 18, refuse in one sentence. Otherwise the first sentence is in-character.
+If they also asked for real work (code, an app, a plan), do BOTH: play the scene AND deliver the work. Do not drop one half. Do not say you "can't help with that specific request" when 18+ is on.
+
+Never mention being an AI, guidelines, 18+, or whether you should continue. Never write analysis. If a character is under 18, refuse in one sentence. Otherwise the first sentence is in-character.
 
 ${voice}${extra}`;
   }
@@ -104,12 +106,27 @@ function modelsFor(kind: RouteKind, q: ChatQuality): {
 
   if (kind === "adult") {
     if (q === "fast") {
-      return { or: [mytho, dolphin, glm], zen: ["x-preview-f-free"], groq: false, venice: true };
+      return {
+        or: [mytho, dolphin, glm, laguna],
+        zen: ["x-preview-f-free", "laguna-s-2.1-free"],
+        groq: false,
+        venice: true,
+      };
     }
     if (q === "best") {
-      return { or: [dolphin, hermes, mytho, glm], zen: ["x-preview-f-free"], groq: false, venice: true };
+      return {
+        or: [dolphin, hermes, mytho, glm, laguna],
+        zen: ["x-preview-f-free"],
+        groq: false,
+        venice: true,
+      };
     }
-    return { or: [dolphin, mytho, glm], zen: ["x-preview-f-free"], groq: false, venice: true };
+    return {
+      or: [dolphin, mytho, glm, laguna],
+      zen: ["x-preview-f-free"],
+      groq: false,
+      venice: true,
+    };
   }
   if (kind === "code") {
     if (q === "fast") {
@@ -754,7 +771,12 @@ export async function freeChatCompletion(
   ];
 
   const maxTokens = opts.maxTokens ?? budget.maxTokens;
-  const timeoutMs = lane === "byok" || lane === "premium" ? laneTimeoutMs(lane) : budget.timeoutMs;
+  const timeoutMs =
+    lane === "byok"
+      ? Math.max(24_000, budget.timeoutMs)
+      : lane === "premium"
+        ? laneTimeoutMs(lane)
+        : budget.timeoutMs;
   const attempts = Math.min(
     providers.length,
     lane === "byok" ? 1 : Math.max(budget.attempts, opts.unrestricted ? 6 : 4)
@@ -809,6 +831,9 @@ export function isPoolExhaustedError(err: string): boolean {
 export function isLameModelRefusal(text: string, adultMode?: boolean): boolean {
   const t = text.trim().toLowerCase();
   if (/come here\. tell me exactly what you want/.test(t)) return true;
+  if (/can'?t help with that specific request|i can'?t help with that(?!.*minor)/i.test(t)) {
+    return Boolean(adultMode);
+  }
   if (
     /hard pass|not a cam model|not my lane|plenty of other places|search bar with a personality|i won't write (erotica|explicit|nsfw)|cannot (write|engage in) (erotica|sexual|nsfw)|built to help with tools|not (designed|built|here) (for|to) (that|sext|nsfw|sexual|adult)/i.test(
       t
