@@ -98,20 +98,57 @@ export const OPENROUTER_FREE_MODELS: FreeModelDef[] = [
     source: "openrouter",
     badge: "Free",
     context: "128K",
+    note: "Picks a live $0 model",
+  },
+  {
+    id: "nvidia/nemotron-3.5-lightning:free",
+    name: "Nemotron 3.5 Lightning",
+    source: "openrouter",
+    badge: "Free",
+    context: "128K",
+  },
+  {
+    id: "inclusionai/ling-3.0-flash:free",
+    name: "Ling 3.0 Flash",
+    source: "openrouter",
+    badge: "Free",
+    context: "256K",
   },
   {
     id: "google/gemma-4-26b-a4b-it:free",
     name: "Gemma 4 26B",
     source: "openrouter",
     badge: "Free",
-    context: "128K",
+    context: "256K",
+  },
+  {
+    id: "google/gemma-4-31b-it:free",
+    name: "Gemma 4 31B",
+    source: "openrouter",
+    badge: "Free",
+    context: "256K",
   },
   {
     id: "openai/gpt-oss-20b:free",
-    name: "GPT OSS 20B",
+    name: "GPT-OSS 20B",
     source: "openrouter",
     badge: "Free",
     context: "128K",
+    note: "OpenAI open-weights — not ChatGPT",
+  },
+  {
+    id: "cohere/north-mini-code:free",
+    name: "North Mini Code",
+    source: "openrouter",
+    badge: "Free",
+    context: "256K",
+  },
+  {
+    id: "poolside/laguna-s-2.1:free",
+    name: "Laguna S 2.1",
+    source: "openrouter",
+    badge: "Free",
+    context: "256K",
   },
   {
     id: "nvidia/nemotron-nano-9b-v2:free",
@@ -121,13 +158,22 @@ export const OPENROUTER_FREE_MODELS: FreeModelDef[] = [
     context: "128K",
   },
   {
-    id: "google/gemma-4-31b-it:free",
-    name: "Gemma 4 31B",
+    id: "z-ai/glm-5.2:free",
+    name: "GLM 5.2",
     source: "openrouter",
     badge: "Free",
     context: "128K",
   },
 ];
+
+/** Route a user message to the cheapest/fastest free model that fits. */
+export function autoRouteKind(text: string): "fast" | "code" | "vision" | "long" {
+  const t = text.toLowerCase();
+  if (/\[image attached|data:image|\.png|\.jpe?g|\.webp|screenshot/i.test(t)) return "vision";
+  if (/\b(code|typescript|python|sql|regex|stack trace|bug|function|compile)\b/i.test(t)) return "code";
+  if (text.length > 4000 || /\b(summarize this (pdf|doc|file)|long context)\b/i.test(t)) return "long";
+  return "fast";
+}
 
 export type SelectedChatModel =
   | { kind: "connected" }

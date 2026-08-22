@@ -16,7 +16,6 @@ import { createAssistantDraft, upsertAssistant } from "@/lib/custom-assistants";
 import { startProductTour, TOUR_CHAT_OPENING } from "@/lib/product-tour";
 import { hasByok } from "@/lib/byok";
 import { hasAnyConnectedAi } from "@/lib/connected-ai";
-import { SelectModelMenu } from "@/components/SelectModelMenu";
 import {
   CHAT_PERSONALITIES,
   followUpSuggestions,
@@ -599,13 +598,6 @@ export function ChatMode({
               or your own key.
             </p>
           )}
-          <div className="mb-2">
-            <SelectModelMenu
-              zenConfigured={zenConfigured}
-              openrouterConfigured={openrouterConfigured}
-              connectedLabel={subscriptionOn ? "Connected AI" : "Platform AI"}
-            />
-          </div>
           {fileNote && <p className="mb-2 text-[11px] text-amber-300">{fileNote}</p>}
           {pendingFiles.length > 0 && (
             <div className="mb-2 flex flex-wrap gap-1.5">
@@ -631,10 +623,6 @@ export function ChatMode({
               Editing a previous prompt — later messages were dropped so the thread stays consistent.
             </p>
           )}
-          <p className="mb-2 text-[10px] text-zinc-600">
-            Files stay on this device. We only send a short text extract to the model (Vercel/Supabase
-            aren’t used as a file dump).
-          </p>
           <div className="flex items-end gap-2">
             <input
               ref={fileRef}

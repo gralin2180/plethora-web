@@ -1,9 +1,7 @@
 /**
  * Browser helper: every AI feature talks to /api/chat the same way.
- * Attaches the selected free model + any connected key.
+ * Attaches any connected key; the server auto-picks a free model.
  */
-
-import { loadSelectedChatModel } from "./free-models";
 
 export const AI_EXHAUSTED_EVENT = "plethora:ai-exhausted";
 
@@ -42,50 +40,34 @@ export async function collectChatAuth(): Promise<{
 
   try {
     const { resolveConnectedChatAuth, loadConnectedAi } = await import("./connected-ai");
-    const selected = loadSelectedChatModel();
     const store = loadConnectedAi();
-    const zenAcc = store.accounts["opencode-zen"];
-
-    if (selected.kind === "zen") {
-      preferredModel = selected.id;
-      preferredSource = "zen";
-      if (zenAcc?.apiKey) {
-        byokKey = zenAcc.apiKey;
-        byokBaseUrl = zenAcc.baseUrl;
-        byokModel = selected.id;
-        usedConnected = true;
-      }
-    } else if (selected.kind === "openrouter") {
-      preferredModel = selected.id;
-      preferredSource = "openrouter";
+    const connected = await resolveConnectedChatAuth();
+    if (connected.codex) {
+      codexAccessToken = connected.codex.accessToken;
+      codexAccountId = connected.codex.accountId;
+      usedConnected = true;
+    }
+    if (connected.copilot?.sessionToken) {
+      copilotSessionToken = connected.copilot.sessionToken;
+      usedConnected = true;
+    }
+    if (connected.byok?.apiKey) {
+      byokKey = connected.byok.apiKey;
+      byokBaseUrl = connected.byok.baseUrl;
+      byokModel = connected.byok.model;
+      usedConnected = true;
+    }
+    if (!usedConnected) {
+      const zenAcc = store.accounts["opencode-zen"];
       const orAcc = store.accounts["openrouter"];
       if (orAcc?.apiKey) {
         byokKey = orAcc.apiKey;
         byokBaseUrl = orAcc.baseUrl;
-        byokModel = selected.id;
         usedConnected = true;
-      }
-    } else {
-      preferredModel = selected.kind === "connected" ? undefined : undefined;
-      preferredSource = "zen";
-      const connected = await resolveConnectedChatAuth();
-      if (connected.codex) {
-        codexAccessToken = connected.codex.accessToken;
-        codexAccountId = connected.codex.accountId;
+      } else if (zenAcc?.apiKey) {
+        byokKey = zenAcc.apiKey;
+        byokBaseUrl = zenAcc.baseUrl;
         usedConnected = true;
-        preferredSource = undefined;
-      }
-      if (connected.copilot?.sessionToken) {
-        copilotSessionToken = connected.copilot.sessionToken;
-        usedConnected = true;
-        preferredSource = undefined;
-      }
-      if (connected.byok?.apiKey) {
-        byokKey = connected.byok.apiKey;
-        byokBaseUrl = connected.byok.baseUrl;
-        byokModel = connected.byok.model;
-        usedConnected = true;
-        preferredSource = undefined;
       }
     }
 

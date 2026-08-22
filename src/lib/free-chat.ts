@@ -5,16 +5,16 @@ import {
 } from "./chat-personality";
 import { premiumModelList, primaryPremiumModel } from "./premium-models";
 import {
-  DEFAULT_ZEN_MODEL,
   OPENCODE_ZEN_FREE_MODELS,
+  OPENROUTER_FREE_MODELS,
   SLOW_ZEN_MODEL_IDS,
   ZEN_BASE_URL,
   ZEN_MAX_OUTPUT_TOKENS,
+  autoRouteKind,
   zenFreeModel,
 } from "./free-models";
 import {
   laneHistoryTurns,
-  laneMaxAttempts,
   laneTimeoutMs,
   type ChatLane,
 } from "./ai-lanes";
@@ -137,11 +137,27 @@ function freeProviders(): {
 
   const groq = env("GROQ_API_KEY");
   if (groq) {
+    const groqModels = [
+      env("GROQ_MODEL") || "llama-3.1-8b-instant",
+      "llama-3.3-70b-versatile",
+    ];
+    for (const model of groqModels) {
+      list.push({
+        name: "groq",
+        baseUrl: "https://api.groq.com/openai/v1",
+        apiKey: groq,
+        model,
+      });
+    }
+  }
+
+  const gemini = env("GEMINI_API_KEY") || env("GOOGLE_AI_API_KEY") || env("GOOGLE_GENERATIVE_AI_API_KEY");
+  if (gemini) {
     list.push({
-      name: "groq",
-      baseUrl: "https://api.groq.com/openai/v1",
-      apiKey: groq,
-      model: env("GROQ_MODEL") || "llama-3.1-8b-instant",
+      name: "gemini",
+      baseUrl: "https://generativelanguage.googleapis.com/v1beta/openai",
+      apiKey: gemini,
+      model: env("GEMINI_MODEL") || "gemini-2.0-flash",
     });
   }
 
@@ -530,7 +546,6 @@ export async function freeChatCompletion(
       },
     });
   } else {
-    const pick = opts.preferredModel?.trim();
     const seen = new Set<string>();
     const pushZen = (id: string) => {
       const key = `zen:${id}`;
@@ -556,22 +571,33 @@ export async function freeChatCompletion(
       for (const id of SLOW_ZEN_MODEL_IDS) pushZen(id);
       pushOr("nvidia/nemotron-nano-9b-v2:free");
     } else {
-      if (opts.preferredSource === "openrouter" && pick) {
-        pushOr(pick);
-      } else if (pick && opts.preferredSource === "zen") {
-        pushZen(pick);
-      } else {
-        pushZen(DEFAULT_ZEN_MODEL.id);
-      }
-      if (opts.unrestricted) {
-        let extras = 0;
-        for (const m of OPENCODE_ZEN_FREE_MODELS) {
-          if (extras >= 4) break;
-          if (seen.has(`zen:${m.id}`)) continue;
-          pushZen(m.id);
-          extras += 1;
+      const kind = autoRouteKind(userMessage);
+      for (const p of freeProviders()) {
+        if (p.name === "groq" || p.name === "gemini") {
+          const key = `${p.name}:${p.model}`;
+          if (seen.has(key)) continue;
+          seen.add(key);
+          providers.push({ ...p, usedPremium: false });
         }
       }
+      if (kind === "code") {
+        pushZen("laguna-s-2.1-free");
+        pushOr("cohere/north-mini-code:free");
+        pushOr("poolside/laguna-s-2.1:free");
+      } else if (kind === "vision") {
+        pushOr("google/gemma-4-26b-a4b-it:free");
+        pushOr("google/gemma-4-31b-it:free");
+      } else if (kind === "long") {
+        pushZen("nemotron-3-ultra-free");
+      }
+      pushZen("nemotron-3.5-lightning-free");
+      pushZen("x-preview-f-free");
+      pushOr("openrouter/free");
+      pushOr("inclusionai/ling-3.0-flash:free");
+      pushOr("nvidia/nemotron-3.5-lightning:free");
+      pushOr("openai/gpt-oss-20b:free");
+      for (const m of OPENCODE_ZEN_FREE_MODELS) pushZen(m.id);
+      for (const m of OPENROUTER_FREE_MODELS) pushOr(m.id);
     }
   }
 
@@ -615,9 +641,7 @@ export async function freeChatCompletion(
     opts.maxTokens ??
     (lane === "premium" || lane === "byok" ? 480 : ZEN_MAX_OUTPUT_TOKENS);
   const timeoutMs = laneTimeoutMs(lane);
-  const attempts = opts.unrestricted
-    ? Math.min(providers.length, 5)
-    : Math.min(providers.length, laneMaxAttempts(lane));
+  const attempts = Math.min(providers.length, lane === "byok" ? 1 : 5);
   let lastError = "";
   for (const p of providers.slice(0, attempts)) {
     try {
