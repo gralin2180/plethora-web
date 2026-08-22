@@ -27,7 +27,9 @@ type NavItem = {
 const PRIMARY: NavItem[] = [
   { href: "/get-started", label: "Connect", tour: "nav-get-started" },
   { href: "/chat", label: "Chat", tour: "nav-chat" },
+  { href: "/spicy", label: "Spicy", tour: "nav-spicy", hint: "18+ chat" },
   { href: "/tools", label: "Tools", tour: "nav-tools" },
+  { href: "/local-llms", label: "Local", tour: "nav-backends", accent: "local" },
   { href: "/projects", label: "Projects", tour: "nav-projects" },
 ];
 
@@ -180,7 +182,7 @@ export function Header({ user = null }: { user?: SupaUser | null }) {
               key={item.href}
               href={item.href}
               data-tour={item.tour}
-              className={`whitespace-nowrap rounded-lg px-3 py-1.5 text-sm transition ${linkTone(item.href, pathForNav)}`}
+              className={`whitespace-nowrap rounded-lg px-3 py-1.5 text-sm transition ${linkTone(item.href, pathForNav, item.accent)}`}
             >
               {item.href === "/get-started" ? aiHubLabel : item.label}
             </Link>
@@ -243,10 +245,9 @@ export function Header({ user = null }: { user?: SupaUser | null }) {
             Tour
           </button>
           <Link
-            href="/settings/backends"
-            data-tour="nav-backends"
+            href="/local-llms"
             className="hidden items-center gap-1.5 rounded-lg border border-cyan-500/35 bg-cyan-500/10 px-2.5 py-1.5 text-sm font-medium text-cyan-200 hover:bg-cyan-500/20 lg:inline-flex"
-            title="Install and configure local AI"
+            title="Add, create, and train local models"
           >
             <HardDrive className="h-3.5 w-3.5" />
             Local AI
@@ -276,7 +277,7 @@ export function Header({ user = null }: { user?: SupaUser | null }) {
                 key={`m-${item.href}`}
                 href={item.href}
                 data-tour={item.tour}
-                className={`block rounded-lg px-3 py-2.5 text-sm ${linkTone(item.href, pathForNav)}`}
+                className={`block rounded-lg px-3 py-2.5 text-sm ${linkTone(item.href, pathForNav, item.accent)}`}
               >
                 {item.href === "/get-started" ? aiHubLabel : item.label}
               </Link>
@@ -329,12 +330,11 @@ export function Footer() {
             </p>
             <div className="mt-4 flex flex-col gap-2">
               <Link
-                href="/settings/backends"
-                data-tour="link-backends"
+                href="/local-llms"
                 className="inline-flex items-center gap-2 text-sm font-semibold text-cyan-400 hover:text-cyan-300"
               >
                 <HardDrive className="h-4 w-4" />
-                Local AI backends →
+                Local LLMs →
               </Link>
               <Link
                 href="/settings/personal"
@@ -364,8 +364,13 @@ export function Footer() {
                 </Link>
               </li>
               <li>
-                <Link href="/tools" className="hover:text-white">
-                  All Tools
+                <Link href="/spicy" className="hover:text-white">
+                  Spicy chat (18+)
+                </Link>
+              </li>
+              <li>
+                <Link href="/local-llms" className="hover:text-white">
+                  Local LLMs
                 </Link>
               </li>
               <li>

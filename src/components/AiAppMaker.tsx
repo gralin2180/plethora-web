@@ -17,12 +17,18 @@ import {
 import { trackToolUse } from "@/lib/self-learn";
 
 const FEATURES = [
+  "Theme switcher",
+  "Save in this browser",
+  "Export / download",
+  "Keyboard shortcuts",
+  "Charts / stats",
   "Task list",
   "Live clock",
   "Reminders + alerts",
   "Focus 15 / 25 / 50",
-  "Daily stats",
-  "Calendar .ics",
+  "Quiz / scoring",
+  "Calculator",
+  "Notes / markdown",
 ];
 
 const ROUTES: { id: string; label: string; hint: string; quality: number }[] = [
@@ -43,12 +49,7 @@ export function AiAppMaker() {
   const [audience, setAudience] = useState("Just me");
   const [data, setData] = useState("Stay in this browser");
   const [look, setLook] = useState("Dark, focused");
-  const [features, setFeatures] = useState<string[]>([
-    "Task list",
-    "Live clock",
-    "Reminders + alerts",
-    "Focus 15 / 25 / 50",
-  ]);
+  const [features, setFeatures] = useState<string[]>(["Theme switcher", "Save in this browser"]);
   const [route, setRoute] = useState("auto");
   const [buildLog, setBuildLog] = useState("");
   const [buildStep, setBuildStep] = useState("Planning layout");
@@ -315,8 +316,8 @@ export function AiAppMaker() {
           AI App Maker
         </p>
         <p className="mt-2 text-sm text-zinc-400">
-          Brief the job, your rules, and a few Plethora questions. Create a real web app here —
-          then this tool is only a modification chat.
+          Brief any web app (tracker, quiz, notes, dashboard, game…). Pick look + must-haves,
+          including a theme switcher. Create here — then this page is only a modification chat.
         </p>
       </div>
 
@@ -394,7 +395,7 @@ export function AiAppMaker() {
       <fieldset className="space-y-2">
         <legend className="text-xs text-zinc-500">Look</legend>
         <div className="flex flex-wrap gap-2">
-          {["Dark, focused", "Clean light", "Playful color"].map((o) => (
+          {["Dark, focused", "Clean light", "Playful color", "Neon glass", "Calm ocean"].map((o) => (
             <Chip key={o} on={look === o} onClick={() => setLook(o)}>
               {o}
             </Chip>

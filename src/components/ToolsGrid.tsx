@@ -79,6 +79,8 @@ import {
   FileStack,
   Hash,
   FlaskConical,
+  Flame,
+  HardDrive,
   type LucideIcon,
 } from "lucide-react";
 import { PLATFORM_TOOLS, TOOL_CATEGORIES, searchTools } from "@/lib/tools-registry";
@@ -140,6 +142,8 @@ const ICONS: Record<string, LucideIcon> = {
   FolderTree,
   Cable,
   NotebookPen,
+  Flame,
+  HardDrive,
   Presentation: Presentation,
   Sheet: Sheet,
   Table: Table2,
@@ -175,6 +179,8 @@ type SmartTab = "all" | "popular" | "recent" | "foryou";
 function toolHref(slug: string) {
   if (slug === "prompt-assistant" || slug === "ai-finder") return `/${slug}`;
   if (slug === "chat") return "/chat";
+  if (slug === "spicy-chat") return "/spicy";
+  if (slug === "local-llms") return "/local-llms";
   if (slug === "mcp-setup") return "/mcp";
   return `/tools/${slug}`;
 }

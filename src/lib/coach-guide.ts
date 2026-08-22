@@ -11,36 +11,35 @@ export function coachForGoal(text: string): { reply: string; steps: TourStep[] }
     return {
       reply: `Free path on **this** site:
 
-1. **Tools → YouTube → captions** for a transcript (free).
-2. **Prompt Assistant** for a 15–30s hook + script.
-3. Edit in **CapCut** (free, off-site) and upload to YouTube Shorts.
+1. **Tools → YouTube → script** for a rewrite from captions.
+2. **Tools → Shorts clip generator** for best-part timestamps + caption style.
+3. Run **web/pipelines/shorts_cut.py** on your PC (yt-dlp + ffmpeg) for the actual MP4 — the cloud cannot cut YouTube into a file.
 
-I’ll highlight each control. Tap **Next** after you click. I can guide you around Plethora — I can’t click YouTube Studio on your PC from the browser.`,
+I’ll highlight the tools. Tap **Next** after you click.`,
       steps: [
         {
           id: "c-tools",
           target: "nav-tools",
           href: "/tools",
           title: "Open Tools",
-          dialogue: "Click Tools. That’s the library — converters, AI tools, YouTube captions.",
+          dialogue: "Click Tools. Captions, script, and Shorts cutter live here.",
           placement: "bottom",
         },
         {
           id: "c-yt",
-          target: "tool-youtube-to-captions",
+          target: "tool-youtube-to-script",
           href: "/tools?category=AI%20Tools",
-          title: "YouTube → captions",
-          dialogue:
-            "Open this card. Paste a YouTube URL for a free transcript you can cut into a short.",
+          title: "YouTube → script",
+          dialogue: "Paste a YouTube URL. Choose full script, summary, or Shorts hooks.",
           placement: "bottom",
         },
         {
-          id: "c-prompt",
-          target: "nav-prompt",
-          href: "/prompt-assistant",
-          title: "Script the short",
+          id: "c-short",
+          target: "tool-shorts-from-url",
+          href: "/tools?category=AI%20Tools",
+          title: "Shorts generator",
           dialogue:
-            "Use Prompt Assistant to draft a hook, 3 beats, and on-screen text. Then finish the edit in CapCut for free.",
+            "Paste any yt-dlp video link. Get cut times and captions, then run the Python pipeline locally for the file.",
           placement: "bottom",
         },
       ],

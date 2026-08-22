@@ -43,8 +43,9 @@ export type MiniApp = {
 
 export function wantsMiniApp(text: string): boolean {
   const t = text.toLowerCase();
-  if (/\b(create|build|make|write|code)\b.{0,100}\b(web )?app\b/.test(t)) return true;
-  if (/\btracker app\b|\bweb tracker\b|\bhabit tracker\b|\btodo app\b/.test(t)) return true;
+  if (/\b(create|build|make|write|code)\b.{0,120}\b(web )?app\b/.test(t)) return true;
+  if (/\b(calculator|notes app|quiz app|inventory|dashboard|kanban|habit tracker|todo app)\b/.test(t))
+    return true;
   if (/\bproductivity\b/.test(t) && /\b(time|tracker|pomodoro|tasks?|app)\b/.test(t)) return true;
   if (/\b(dashboard|pomodoro)\b/.test(t) && /\b(for me|for myself|build|make)\b/.test(t))
     return true;
@@ -71,9 +72,12 @@ export function titleFromBrief(brief: string): string {
   if (/\bproductivity\b|\btime management\b|\bpomodoro\b/.test(t)) return "Productivity Tracker";
   if (/\bhabit\b/.test(t)) return "Habit Tracker";
   if (/\bspend|budget|expense\b/.test(t)) return "Spend Tracker";
+  if (/\bquiz\b/.test(t)) return "Quiz";
+  if (/\bcalculator\b/.test(t)) return "Calculator";
+  if (/\bnotes?\b/.test(t)) return "Notes";
   const m = brief.match(/\b(?:called|named)\s+["']?([a-z0-9][a-z0-9 \-]{1,40})/i);
   if (m) return m[1].trim();
-  return "My Tracker";
+  return "My App";
 }
 
 function loadAll(): MiniApp[] {
@@ -142,19 +146,22 @@ export function compileAppSpec(opts: {
     `Audience: ${opts.audience}. Data: ${opts.data}. Look: ${opts.look}.`,
     opts.features.length ? `Must include: ${opts.features.join(", ")}.` : "",
     opts.constraints ? `Never: ${opts.constraints}` : "",
-    "Must include: live local clock, calendar day strip, reminders with optional browser notifications, focus timer labeled (15/25/50 min), stats, ICS download for phone calendars. Dense dark UI.",
-    "Output only <!DOCTYPE html> … </html>. Persist with localStorage. No markdown.",
+    /\b(track|pomodoro|habit|task list|timer)\b/i.test(opts.need)
+      ? "If this is a tracker: live clock, reminders, 15/25/50 focus labels, stats, .ics, theme switcher."
+      : "Build the actual product they asked for — not a generic Pomodoro unless they asked for one.",
+    "Include a visible theme switcher (at least 3 looks) that persists. Polished UI. Persist with localStorage.",
+    "Output only <!DOCTYPE html> … </html>. No markdown.",
   ]
     .filter(Boolean)
     .join("\n");
 }
 
-export const MINIAPP_SYSTEM = `You generate one complete single-file HTML web app.
+export const MINIAPP_SYSTEM = `You generate one complete single-file HTML web app of ANY kind they asked for (tracker, quiz, notes, calculator, dashboard, game, CRM-lite, etc.).
 Output ONLY the HTML document: <!DOCTYPE html> … </html>.
 No markdown, no roleplay, no commentary.
-Include CSS + JS in the same file. Persist with localStorage.
-Must feel like a real product: live clock, date, task list, reminders (datetime + Notification API if allowed), focus timer with 15/25/50 presets (label what 25 means), daily stats, .ics export, Add-to-Home-Screen note for phone.
-Dark, dense, polished UI — not a three-button prototype.`;
+CSS + JS in the same file. Persist with localStorage.
+Must include a theme switcher (void / light / neon or similar) the user can change.
+Polished product UI — not a three-button prototype. Do not force a Pomodoro unless the brief is a productivity tracker.`;
 
 export function fallbackTrackerHtml(title: string): string {
   const safe = title.replace(/</g, "");
@@ -166,31 +173,33 @@ export function fallbackTrackerHtml(title: string): string {
 <meta name="viewport" content="width=device-width, initial-scale=1"/>
 <title>${safe}</title>
 <style>
-:root{--bg:#07070f;--panel:#10101c;--line:#2a2744;--txt:#f4f1ff;--dim:#9b97b8;--a:#8b5cf6;--b:#22d3ee;--w:#f59e0b}
-*{box-sizing:border-box}body{margin:0;font-family:ui-sans-serif,system-ui,sans-serif;background:radial-gradient(900px 500px at 80% -10%,#3b1d6e55,transparent),var(--bg);color:var(--txt)}
-.top{display:flex;justify-content:space-between;gap:16px;align-items:flex-end;padding:20px 20px 8px;max-width:1100px;margin:auto}
-.clock{font-variant-numeric:tabular-nums;font-size:2.2rem;font-weight:700;letter-spacing:.04em}
+:root{--bg:#07070f;--panel:rgba(16,16,28,.82);--line:#2a2744;--txt:#f4f1ff;--dim:#9b97b8;--a:#8b5cf6;--b:#22d3ee;--w:#f59e0b}
+*{box-sizing:border-box}body{margin:0;min-height:100vh;font-family:ui-sans-serif,system-ui,sans-serif;background:radial-gradient(900px 500px at 80% -10%,color-mix(in srgb,var(--a) 35%,transparent),transparent),var(--bg);color:var(--txt)}
+.top{display:flex;justify-content:space-between;gap:16px;align-items:flex-end;padding:20px 20px 8px;max-width:1100px;margin:auto;flex-wrap:wrap}
+.clock{font-variant-numeric:tabular-nums;font-size:2.2rem;font-weight:700;letter-spacing:.04em;background:linear-gradient(90deg,var(--txt),var(--b));-webkit-background-clip:text;color:transparent}
 .grid{display:grid;grid-template-columns:1.2fr .9fr;gap:14px;max-width:1100px;margin:0 auto;padding:12px 20px 48px}
 @media(max-width:860px){.grid{grid-template-columns:1fr}}
-.card{background:linear-gradient(180deg,#161628,#10101c);border:1px solid var(--line);border-radius:18px;padding:16px;box-shadow:0 20px 50px #0006}
-h1{margin:0;font-size:1.35rem} .sub{color:var(--dim);font-size:.8rem;margin:.3rem 0 0}
-input,select,button,textarea{font:inherit} input,select,textarea{width:100%;background:#0a0a14;color:var(--txt);border:1px solid var(--line);border-radius:12px;padding:10px 12px}
+.card{background:var(--panel);backdrop-filter:blur(16px);border:1px solid var(--line);border-radius:20px;padding:18px;box-shadow:0 24px 60px #0007}
+h1{margin:0;font-size:1.35rem;letter-spacing:-.02em} .sub{color:var(--dim);font-size:.8rem;margin:.3rem 0 0}
+input,select,button,textarea{font:inherit} input,select,textarea{width:100%;background:color-mix(in srgb,var(--bg) 70%,#000);color:var(--txt);border:1px solid var(--line);border-radius:12px;padding:10px 12px}
 .row{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}
 button{cursor:pointer;border:0;border-radius:12px;padding:10px 12px;font-weight:650}
-.p{background:linear-gradient(90deg,var(--a),#6d28d9);color:#fff}.g{background:#ffffff10;color:var(--txt);border:1px solid var(--line)}
-.task{display:flex;gap:10px;align-items:flex-start;padding:10px 0;border-bottom:1px solid #ffffff0d}
+.p{background:linear-gradient(90deg,var(--a),color-mix(in srgb,var(--a) 40%,#000));color:#fff}.g{background:transparent;color:var(--txt);border:1px solid var(--line)}
+.task{display:flex;gap:10px;align-items:flex-start;padding:10px 0;border-bottom:1px solid var(--line)}
 .done span{text-decoration:line-through;color:var(--dim)}
 .big{font-variant-numeric:tabular-nums;font-size:3rem;text-align:center;margin:4px 0 8px}
-.chip{font-size:11px;padding:6px 10px;border-radius:999px;border:1px solid var(--line);background:#0003;color:var(--dim)}
-.chip.on{border-color:var(--b);color:var(--b)}
+.chip{font-size:11px;padding:6px 10px;border-radius:999px;border:1px solid var(--line);background:transparent;color:var(--dim)}
+.chip.on{border-color:var(--b);color:var(--b);box-shadow:0 0 0 3px color-mix(in srgb,var(--b) 20%,transparent)}
 .stat{display:flex;gap:10px;flex-wrap:wrap;margin-top:10px}.stat b{color:var(--b);display:block;font-size:1.1rem}
 .note{font-size:11px;color:var(--dim);margin-top:10px;line-height:1.45}
+.themebar{display:flex;gap:6px;flex-wrap:wrap;max-width:1100px;margin:0 auto;padding:0 20px}
 </style></head>
 <body>
 <div class="top">
   <div><h1>${safe}</h1><p class="sub" id="today"></p></div>
-  <div style="text-align:right"><div class="clock" id="live"></div><p class="sub">Local time · not a 25-only toy</p></div>
+  <div style="text-align:right"><div class="clock" id="live"></div><p class="sub">Local time · pick a look below</p></div>
 </div>
+<div class="themebar" id="themebar"></div>
 <div class="grid">
   <div class="card">
     <strong>Today’s work</strong>
@@ -216,6 +225,20 @@ button{cursor:pointer;border:0;border-radius:12px;padding:10px 12px;font-weight:
 </div>
 <script>
 const K="plethora.${key}.v2";
+const TK="plethora.${key}.theme";
+const THEMES={
+  void:{bg:"#07070f",panel:"rgba(16,16,28,.82)",line:"#2a2744",txt:"#f4f1ff",dim:"#9b97b8",a:"#8b5cf6",b:"#22d3ee"},
+  light:{bg:"#f4f1ea",panel:"rgba(255,255,255,.86)",line:"#e4ddd0",txt:"#1c1917",dim:"#78716c",a:"#7c3aed",b:"#0e7490"},
+  neon:{bg:"#050510",panel:"rgba(12,8,28,.9)",line:"#4c1d95",txt:"#f5f3ff",dim:"#c4b5fd",a:"#d946ef",b:"#22d3ee"},
+  ocean:{bg:"#07131a",panel:"rgba(8,30,42,.88)",line:"#164e63",txt:"#ecfeff",dim:"#67e8f9",a:"#0891b2",b:"#34d399"}
+};
+function applyTheme(name){
+  const t=THEMES[name]||THEMES.void;
+  const r=document.documentElement.style;
+  Object.keys(t).forEach(k=>r.setProperty("--"+k,t[k]));
+  localStorage.setItem(TK,name);
+  document.querySelectorAll("#themebar .chip").forEach(c=>c.classList.toggle("on",c.dataset.t===name));
+}
 const state=JSON.parse(localStorage.getItem(K)||'{"tasks":[],"minutes":0,"pomos":0,"streak":0,"lastDay":""}');
 let left=25*60, mode=25, timer=null, running=false;
 const $=id=>document.getElementById(id);
@@ -266,9 +289,15 @@ $("ics").onclick=()=>{
   lines.push("END:VCALENDAR");
   const a=document.createElement("a"); a.href=URL.createObjectURL(new Blob([lines.join("\\n")])); a.download="reminders.ics"; a.click();
 };
+["void","light","neon","ocean"].forEach(name=>{
+  const b=document.createElement("button"); b.className="chip"; b.dataset.t=name; b.textContent=name;
+  b.onclick=()=>applyTheme(name);
+  $("themebar").appendChild(b);
+});
+applyTheme(localStorage.getItem(TK)||"void");
 [15,25,50].forEach(m=>{
   const b=document.createElement("button"); b.className="chip"+(m===25?" on":""); b.textContent=m===25?"25 work":m===15?"15 short":"50 deep";
-  b.onclick=()=>{document.querySelectorAll(".chip").forEach(x=>x.classList.remove("on")); b.classList.add("on"); mode=m; left=m*60; $("pomoLabel").textContent=m+" min · "+(m===25?"Pomodoro work sprint":m===15?"short burst":"deep work"); draw();};
+  b.onclick=()=>{document.querySelectorAll("#presets .chip").forEach(x=>x.classList.remove("on")); b.classList.add("on"); mode=m; left=m*60; $("pomoLabel").textContent=m+" min · "+(m===25?"Pomodoro work sprint":m===15?"short burst":"deep work"); draw();};
   $("presets").appendChild(b);
 });
 function step(){ if(!running) return; left--; if(left<=0){ running=false; state.pomos++; state.minutes+=mode; left=mode*60; if(window.Notification&&Notification.permission==="granted") new Notification("Focus done",{body:mode+" minutes in."}); save(); } draw(); }

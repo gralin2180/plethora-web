@@ -46,6 +46,8 @@ import {
   LocalAiHardwareAdvisor,
   MeetingNotesLab,
   YoutubeCaptionsLab,
+  YoutubeScriptLab,
+  ShortsFromUrlLab,
 } from "@/components/AiToolLabs";
 import {
   CaseConverterLab,
@@ -81,6 +83,8 @@ export type FreeRunnerKind =
   | "bg-remover"
   | "youtube-downloader"
   | "youtube-to-captions"
+  | "youtube-to-script"
+  | "shorts-from-url"
   | "video-converter"
   | "doc-converter"
   | "image-to-prompt"
@@ -293,6 +297,8 @@ export function FreeToolRunner({ kind, title }: { kind: FreeRunnerKind; title: s
     return <YoutubeDual title={title} track={track} />;
   }
   if (kind === "youtube-to-captions") return <YoutubeCaptionsLab />;
+  if (kind === "youtube-to-script") return <YoutubeScriptLab />;
+  if (kind === "shorts-from-url") return <ShortsFromUrlLab />;
   if (kind === "pdf-to-images") return <PdfToImagesLab />;
   if (kind === "pdf-to-doc") return <PdfToDocLab />;
   if (kind === "bg-remover") return <BgRemoverLab />;

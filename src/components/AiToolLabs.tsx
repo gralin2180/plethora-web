@@ -17,6 +17,7 @@ import {
   type LocalAiEntry,
 } from "@/lib/local-ai-catalog";
 import { trackToolUse } from "@/lib/self-learn";
+import { runPlatformAi } from "@/lib/platform-ai-client";
 
 async function usage(toolId: string) {
   try {
@@ -920,6 +921,256 @@ export function AudioTranscribeLab() {
           </div>
         ))}
       </div>
+    </Shell>
+  );
+}
+
+function pythonHint(script: string) {
+  return `cd web
+python pipelines/${script}`;
+}
+
+export function YoutubeScriptLab() {
+  const [url, setUrl] = useState("");
+  const [mode, setMode] = useState<"full" | "summary" | "hooks" | "voiceover">("full");
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
+  const [plain, setPlain] = useState("");
+  const [out, setOut] = useState("");
+  const [lang, setLang] = useState("en");
+  const videoId = extractVideoId(url);
+
+  async function run() {
+    if (!videoId) {
+      setError("Need a YouTube watch / Shorts URL (or 11-char id). Other sites: run pipelines/youtube_script.py locally.");
+      return;
+    }
+    setBusy(true);
+    setError("");
+    setOut("");
+    try {
+      const res = await fetch("/api/youtube-captions", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ videoId, lang }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "No public captions — use the Python pipeline.");
+      const transcript = String(data.plain || "").slice(0, 18000);
+      setPlain(transcript);
+      const want =
+        mode === "full"
+          ? "Rewrite as a spoken video script with scene headings, VO, and on-screen text. Keep facts from the source."
+          : mode === "summary"
+            ? "Write a tight summary: 8 bullets + 1 paragraph overview. No fluff."
+            : mode === "hooks"
+              ? "Give 8 Shorts/TikTok hooks (max 12 words) plus 3 20-second beat outlines."
+              : "Write a 60-second voiceover only, conversational, no stage directions.";
+      const ai = await runPlatformAi(
+        `${want}\nLanguage: ${lang}.\nSource transcript:\n${transcript}`
+      );
+      if (!ai.ok) throw new Error(ai.reply || "AI pool busy — copy the transcript and try Chat.");
+      setOut(ai.reply);
+      await usage("youtube-to-script");
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Failed");
+    }
+    setBusy(false);
+  }
+
+  return (
+    <Shell
+      title="YouTube → script"
+      blurb="Public captions in the browser, then AI rewrites: full script, summary, hooks, or VO. No captions? Local Python (yt-dlp + Whisper) in web/pipelines."
+    >
+      <div className="flex flex-col gap-3 sm:flex-row">
+        <input
+          value={url}
+          onChange={(e) => setUrl(e.target.value)}
+          placeholder="https://www.youtube.com/watch?v=…"
+          className="flex-1 rounded-xl border border-white/10 bg-black/40 px-3 py-2.5 text-sm text-white outline-none focus:border-violet-500/50"
+        />
+        <select
+          value={lang}
+          onChange={(e) => setLang(e.target.value)}
+          className="rounded-xl border border-white/10 bg-black/40 px-3 py-2.5 text-sm text-white"
+        >
+          {["en", "hi", "es", "fr", "de", "pt", "ja"].map((l) => (
+            <option key={l} value={l}>
+              {l}
+            </option>
+          ))}
+        </select>
+      </div>
+      <div className="flex flex-wrap gap-2">
+        {(
+          [
+            ["full", "Full script"],
+            ["summary", "Summary"],
+            ["hooks", "Shorts hooks"],
+            ["voiceover", "60s VO"],
+          ] as const
+        ).map(([id, label]) => (
+          <button
+            key={id}
+            type="button"
+            onClick={() => setMode(id)}
+            className={`rounded-full px-3 py-1.5 text-xs ${
+              mode === id ? "bg-violet-600 text-white" : "border border-white/10 text-zinc-400"
+            }`}
+          >
+            {label}
+          </button>
+        ))}
+        <button
+          type="button"
+          disabled={busy}
+          onClick={() => void run()}
+          className="ml-auto inline-flex items-center gap-2 rounded-xl bg-violet-600 px-4 py-2 text-sm text-white hover:bg-violet-500 disabled:opacity-50"
+        >
+          {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
+          Make it
+        </button>
+      </div>
+      {error && <p className="text-sm text-rose-400">{error}</p>}
+      {out && (
+        <pre className="whitespace-pre-wrap rounded-xl border border-white/10 bg-black/40 p-4 text-sm text-zinc-200">
+          {out}
+        </pre>
+      )}
+      {plain && (
+        <details className="rounded-xl border border-white/10 p-3 text-sm text-zinc-400">
+          <summary className="cursor-pointer text-zinc-300">Source transcript</summary>
+          <p className="mt-2 whitespace-pre-wrap text-xs">{plain.slice(0, 4000)}</p>
+        </details>
+      )}
+      <p className="font-mono text-[11px] text-zinc-600">{pythonHint("youtube_script.py URL")}</p>
+    </Shell>
+  );
+}
+
+export function ShortsFromUrlLab() {
+  const [url, setUrl] = useState("");
+  const [style, setStyle] = useState<"none" | "tiktok" | "karaoke">("tiktok");
+  const [len, setLen] = useState("30");
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
+  const [plan, setPlan] = useState("");
+  const [cutsJson, setCutsJson] = useState("");
+  const videoId = extractVideoId(url);
+
+  async function run() {
+    setBusy(true);
+    setError("");
+    setPlan("");
+    setCutsJson("");
+    try {
+      let transcript = "";
+      if (videoId) {
+        const res = await fetch("/api/youtube-captions", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ videoId, lang: "en" }),
+        });
+        const data = await res.json();
+        if (res.ok) transcript = String(data.plain || "").slice(0, 16000);
+      }
+      if (!transcript) {
+        transcript = `(No public captions in the browser for this URL.) User link: ${url.trim() || "(empty)"}. Propose clip windows anyway as a template and tell them to run the local Python cutter.`;
+      }
+      const ai = await runPlatformAi(
+        `You plan YouTube Shorts / Reels from a long video.
+Target each clip ~${len} seconds. Caption style: ${style}.
+Return:
+1) A human plan (hooks, why each cut works).
+2) A JSON array ONLY in a fenced block named cuts, items: {"start": seconds number, "end": seconds number, "hook": string, "on_screen": string}.
+Max 5 clips. start < end. Stay inside typical video length if unknown assume 10 minutes.
+Transcript / notes:
+${transcript}`
+      );
+      if (!ai.ok) throw new Error(ai.reply || "AI failed");
+      setPlan(ai.reply);
+      const m = ai.reply.match(/```(?:json)?\s*([\s\S]*?)```/i);
+      if (m) setCutsJson(m[1].trim());
+      await usage("shorts-from-url");
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Failed");
+    }
+    setBusy(false);
+  }
+
+  const cmd = `python pipelines/shorts_cut.py --url "${url.trim() || "VIDEO_URL"}" --target ${len} --captions ${style}${
+    cutsJson ? " --cuts cuts.json" : ""
+  }`;
+
+  return (
+    <Shell
+      title="Shorts from any video URL"
+      blurb="This site cannot re-encode YouTube/TikTok into an MP4 on Vercel. It pulls captions when it can, AI-picks the best beats + caption lines, then you run the Python+ffmpeg pipeline locally for a vertical Short with burned captions."
+    >
+      <input
+        value={url}
+        onChange={(e) => setUrl(e.target.value)}
+        placeholder="YouTube, or any yt-dlp URL…"
+        className="w-full rounded-xl border border-white/10 bg-black/40 px-3 py-2.5 text-sm text-white outline-none focus:border-violet-500/50"
+      />
+      <div className="flex flex-wrap gap-2">
+        {(["15", "30", "60"] as const).map((n) => (
+          <button
+            key={n}
+            type="button"
+            onClick={() => setLen(n)}
+            className={`rounded-full px-3 py-1.5 text-xs ${
+              len === n ? "bg-cyan-600 text-white" : "border border-white/10 text-zinc-400"
+            }`}
+          >
+            {n}s
+          </button>
+        ))}
+        {(
+          [
+            ["none", "No burn-in"],
+            ["tiktok", "Big captions"],
+            ["karaoke", "Word highlight"],
+          ] as const
+        ).map(([id, label]) => (
+          <button
+            key={id}
+            type="button"
+            onClick={() => setStyle(id)}
+            className={`rounded-full px-3 py-1.5 text-xs ${
+              style === id ? "bg-violet-600 text-white" : "border border-white/10 text-zinc-400"
+            }`}
+          >
+            {label}
+          </button>
+        ))}
+        <button
+          type="button"
+          disabled={busy}
+          onClick={() => void run()}
+          className="ml-auto inline-flex items-center gap-2 rounded-xl bg-violet-600 px-4 py-2 text-sm text-white disabled:opacity-50"
+        >
+          {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
+          Pick best parts
+        </button>
+      </div>
+      {error && <p className="text-sm text-rose-400">{error}</p>}
+      {plan && (
+        <pre className="whitespace-pre-wrap rounded-xl border border-white/10 bg-black/40 p-4 text-sm text-zinc-200">
+          {plan}
+        </pre>
+      )}
+      {cutsJson && (
+        <div className="rounded-xl border border-white/10 p-3">
+          <div className="flex items-center justify-between">
+            <p className="text-xs text-zinc-500">cuts.json</p>
+            <CopyBtn text={cutsJson} id="cuts" />
+          </div>
+          <pre className="mt-2 max-h-40 overflow-auto text-[11px] text-zinc-400">{cutsJson}</pre>
+        </div>
+      )}
+      <pre className="overflow-auto rounded-xl bg-black/50 p-3 text-[11px] text-zinc-300">{cmd}</pre>
     </Shell>
   );
 }

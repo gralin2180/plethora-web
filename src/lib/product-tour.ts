@@ -84,7 +84,7 @@ export const TOUR_STEPS: TourStep[] = [
     target: "nav-backends",
     title: "Local AI",
     dialogue:
-      "Install Ollama, OpenClaw, Odysseus, LM Studio, and friends with copy-paste PC commands — then save localhost URLs here.",
+      "Add, create, and train models on your PC — Ollama, GGUF, LoRA — then save localhost URLs so Plethora talks to your GPU.",
     placement: "bottom",
   },
   {
@@ -116,7 +116,7 @@ export const TOUR_STEPS: TourStep[] = [
     target: null,
     title: "You’re ready",
     dialogue:
-      "Start with Tools → pick Free Utilities or AI Tools, or open Local AI if you own a GPU. Restart this tour anytime from the header or by asking Chat for a tour.",
+      "Start with Tools, Local LLMs if you have a GPU, or Chat. Restart this tour anytime from the header.",
     placement: "center",
   },
 ];

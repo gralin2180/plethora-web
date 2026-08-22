@@ -25,6 +25,8 @@ const CORE: { path: string; changeFrequency: MetadataRoute.Sitemap[0]["changeFre
   { path: "/ai-finder", changeFrequency: "weekly", priority: 0.85 },
   { path: "/prompt-assistant", changeFrequency: "weekly", priority: 0.85 },
   { path: "/design", changeFrequency: "monthly", priority: 0.4 },
+  { path: "/local-llms", changeFrequency: "weekly", priority: 0.92 },
+  { path: "/spicy", changeFrequency: "weekly", priority: 0.88 },
   { path: "/install", changeFrequency: "weekly", priority: 0.75 },
   { path: "/mcp", changeFrequency: "weekly", priority: 0.75 },
   { path: "/hardcore", changeFrequency: "monthly", priority: 0.5 },
@@ -67,6 +69,22 @@ export default function sitemap(): MetadataRoute.Sitemap {
       if (t.slug === "chat") {
         return {
           url: `${base}/chat`,
+          lastModified: now,
+          changeFrequency: "weekly" as const,
+          priority: 0.85,
+        };
+      }
+      if (t.slug === "local-llms") {
+        return {
+          url: `${base}/local-llms`,
+          lastModified: now,
+          changeFrequency: "weekly" as const,
+          priority: 0.9,
+        };
+      }
+      if (t.slug === "spicy-chat") {
+        return {
+          url: `${base}/spicy`,
           lastModified: now,
           changeFrequency: "weekly" as const,
           priority: 0.85,

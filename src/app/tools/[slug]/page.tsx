@@ -23,6 +23,8 @@ const FREE_RUNNERS = new Set<string>([
   "bg-remover",
   "youtube-downloader",
   "youtube-to-captions",
+  "youtube-to-script",
+  "shorts-from-url",
   "video-converter",
   "doc-converter",
   "image-to-prompt",
@@ -72,6 +74,8 @@ const APP_REDIRECTS: Record<string, string> = {
   "prompt-assistant": "/prompt-assistant",
   "ai-finder": "/ai-finder",
   "mcp-setup": "/mcp",
+  "local-llms": "/local-llms",
+  "spicy-chat": "/spicy",
 };
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {

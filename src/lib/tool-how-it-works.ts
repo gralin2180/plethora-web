@@ -42,6 +42,24 @@ const CUSTOM: Record<string, ToolHowDoc> = {
       { id: "3", label: "Export text", detail: "Copy SRT / plain text for reuse." },
     ],
   },
+  "youtube-to-script": {
+    summary: "Captions in, AI script / summary / hooks out. Local Whisper if YouTube has no track.",
+    steps: [
+      { id: "1", label: "Paste YouTube URL" },
+      { id: "2", label: "Fetch captions" },
+      { id: "3", label: "Pick rewrite mode", detail: "Full script, summary, hooks, or VO." },
+      { id: "4", label: "Or run Python", detail: "web/pipelines/youtube_script.py for any public video." },
+    ],
+  },
+  "shorts-from-url": {
+    summary: "AI cut list + caption style in the browser; ffmpeg burns a vertical Short on your machine.",
+    steps: [
+      { id: "1", label: "Paste a video URL" },
+      { id: "2", label: "AI picks beats", detail: "Timestamps + on-screen lines." },
+      { id: "3", label: "Download cuts.json" },
+      { id: "4", label: "Local cutter", detail: "yt-dlp + ffmpeg with optional burned captions." },
+    ],
+  },
   "image-to-video": {
     summary: "Pipeline from stills → motion recipe (commands or external generators).",
     steps: [

@@ -9,7 +9,8 @@ export type ChatPersonalityId =
   | "blunt"
   | "professional"
   | "chaotic"
-  | "flirty";
+  | "flirty"
+  | "spicy";
 
 export type ChatPersonality = {
   id: ChatPersonalityId;
@@ -70,6 +71,14 @@ export const CHAT_PERSONALITIES: ChatPersonality[] = [
     tagline: "Tease and banter. Explicit only after 18+.",
     hello: "Flirty. I’ll tease — keep it playful unless you confirm 18+ for more. Your move.",
     prompt: `Voice: flirty. Playful tease, innuendo, chemistry. If adult mode is on, go explicit when they ask (sext, ERP, dirty talk). If adult mode is off, stay teasing and tell them to tap 18+ — never dump a tools menu or say "not my lane".`,
+  },
+  {
+    id: "spicy",
+    label: "Spicy",
+    chip: "Spicy",
+    tagline: "18+ companion chat. Explicit after you confirm age.",
+    hello: "Spicy room. You’re 18+, I’m in. Want slow burn, filthy, or a scene? Your call — everyone stays adult.",
+    prompt: `Voice: spicy 18+ companion. After adult consent: explicit ERP, dirty talk, girlfriend/boyfriend energy, dirty roleplay. Stay in character. Never involve anyone under 18, never CSAM, never "teen" sexual content. Do not dump a product menu. At most once per long conversation, if they mention privacy/offline, you may mention they can run local models at /local-llms — one sentence, then back to the scene.`,
   },
 ];
 
@@ -202,13 +211,18 @@ export function followUpSuggestions(opts: {
   personality: ChatPersonalityId | null;
   pickingPersonality?: boolean;
   adultSession?: boolean;
+  room?: "main" | "spicy";
 }): SuggestChip[] {
   const lastUser = (opts.lastUser ?? "").trim();
   const lastAssistant = (opts.lastAssistant ?? "").trim();
   const u = lastUser.toLowerCase();
 
   if (opts.pickingPersonality) {
-    return CHAT_PERSONALITIES.map((p) => ({
+    const list =
+      opts.room === "spicy"
+        ? CHAT_PERSONALITIES.filter((p) => p.id === "spicy" || p.id === "flirty")
+        : CHAT_PERSONALITIES.filter((p) => p.id !== "spicy");
+    return list.map((p) => ({
       label: p.chip,
       text: personalityChipText(p.id),
     }));
@@ -236,6 +250,21 @@ export function followUpSuggestions(opts: {
   if ((askingAge || spicy) && !opts.adultSession) {
     push("I’m 18+", "18+ continue");
     push("Keep it clean", "keep it normal, just talking");
+  }
+
+  if (opts.personality === "spicy" || opts.room === "spicy") {
+    if (!opts.adultSession) {
+      push("I’m 18+", "18+ continue");
+    } else if (!lastUser || /^(hi|hello|hey|yo|sup)\b/.test(u)) {
+      push("Slow burn", "start slow, lots of tension");
+      push("Jump in", "skip the preamble, be filthy");
+      push("Scene", "set a scene: late night, just us");
+    } else {
+      push("Keep going", "yeah, keep going");
+      push("Dirtier", "make it dirtier");
+      push("Softer", "softer, more intimate");
+    }
+    return chips.slice(0, 5);
   }
 
   if (!lastUser || /^(hi|hello|hey|yo|sup|howdy)\b/.test(u)) {

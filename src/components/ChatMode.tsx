@@ -65,16 +65,18 @@ import {
 } from "@/lib/chat-files";
 
 const HISTORY_KEY = "plethora.chat.history.v1";
+const SPICY_HISTORY_KEY = "plethora.spicy.history.v1";
 
 export function ChatMode({
   embedded = false,
   initialPrompt,
   onClearHistory,
+  room = "main",
 }: {
   embedded?: boolean;
   initialPrompt?: string;
-  /** Called when user clears — parent can sync (floating header) */
   onClearHistory?: () => void;
+  room?: "main" | "spicy";
 }) {
   const router = useRouter();
   const [messages, setMessages] = useState<ChatMessage[]>([]);
@@ -108,10 +110,13 @@ export function ChatMode({
   const scrollerRef = useRef<HTMLDivElement>(null);
   const stickBottom = useRef(true);
 
+  const histKey = room === "spicy" ? SPICY_HISTORY_KEY : HISTORY_KEY;
+  const spicy = room === "spicy";
+
   function clearChat() {
-    setMessages([newMessage("assistant", openingMessage(personality))]);
+    setMessages([newMessage("assistant", openingMessage(spicy ? "spicy" : personality))]);
     try {
-      localStorage.removeItem(HISTORY_KEY);
+      localStorage.removeItem(histKey);
     } catch {
       /* ignore */
     }
@@ -126,17 +131,22 @@ export function ChatMode({
       /* */
     }
     try {
-      setPersonality(loadChatPersonality());
-      setAdultSession(loadAdultSession());
+      if (spicy) {
+        setPersonality("spicy");
+        setAdultSession(loadAdultSession());
+      } else {
+        setPersonality(loadChatPersonality());
+        setAdultSession(loadAdultSession());
+      }
       setQualitySmooth(loadSmoothQuality());
     } catch {
       /* */
     }
     try {
-      const raw = localStorage.getItem(HISTORY_KEY);
+      const raw = localStorage.getItem(histKey);
       if (raw) setMessages(JSON.parse(raw));
       else {
-        setMessages([newMessage("assistant", openingMessage(loadChatPersonality()))]);
+        setMessages([newMessage("assistant", openingMessage(spicy ? "spicy" : loadChatPersonality()))]);
       }
     } catch {
       /* ignore */
@@ -218,7 +228,7 @@ export function ChatMode({
   }, [initialPrompt]);
 
   useEffect(() => {
-    if (messages.length) localStorage.setItem(HISTORY_KEY, JSON.stringify(messages.slice(-120)));
+    if (messages.length) localStorage.setItem(histKey, JSON.stringify(messages.slice(-120)));
     if (!stickBottom.current) return;
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
@@ -240,7 +250,7 @@ export function ChatMode({
     const ac = new AbortController();
     abortRef.current = ac;
     try {
-      const coach = coachForGoal(text);
+      const coach = !spicy ? coachForGoal(text) : null;
       if (coach) {
         startCoach(coach.steps);
         setMessages((m) => [...m, newMessage("assistant", coach.reply)]);
@@ -248,7 +258,7 @@ export function ChatMode({
         return;
       }
 
-      if (classifyChatIntent(text) === "tour") {
+      if (!spicy && classifyChatIntent(text) === "tour") {
         startProductTour();
         setMessages((m) => [...m, newMessage("assistant", TOUR_CHAT_OPENING)]);
         setLoading(false);
@@ -260,8 +270,9 @@ export function ChatMode({
         (m) => m.role === "assistant" && /```|<!DOCTYPE|<html[\s>]/i.test(m.content)
       );
       const appAsk =
-        wantsMiniApp(text) ||
-        (isMiniAppNudge(text) && (priorUsers.some(wantsMiniApp) || assistantDumpedCode));
+        !spicy &&
+        (wantsMiniApp(text) ||
+          (isMiniAppNudge(text) && (priorUsers.some(wantsMiniApp) || assistantDumpedCode)));
 
       if (appAsk) {
         const brief = [...priorUsers, text].join("\n");
@@ -344,7 +355,7 @@ export function ChatMode({
 
     const picked = parsePersonalityChoice(text);
     if (picked) {
-      saveChatPersonality(picked);
+      if (!spicy) saveChatPersonality(picked);
       setPersonality(picked);
       setPickingPersonality(false);
       const p = getPersonality(picked);
@@ -408,8 +419,9 @@ export function ChatMode({
         personality,
         pickingPersonality,
         adultSession,
+        room,
       }),
-    [lastUserText, lastAssistant?.content, personality, pickingPersonality, adultSession]
+    [lastUserText, lastAssistant?.content, personality, pickingPersonality, adultSession, room]
   );
 
   function saveAsAssistant() {
