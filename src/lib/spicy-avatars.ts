@@ -1,3 +1,5 @@
+import { playSpicyTts } from "./spicy-media";
+
 export type SpicyVoice = "soft-f" | "warm-f" | "low-m" | "bright-m";
 
 export type SpicyAvatar = {
@@ -74,7 +76,17 @@ export async function shrinkPhoto(file: File): Promise<string> {
 }
 
 export function speakAsAvatar(text: string, voice: SpicyVoice) {
-  if (typeof window === "undefined" || !window.speechSynthesis) return;
+  if (typeof window === "undefined") return;
+  const audio = playSpicyTts(text, voice);
+  if (audio) {
+    audio.onerror = () => speakBrowser(text, voice);
+    return;
+  }
+  speakBrowser(text, voice);
+}
+
+function speakBrowser(text: string, voice: SpicyVoice) {
+  if (!window.speechSynthesis) return;
   window.speechSynthesis.cancel();
   const u = new SpeechSynthesisUtterance(text.slice(0, 4000));
   const femme = voice.endsWith("-f");

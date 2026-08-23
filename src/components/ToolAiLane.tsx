@@ -1,17 +1,11 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import Link from "next/link";
+import { useEffect, useState } from "react";
 import { SelectModelMenu } from "@/components/SelectModelMenu";
 import { loadSmoothQuality, qualityFromSmooth, saveSmoothQuality } from "@/lib/chat-quality";
 import { hasByok } from "@/lib/byok";
 import { hasAnyConnectedAi } from "@/lib/connected-ai";
-
-const BANDS: { n: number; label: string; hint: string }[] = [
-  { n: 18, label: "Faster", hint: "Short replies" },
-  { n: 50, label: "Balanced", hint: "Default" },
-  { n: 92, label: "Best", hint: "Longer / harder jobs" },
-];
 
 export function ToolAiLane() {
   const [quality, setQuality] = useState(50);
@@ -34,77 +28,46 @@ export function ToolAiLane() {
         setZen(Boolean(d.zenConfigured));
         setOr(Boolean(d.openrouterConfigured));
       })
-      .catch(() => {
-        /* */
-      });
+      .catch(() => undefined);
   }, []);
 
-  function pickQuality(n: number) {
-    setQuality(n);
-    saveSmoothQuality(n);
-  }
-
   return (
-    <div className="mt-4 space-y-3 rounded-2xl border border-white/10 bg-black/30 p-4">
-      <div>
-        <p className="text-sm font-semibold text-white">Who pays for the model?</p>
-        <p className="mt-0.5 text-[11px] text-zinc-500">
-          Pick one path. Free always works. Connect or an API key uses *your* account.
-        </p>
-        <ol className="mt-2 space-y-1.5 text-xs text-zinc-300">
-          <li>
-            <span className="font-medium text-emerald-300">1. Free pool</span> — already on. No
-            card.
-          </li>
-          <li>
-            <span className="font-medium text-violet-200">2. Signed-in AI</span> —{" "}
-            <Link href="/get-started" className="text-violet-300 hover:underline">
-              Connect ChatGPT / Copilot / …
-            </Link>
-            {connected ? " · linked" : ""}
-          </li>
-          <li>
-            <span className="font-medium text-amber-200">3. Your API key</span> —{" "}
-            <Link href="/settings/ai-keys" className="text-violet-300 hover:underline">
-              paste OpenRouter / OpenAI
-            </Link>
-            {byok ? " · saved on this device" : ""}
-          </li>
-        </ol>
-      </div>
-      <div>
-        <p className="text-sm font-semibold text-white">How hard should it try?</p>
-        <div className="mt-2 flex flex-wrap gap-2">
-          {BANDS.map((b) => (
-            <button
-              key={b.n}
-              type="button"
-              onClick={() => pickQuality(b.n)}
-              className={`rounded-full px-3 py-1.5 text-xs ${
-                qualityFromSmooth(quality) === qualityFromSmooth(b.n)
-                  ? "bg-white text-zinc-900"
-                  : "border border-white/10 text-zinc-400"
-              }`}
-            >
-              {b.label}
-              <span className="ml-1 text-[10px] opacity-70">{b.hint}</span>
-            </button>
-          ))}
-        </div>
-      </div>
-      <div>
-        <p className="text-sm font-semibold text-white">Exact model (optional)</p>
-        <p className="mt-0.5 text-[11px] text-zinc-500">
-          Auto is fine. Open the menu only if you want a named free model.
-        </p>
-        <div className="mt-2">
-          <SelectModelMenu
-            zenConfigured={zen}
-            openrouterConfigured={or}
-            connectedLabel={connected ? "Your connected AI" : "Use connected AI"}
-            anchor="down"
-          />
-        </div>
+    <div className="mt-4 flex flex-wrap items-center gap-2 rounded-2xl border border-white/10 bg-black/30 px-3 py-2.5">
+      <p className="text-xs text-zinc-400">
+        <span className="font-medium text-emerald-300">Free</span>
+        {" · "}
+        <Link href="/get-started" className="text-violet-300 hover:underline">
+          Connect a provider{connected ? " ✓" : ""}
+        </Link>
+        {" · "}
+        <Link href="/settings/ai-keys" className="text-amber-200 hover:underline">
+          API key{byok ? " ✓" : ""}
+        </Link>
+      </p>
+      <div className="ml-auto flex items-center gap-2">
+        {([18, 50, 92] as const).map((n) => (
+          <button
+            key={n}
+            type="button"
+            onClick={() => {
+              setQuality(n);
+              saveSmoothQuality(n);
+            }}
+            className={`rounded-full px-2.5 py-1 text-[11px] ${
+              qualityFromSmooth(quality) === qualityFromSmooth(n)
+                ? "bg-white text-zinc-900"
+                : "text-zinc-500 hover:text-zinc-300"
+            }`}
+          >
+            {n < 34 ? "Faster" : n > 66 ? "Best" : "Balanced"}
+          </button>
+        ))}
+        <SelectModelMenu
+          zenConfigured={zen}
+          openrouterConfigured={or}
+          connectedLabel={connected ? "Connected AI" : "Connect"}
+          anchor="down"
+        />
       </div>
     </div>
   );

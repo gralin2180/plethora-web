@@ -106,7 +106,15 @@ export async function collectChatAuth(): Promise<{
 
 export async function runPlatformAi(
   message: string,
-  opts?: { history?: { role: "user" | "assistant"; content: string }[]; adultConsent?: boolean }
+  opts?: {
+    history?: { role: "user" | "assistant"; content: string }[];
+    adultConsent?: boolean;
+    toolJob?: boolean;
+    maxTokens?: number;
+    timeoutMs?: number;
+    customSystem?: string;
+    qualitySmooth?: number;
+  }
 ): Promise<PlatformAiResult> {
   const auth = await collectChatAuth();
   let adultConsent = Boolean(opts?.adultConsent);
@@ -125,7 +133,12 @@ export async function runPlatformAi(
       message,
       history: opts?.history ?? [],
       adultConsent,
-      qualitySmooth: (await import("./chat-quality")).loadSmoothQuality(),
+      toolJob: Boolean(opts?.toolJob),
+      maxTokens: opts?.maxTokens,
+      timeoutMs: opts?.timeoutMs,
+      customSystem: opts?.customSystem,
+      qualitySmooth:
+        opts?.qualitySmooth ?? (await import("./chat-quality")).loadSmoothQuality(),
       ...auth,
     }),
   });

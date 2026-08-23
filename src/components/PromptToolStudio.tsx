@@ -8,6 +8,7 @@ import { buildRefinedPrompt } from "@/lib/prompt-engine";
 import { assessContentSafety, type SafetyAssessment } from "@/lib/content-safety";
 import { ContentWarningDialog } from "@/components/ContentWarningDialog";
 import { loadAdultSession, saveAdultSession } from "@/lib/chat-personality";
+import { ToolRichResult, parseCalendarDays } from "@/components/ToolRichResult";
 
 const STUDIO_HINTS: Record<string, { placeholder: string; lead: string }> = {
   "blog-writer": {
@@ -214,8 +215,30 @@ export function PromptToolStudio({ tool }: { tool: PlatformTool }) {
       prompt = `Create a printable practice worksheet.\n\nSpec:\n${raw}\n\nInclude: title, instructions, numbered items, answer key on a separate section, accessibility notes for teachers. Markdown.`;
     } else if (tool.slug === "message-sequence-copy") {
       prompt = `Write a multi-touch messaging sequence (opt-in compliant, include STOP language).\n\nBrief:\n${raw}\n\nOutput: message 1–4 with timing, channel notes, and A/B subject line options if email/SMS.`;
+    } else if (tool.slug === "content-calendar") {
+      prompt = `You are a senior social strategist. Build a FULL 30-day content calendar.
+
+Brief:
+${raw}
+
+Output ONLY JSON (no markdown):
+{"title":"short title","days":[{"d":1,"type":"Reel","hook":"≤14 words","cta":"≤8 words"}]}
+
+Rules:
+- days MUST contain exactly 30 items, d = 1 through 30, no gaps
+- Mix Reels, Posts, Stories, Lives; vary hooks; include a measurable CTA
+- Every day is usable as-is. No placeholders like TBD.`;
+    } else if (tool.slug === "fitness-program") {
+      prompt = `You are a certified strength coach (not a doctor). 4-week program as JSON only:
+{"title":"","days":[{"d":1,"type":"Lift|Cardio|Rest|Mobility","hook":"session name + 3 key moves","cta":"sets x reps or rest note"}]}
+Exactly 28 days. Brief:\n${raw}`;
     } else {
-      prompt = buildRefinedPrompt(`${tool.name} for: ${raw}`, {});
+      prompt = `You are a specialist for "${tool.name}". Produce the finished artifact the user can use immediately — not a prompt, not a meta-explanation.
+
+Request:
+${raw}
+
+Be specific, complete, and structured. If they asked for N items or N days, output all N. Prefer scannable headings, tables, or JSON when a grid would help.`;
     }
     return prompt;
   }
@@ -242,11 +265,56 @@ export function PromptToolStudio({ tool }: { tool: PlatformTool }) {
     setOutput("");
     try {
       const { runPlatformAi } = await import("@/lib/platform-ai-client");
+      const toolJob = true;
+      const wantsCalendar = tool.slug === "content-calendar" || tool.slug === "fitness-program";
       const data = await runPlatformAi(
-        `${prompt}\n\nWrite the deliverable now. Do not explain how you would write it. No preamble.`
+        `${prompt}\n\nWrite the deliverable now. Do not explain how you would write it. No preamble.`,
+        {
+          toolJob,
+          maxTokens: wantsCalendar ? 4500 : 2800,
+          timeoutMs: 55_000,
+          qualitySmooth: 90,
+          customSystem:
+            "You are a high-skill operator. Complete the full deliverable. Never stop at 20 of 30. Prefer JSON when a calendar/grid was requested.",
+        }
       );
       if (data.ok && data.reply.trim()) {
-        setOutput(data.reply.trim());
+        let text = data.reply.trim();
+        if (wantsCalendar) {
+          let days = parseCalendarDays(text);
+          let guard = 0;
+          while (days.length < (tool.slug === "fitness-program" ? 28 : 30) && guard < 3) {
+            guard += 1;
+            const need = (tool.slug === "fitness-program" ? 28 : 30) - days.length;
+            const more = await runPlatformAi(
+              `Continue the calendar. Already have days 1–${days.length}. Output JSON {"days":[...]} with the next ${need} days only, consecutive, no repeats.`,
+              {
+                toolJob: true,
+                maxTokens: 2500,
+                timeoutMs: 45_000,
+                qualitySmooth: 90,
+                history: [
+                  { role: "assistant", content: text.slice(0, 6000) },
+                ],
+              }
+            );
+            if (!more.ok) break;
+            const extra = parseCalendarDays(more.reply);
+            const seen = new Set(days.map((d) => d.d));
+            for (const row of extra) {
+              if (!seen.has(row.d)) {
+                days.push(row);
+                seen.add(row.d);
+              }
+            }
+            days.sort((a, b) => a.d - b.d);
+            text = JSON.stringify({
+              title: tool.name,
+              days,
+            });
+          }
+        }
+        setOutput(text);
       } else {
         setOutput(prompt);
         setErr(
@@ -325,9 +393,7 @@ export function PromptToolStudio({ tool }: { tool: PlatformTool }) {
               {copied ? "Copied" : "Copy"}
             </button>
           </div>
-          <pre className="max-h-72 overflow-auto whitespace-pre-wrap text-xs leading-relaxed text-zinc-300">
-            {result}
-          </pre>
+          <ToolRichResult text={result} slug={tool.slug} />
           {promptUsed && (
             <details className="mt-3">
               <summary className="cursor-pointer text-xs text-zinc-500">Prompt used</summary>

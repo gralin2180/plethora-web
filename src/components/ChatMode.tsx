@@ -56,6 +56,7 @@ import {
   Square,
   ChevronDown,
   Trash2,
+  ImagePlus,
   Volume2,
   Mic,
   X,
@@ -70,6 +71,7 @@ import {
   speakAsAvatar,
   type SpicyAvatar,
 } from "@/lib/spicy-avatars";
+import { spicyImageUrl, spicyScenePrompt } from "@/lib/spicy-media";
 
 const HISTORY_KEY = "plethora.chat.history.v1";
 const SPICY_HISTORY_KEY = "plethora.spicy.history.v1";
@@ -694,6 +696,14 @@ export function ChatMode({
                     </div>
                   )}
                   <MessageBody text={m.content.split("\n\nAttached files")[0] || m.content} />
+                  {m.imageUrl ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                      src={m.imageUrl}
+                      alt=""
+                      className="mt-2 max-h-72 w-full rounded-xl object-cover"
+                    />
+                  ) : null}
                   {m.project && <ProjectCard slug={m.project.slug} title={m.project.title} />}
                   {m.role === "user" && !loading && (
                     <button
@@ -815,6 +825,24 @@ export function ChatMode({
             </button>
             {spicy ? (
               <>
+                <button
+                  type="button"
+                  className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border border-white/10 text-zinc-300 hover:bg-white/5"
+                  aria-label="Generate scene image"
+                  title="Generate a scene image from the last reply (Flux via Pollinations)"
+                  onClick={() => {
+                    const last = [...messages].reverse().find((x) => x.role === "assistant");
+                    if (!last) return;
+                    const url = spicyImageUrl(
+                      spicyScenePrompt(companion?.look || "", last.content.slice(0, 240))
+                    );
+                    setMessages((ms) =>
+                      ms.map((x) => (x.id === last.id ? { ...x, imageUrl: url } : x))
+                    );
+                  }}
+                >
+                  <ImagePlus className="h-4 w-4" />
+                </button>
                 <button
                   type="button"
                   className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border border-white/10 text-zinc-300 hover:bg-white/5"

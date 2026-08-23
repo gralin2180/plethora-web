@@ -29,6 +29,7 @@ export interface ChatMessage {
   content: string;
   at: string;
   files?: { name: string; kind: string; thumb?: string }[];
+  imageUrl?: string;
   /** Mini-app opened in its own window — never dump source in the bubble. */
   project?: { slug: string; title: string };
 }

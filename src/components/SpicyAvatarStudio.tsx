@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { MoreVertical, Plus, UserRound } from "lucide-react";
+import { MoreVertical, Plus, UserRound, Wand2, Volume2 } from "lucide-react";
 import { assessContentSafety } from "@/lib/content-safety";
 import {
   deleteSpicyAvatar,
@@ -15,6 +15,7 @@ import {
   type SpicyAvatar,
   type SpicyVoice,
 } from "@/lib/spicy-avatars";
+import { spicyImageUrl, spicyPortraitPrompt } from "@/lib/spicy-media";
 
 export function SpicyAvatarStudio({
   onSelect,
@@ -30,6 +31,7 @@ export function SpicyAvatarStudio({
   const [traits, setTraits] = useState("");
   const [voice, setVoice] = useState<SpicyVoice>("warm-f");
   const [photo, setPhoto] = useState<string | undefined>();
+  const [photoBusy, setPhotoBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
   const menuRef = useRef<HTMLDivElement>(null);
 
@@ -192,6 +194,27 @@ export function SpicyAvatarStudio({
                       type="button"
                       className="block w-full px-3 py-1.5 text-left text-sm text-zinc-200 hover:bg-white/10"
                       onClick={() => {
+                        const safety = assessContentSafety(`${a.name} ${a.look} ${a.traits}`);
+                        if (safety.hardBlock) {
+                          setErr(safety.message);
+                          setMenuId(null);
+                          return;
+                        }
+                        const next = {
+                          ...a,
+                          photo: spicyImageUrl(spicyPortraitPrompt(a.look || a.traits, a.name)),
+                        };
+                        upsertSpicyAvatar(next);
+                        refresh(true);
+                        setMenuId(null);
+                      }}
+                    >
+                      Generate photo
+                    </button>
+                    <button
+                      type="button"
+                      className="block w-full px-3 py-1.5 text-left text-sm text-zinc-200 hover:bg-white/10"
+                      onClick={() => {
                         speakAsAvatar(`Hey, I’m ${a.name}.`, a.voice);
                         setMenuId(null);
                       }}
@@ -270,6 +293,39 @@ export function SpicyAvatarStudio({
           onChange={(e) => void onPhoto(e.target.files?.[0])}
         />
       </label>
+      <button
+        type="button"
+        disabled={photoBusy || (!look.trim() && !name.trim())}
+        onClick={() => {
+          const safety = assessContentSafety(`${name} ${look} ${traits}`);
+          if (safety.hardBlock) {
+            setErr(safety.message);
+            return;
+          }
+          setPhotoBusy(true);
+          setPhoto(
+            spicyImageUrl(spicyPortraitPrompt(look || traits, name || "companion"))
+          );
+          setPhotoBusy(false);
+        }}
+        className="mt-2 flex w-full items-center justify-center gap-2 rounded-xl border border-rose-500/30 py-2 text-xs text-rose-200 hover:bg-rose-500/10 disabled:opacity-40"
+      >
+        <Wand2 className="h-3.5 w-3.5" />
+        {photoBusy ? "Generating…" : "Generate look (Flux)"}
+      </button>
+      <button
+        type="button"
+        className="mt-1 flex w-full items-center justify-center gap-2 rounded-xl border border-white/10 py-2 text-xs text-zinc-400 hover:bg-white/5"
+        onClick={() =>
+          speakAsAvatar(
+            `Hey, I’m ${name || "your companion"}. ${traits || "Talk to me."}`.slice(0, 280),
+            voice
+          )
+        }
+      >
+        <Volume2 className="h-3.5 w-3.5" />
+        Preview voice
+      </button>
       {err ? <p className="mt-2 text-xs text-rose-300">{err}</p> : null}
       <div className="mt-3 flex gap-2">
         {editingId ? (

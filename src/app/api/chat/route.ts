@@ -363,6 +363,19 @@ export async function POST(request: Request) {
       };
     }
 
+    if (body.toolJob) {
+      const asked =
+        typeof body.maxTokens === "number" && Number.isFinite(body.maxTokens)
+          ? Math.min(8000, Math.max(1200, Math.round(body.maxTokens)))
+          : 4096;
+      chatOpts.maxTokens = Math.max(chatOpts.maxTokens ?? 0, asked);
+      chatOpts.timeoutMs = typeof body.timeoutMs === "number" ? body.timeoutMs : 55_000;
+      chatOpts.qualitySmooth =
+        typeof body.qualitySmooth === "number"
+          ? Math.max(body.qualitySmooth, 82)
+          : 88;
+    }
+
     if (wantStream) {
       const encoder = new TextEncoder();
       const stream = new ReadableStream({

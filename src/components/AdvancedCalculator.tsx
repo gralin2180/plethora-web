@@ -78,9 +78,38 @@ const UNIT_GROUPS: Record<string, { label: string; units: { id: string; name: st
       { id: "km", name: "Kilometer", toBase: 1000 },
       { id: "cm", name: "Centimeter", toBase: 0.01 },
       { id: "mm", name: "Millimeter", toBase: 0.001 },
+      { id: "um", name: "Micrometer", toBase: 1e-6 },
+      { id: "nm", name: "Nanometer", toBase: 1e-9 },
       { id: "mi", name: "Mile", toBase: 1609.344 },
+      { id: "yd", name: "Yard", toBase: 0.9144 },
       { id: "ft", name: "Foot", toBase: 0.3048 },
       { id: "in", name: "Inch", toBase: 0.0254 },
+      { id: "nmi", name: "Nautical mile", toBase: 1852 },
+    ],
+  },
+  area: {
+    label: "Area",
+    units: [
+      { id: "m2", name: "Square meter", toBase: 1 },
+      { id: "km2", name: "Square km", toBase: 1e6 },
+      { id: "ha", name: "Hectare", toBase: 10000 },
+      { id: "ac", name: "Acre", toBase: 4046.8564224 },
+      { id: "ft2", name: "Square foot", toBase: 0.09290304 },
+      { id: "in2", name: "Square inch", toBase: 0.00064516 },
+    ],
+  },
+  volume: {
+    label: "Volume",
+    units: [
+      { id: "l", name: "Liter", toBase: 1 },
+      { id: "ml", name: "Milliliter", toBase: 0.001 },
+      { id: "m3", name: "Cubic meter", toBase: 1000 },
+      { id: "gal", name: "US gallon", toBase: 3.785411784 },
+      { id: "qt", name: "US quart", toBase: 0.946352946 },
+      { id: "cup", name: "US cup", toBase: 0.2365882365 },
+      { id: "floz", name: "US fl oz", toBase: 0.0295735295625 },
+      { id: "tbsp", name: "Tablespoon", toBase: 0.01478676478125 },
+      { id: "tsp", name: "Teaspoon", toBase: 0.00492892159375 },
     ],
   },
   weight: {
@@ -88,8 +117,11 @@ const UNIT_GROUPS: Record<string, { label: string; units: { id: string; name: st
     units: [
       { id: "kg", name: "Kilogram", toBase: 1 },
       { id: "g", name: "Gram", toBase: 0.001 },
+      { id: "mg", name: "Milligram", toBase: 1e-6 },
+      { id: "t", name: "Metric ton", toBase: 1000 },
       { id: "lb", name: "Pound", toBase: 0.45359237 },
       { id: "oz", name: "Ounce", toBase: 0.028349523125 },
+      { id: "st", name: "Stone", toBase: 6.35029318 },
     ],
   },
   temp: {
@@ -100,6 +132,27 @@ const UNIT_GROUPS: Record<string, { label: string; units: { id: string; name: st
       { id: "k", name: "Kelvin", toBase: 1 },
     ],
   },
+  speed: {
+    label: "Speed",
+    units: [
+      { id: "mps", name: "m/s", toBase: 1 },
+      { id: "kph", name: "km/h", toBase: 1 / 3.6 },
+      { id: "mph", name: "mph", toBase: 0.44704 },
+      { id: "knot", name: "Knot", toBase: 0.514444 },
+      { id: "fps", name: "ft/s", toBase: 0.3048 },
+    ],
+  },
+  time: {
+    label: "Time",
+    units: [
+      { id: "s", name: "Second", toBase: 1 },
+      { id: "min", name: "Minute", toBase: 60 },
+      { id: "h", name: "Hour", toBase: 3600 },
+      { id: "d", name: "Day", toBase: 86400 },
+      { id: "wk", name: "Week", toBase: 604800 },
+      { id: "yr", name: "Year", toBase: 31557600 },
+    ],
+  },
   data: {
     label: "Data",
     units: [
@@ -107,6 +160,47 @@ const UNIT_GROUPS: Record<string, { label: string; units: { id: string; name: st
       { id: "kb", name: "KiB", toBase: 1024 },
       { id: "mb", name: "MiB", toBase: 1024 ** 2 },
       { id: "gb", name: "GiB", toBase: 1024 ** 3 },
+      { id: "tb", name: "TiB", toBase: 1024 ** 4 },
+      { id: "pb", name: "PiB", toBase: 1024 ** 5 },
+    ],
+  },
+  energy: {
+    label: "Energy",
+    units: [
+      { id: "j", name: "Joule", toBase: 1 },
+      { id: "kj", name: "Kilojoule", toBase: 1000 },
+      { id: "cal", name: "Calorie", toBase: 4.184 },
+      { id: "kcal", name: "Kilocalorie", toBase: 4184 },
+      { id: "wh", name: "Watt-hour", toBase: 3600 },
+      { id: "kwh", name: "Kilowatt-hour", toBase: 3.6e6 },
+    ],
+  },
+  pressure: {
+    label: "Pressure",
+    units: [
+      { id: "pa", name: "Pascal", toBase: 1 },
+      { id: "kpa", name: "Kilopascal", toBase: 1000 },
+      { id: "bar", name: "Bar", toBase: 1e5 },
+      { id: "atm", name: "Atmosphere", toBase: 101325 },
+      { id: "psi", name: "PSI", toBase: 6894.757 },
+      { id: "mmhg", name: "mmHg", toBase: 133.322 },
+    ],
+  },
+  angle: {
+    label: "Angle",
+    units: [
+      { id: "deg", name: "Degree", toBase: 1 },
+      { id: "rad", name: "Radian", toBase: 180 / Math.PI },
+      { id: "grad", name: "Gradian", toBase: 0.9 },
+    ],
+  },
+  fuel: {
+    label: "Fuel economy",
+    units: [
+      { id: "lp100", name: "L/100km", toBase: 1 },
+      { id: "mpg", name: "US mpg", toBase: 235.215 },
+      { id: "mpgi", name: "UK mpg", toBase: 282.481 },
+      { id: "kpl", name: "km/L", toBase: 100 },
     ],
   },
 };
@@ -121,6 +215,25 @@ function convertTemp(value: number, from: string, to: string): number {
   return value;
 }
 
+function convertFuel(value: number, from: string, to: string): number {
+  if (value === 0) return 0;
+  const toLp100 = (id: string, v: number) => {
+    if (id === "lp100") return v;
+    if (id === "kpl") return 100 / v;
+    if (id === "mpg") return 235.215 / v;
+    if (id === "mpgi") return 282.481 / v;
+    return v;
+  };
+  const fromLp100 = (id: string, lp: number) => {
+    if (id === "lp100") return lp;
+    if (id === "kpl") return 100 / lp;
+    if (id === "mpg") return 235.215 / lp;
+    if (id === "mpgi") return 282.481 / lp;
+    return lp;
+  };
+  return fromLp100(to, toLp100(from, value));
+}
+
 function convertUnit(
   value: number,
   group: string,
@@ -128,9 +241,10 @@ function convertUnit(
   to: string
 ): number {
   if (group === "temp") return convertTemp(value, from, to);
+  if (group === "fuel") return convertFuel(value, from, to);
   const g = UNIT_GROUPS[group];
-  const a = g.units.find((u) => u.id === from);
-  const b = g.units.find((u) => u.id === to);
+  const a = g?.units.find((u) => u.id === from);
+  const b = g?.units.find((u) => u.id === to);
   if (!a || !b) return NaN;
   return (value * a.toBase) / b.toBase;
 }
