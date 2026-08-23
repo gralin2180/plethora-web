@@ -242,6 +242,33 @@ export const AI_TOOL_TOOLS: PlatformTool[] = [
     runner: "free-utility",
   },
   {
+    id: "game-engine",
+    name: "Game Director",
+    slug: "game-engine",
+    description:
+      "Production desk for games: pitch → GDD → systems → art → assets → audio → Godot 4 / web slice build.",
+    category: "AI Tools",
+    icon: "Gamepad2",
+    freeRunsPerDay: 35,
+    isPro: false,
+    tags: ["game", "godot", "gdd", "indie", "design"],
+    taskKeywords: [
+      "make a game",
+      "game design",
+      "godot 4",
+      "game director",
+      "indie game",
+      "gdd",
+      "web game",
+    ],
+    bestModels: [
+      "Auto: OpenCode Zen + OpenRouter free pool",
+      "Your Connect or BYOK key",
+    ],
+    actionHint: "Pipeline desk + Game Director chat",
+    runner: "free-utility",
+  },
+  {
     id: "build-your-tool",
     name: "AI App Maker",
     slug: "build-your-tool",

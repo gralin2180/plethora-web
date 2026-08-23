@@ -80,6 +80,7 @@ import {
   Hash,
   FlaskConical,
   Flame,
+  Gamepad2,
   HardDrive,
   type LucideIcon,
 } from "lucide-react";
@@ -143,6 +144,7 @@ const ICONS: Record<string, LucideIcon> = {
   Cable,
   NotebookPen,
   Flame,
+  Gamepad2,
   HardDrive,
   Presentation: Presentation,
   Sheet: Sheet,
@@ -182,6 +184,7 @@ function toolHref(slug: string) {
   if (slug === "spicy-chat") return "/spicy";
   if (slug === "local-llms") return "/local-llms";
   if (slug === "mcp-setup") return "/mcp";
+  if (slug === "game-engine") return "/game-director";
   return `/tools/${slug}`;
 }
 

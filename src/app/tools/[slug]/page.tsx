@@ -81,6 +81,7 @@ const FREE_RUNNERS = new Set<string>([
   "image-compress",
   "lorem-ipsum",
   "text-diff",
+  "game-engine",
 ]);
 
 const APP_REDIRECTS: Record<string, string> = {
@@ -90,6 +91,7 @@ const APP_REDIRECTS: Record<string, string> = {
   "mcp-setup": "/mcp",
   "local-llms": "/local-llms",
   "spicy-chat": "/spicy",
+  "game-engine": "/game-director",
 };
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
@@ -138,7 +140,7 @@ export default async function ToolPage({ params }: Props) {
     <SiteShell>
       <ToolVisitTracker slug={slug} />
       <div className="px-4 py-10 sm:px-6">
-          <div className={`mx-auto ${slug === "build-your-tool" ? "max-w-6xl" : isFreeRunner ? "max-w-3xl" : "max-w-2xl"}`}>
+          <div className={`mx-auto ${slug === "build-your-tool" || slug === "game-engine" ? "max-w-6xl" : isFreeRunner ? "max-w-3xl" : "max-w-2xl"}`}>
           <div className="mb-6 flex flex-wrap items-center gap-4">
           <Link
             href="/tools"

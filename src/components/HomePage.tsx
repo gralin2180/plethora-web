@@ -2,6 +2,7 @@ import Link from "next/link";
 import {
   ArrowRight,
   Flame,
+  Gamepad2,
   Hammer,
   HardDrive,
   MessageSquare,
@@ -15,6 +16,7 @@ import { StickyRails } from "@/components/StickyRails";
 const ROOMS = [
   { href: "/chat", title: "Chat", desc: "Normal talk", icon: MessageSquare },
   { href: "/spicy", title: "Spicy 18+", desc: "Companion chat", icon: Flame },
+  { href: "/game-director", title: "Game Director", desc: "Make games", icon: Gamepad2 },
   { href: "/local-llms", title: "Local LLMs", desc: "Your PC", icon: HardDrive },
   { href: "/tools", title: "Tools", desc: "The whole roof", icon: Wrench },
   { href: "/tools/build-your-tool", title: "App Maker", desc: "Build a web app", icon: Hammer },
@@ -95,7 +97,9 @@ export function HomePage() {
                 href={
                   tool.slug === "prompt-assistant" || tool.slug === "ai-finder"
                     ? `/${tool.slug}`
-                    : `/tools/${tool.slug}`
+                    : tool.slug === "game-engine"
+                      ? "/game-director"
+                      : `/tools/${tool.slug}`
                 }
                 className="rounded-xl border border-white/10 bg-white/[0.02] px-4 py-3 hover:border-white/20"
               >

@@ -5,6 +5,7 @@ import Link from "next/link";
 import {
   ArrowRight,
   Flame,
+  Gamepad2,
   Hammer,
   HardDrive,
   Heart,
@@ -26,12 +27,14 @@ function toolHref(slug: string) {
   if (slug === "spicy-chat") return "/spicy";
   if (slug === "local-llms") return "/local-llms";
   if (slug === "mcp-setup") return "/mcp";
+  if (slug === "game-engine") return "/game-director";
   return `/tools/${slug}`;
 }
 
 const ROOMS = [
   { href: "/chat", label: "Chat", icon: MessageSquare, hint: "Normal talk" },
   { href: "/spicy", label: "Spicy 18+", icon: Flame, hint: "Companion chat" },
+  { href: "/game-director", label: "Game Director", icon: Gamepad2, hint: "Make games" },
   { href: "/local-llms", label: "Local LLMs", icon: HardDrive, hint: "Your PC" },
   { href: "/tools", label: "Tools", icon: Wrench, hint: "The whole roof" },
   { href: "/tools/build-your-tool", label: "App Maker", icon: Hammer, hint: "Build a web app" },

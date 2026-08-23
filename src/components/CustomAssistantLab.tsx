@@ -3,10 +3,12 @@
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import {
+  countUserAssistants,
   createAssistantDraft,
   deleteAssistant,
   exportAssistantHtml,
   getAssistantLimit,
+  isPlatformAssistant,
   loadCustomAssistants,
   upsertAssistant,
   type CustomAssistant,
@@ -44,7 +46,7 @@ export function CustomAssistantLab() {
   }
 
   function createNew() {
-    if (list.length >= limit) {
+    if (countUserAssistants(list) >= limit) {
       alert(
         `Free plan: ${limit} custom assistant. Upgrade for more, or delete one first.`
       );
@@ -114,7 +116,7 @@ Rules: Be useful. Match the style. If adult content is requested and style allow
           className="inline-flex items-center gap-1.5 rounded-xl bg-violet-600 px-3 py-2 text-sm font-medium text-white hover:bg-violet-500"
         >
           <Plus className="h-4 w-4" />
-          New assistant ({list.length}/{limit})
+          New assistant ({countUserAssistants(list)}/{limit})
         </button>
         <Link href="/chat" className="text-sm text-zinc-400 hover:text-white">
           Open chat →
@@ -233,12 +235,14 @@ Rules: Be useful. Match the style. If adult content is requested and style allow
               <button
                 type="button"
                 onClick={() => {
+                  if (isPlatformAssistant(active.id)) return;
                   deleteAssistant(active.id);
                   const next = loadCustomAssistants();
                   refresh(next);
                   setActiveId(next[0]?.id ?? null);
                 }}
-                className="inline-flex items-center gap-1 rounded-lg border border-white/10 px-3 py-1.5 text-xs text-rose-300"
+                disabled={isPlatformAssistant(active.id)}
+                className="inline-flex items-center gap-1 rounded-lg border border-white/10 px-3 py-1.5 text-xs text-rose-300 disabled:opacity-40"
               >
                 <Trash2 className="h-3.5 w-3.5" />
                 Delete

@@ -61,6 +61,7 @@ export const GLOBAL_POPULARITY: Record<string, number> = {
   "multi-clock": 82,
   "advanced-calculator": 90,
   "build-your-tool": 76,
+  "game-engine": 82,
   "request-tool": 50,
   "life-planner": 74,
   "calendar-generator": 73,

@@ -544,6 +544,12 @@ export function ChatMode({
             >
               App Maker
             </Link>
+            <Link
+              href="/game-director"
+              className="rounded-full border border-white/15 px-4 py-1.5 text-sm text-zinc-300 hover:bg-white/5"
+            >
+              Game Director
+            </Link>
             <button
               type="button"
               onClick={clearChat}

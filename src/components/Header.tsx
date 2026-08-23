@@ -27,6 +27,7 @@ type NavItem = {
 const PRIMARY: NavItem[] = [
   { href: "/tools", label: "Tools", tour: "nav-tools" },
   { href: "/chat", label: "Chat", tour: "nav-chat" },
+  { href: "/game-director", label: "Game Director", tour: "nav-game-director" },
   { href: "/local-llms", label: "Local", tour: "nav-backends", accent: "local" },
   { href: "/projects", label: "Projects", tour: "nav-projects" },
 ];

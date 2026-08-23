@@ -85,6 +85,18 @@ const CUSTOM: Record<string, ToolHowDoc> = {
       { id: "c", label: "Modify in the box", detail: "That page becomes a chatbox for changes only." },
     ],
   },
+  "game-engine": {
+    summary:
+      "Game production desk: pipeline from pitch to build, Godot 4 first, web slice for quick playables — not a browser Unity compiler.",
+    steps: [
+      { id: "p", label: "Set title & engine", detail: "Godot 4 preferred; Unity/Unreal are guide-only here." },
+      { id: "pipe", label: "Walk the pipeline", detail: "Pitch → GDD → systems → art → assets → audio → engine → build." },
+      { id: "refs", label: "Drop reference names", detail: "Filenames stay on your device — no server upload." },
+      { id: "chat", label: "Game Director chat", detail: "Stage-aware producer; refuses CSAM / minors in sexual content." },
+      { id: "gen", label: "Generators later", detail: "Higgsfield / MCP art & audio when credits are connected." },
+    ],
+    privacyNote: "Project notes and chat history stay in localStorage on this browser.",
+  },
   "bg-remover": {
     summary: "Chroma / canvas-style remove in the browser when possible.",
     steps: [
@@ -184,6 +196,7 @@ export const NODE_GRAPH_SLUGS = new Set([
   "message-automation",
   "image-to-video",
   "build-your-tool",
+  "game-engine",
   "video-converter",
   "life-planner",
   "local-ai-hardware",

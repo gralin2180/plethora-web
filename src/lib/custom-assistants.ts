@@ -34,6 +34,15 @@ export function saveCustomAssistants(list: CustomAssistant[]): void {
   localStorage.setItem(KEY, JSON.stringify(list.slice(0, 50)));
 }
 
+/** Platform-built assistants — do not count toward user custom-assistant quota */
+export function isPlatformAssistant(id: string): boolean {
+  return id === "plethora-game-director";
+}
+
+export function countUserAssistants(list: CustomAssistant[]): number {
+  return list.filter((a) => !isPlatformAssistant(a.id)).length;
+}
+
 export function getAssistantLimit(plan: "free" | "pro" | "team" | "hardcore" = "free"): number {
   if (plan === "free") return 1;
   if (plan === "pro") return 15;

@@ -32,6 +32,13 @@ const PRESETS: Record<string, FlowNode[]> = {
     { id: "n3", title: "Generate", kind: "decision", note: "Free pool / Connect / BYOK" },
     { id: "n4", title: "Preview + modify", kind: "output", note: "Chatbox for edits" },
   ],
+  "game-engine": [
+    { id: "n1", title: "Pitch", kind: "input", note: "Hook, audience, platform" },
+    { id: "n2", title: "GDD + systems", kind: "transform", note: "Loops, progression, economy" },
+    { id: "n3", title: "Art / assets / audio", kind: "transform", note: "Style bible + file name refs" },
+    { id: "n4", title: "Godot / web slice", kind: "decision", note: "Engine choice + scene tree" },
+    { id: "n5", title: "Build + ship", kind: "output", note: "Export checklist + page copy" },
+  ],
   "video-converter": [
     { id: "n1", title: "Source file", kind: "input", note: "Upload or path" },
     { id: "n2", title: "Codec / size", kind: "transform", note: "Target format" },

@@ -24,6 +24,7 @@ const CORE: { path: string; changeFrequency: MetadataRoute.Sitemap[0]["changeFre
   { path: "/get-started", changeFrequency: "weekly", priority: 0.9 },
   { path: "/ai-finder", changeFrequency: "weekly", priority: 0.85 },
   { path: "/prompt-assistant", changeFrequency: "weekly", priority: 0.85 },
+  { path: "/game-director", changeFrequency: "weekly", priority: 0.9 },
   { path: "/local-llms", changeFrequency: "weekly", priority: 0.92 },
   { path: "/spicy", changeFrequency: "weekly", priority: 0.88 },
   { path: "/install", changeFrequency: "weekly", priority: 0.75 },
@@ -71,6 +72,14 @@ export default function sitemap(): MetadataRoute.Sitemap {
           lastModified: now,
           changeFrequency: "weekly" as const,
           priority: 0.85,
+        };
+      }
+      if (t.slug === "game-engine") {
+        return {
+          url: `${base}/game-director`,
+          lastModified: now,
+          changeFrequency: "weekly" as const,
+          priority: 0.9,
         };
       }
       if (t.slug === "local-llms") {

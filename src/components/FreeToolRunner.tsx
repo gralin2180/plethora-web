@@ -89,6 +89,7 @@ import { SolidPdfLab } from "@/components/SolidPdfLab";
 import { SolidCsvLab, SolidImageFormatLab, SolidImageToPdfLab } from "@/components/SolidImageLab";
 import { BgRemoverLab } from "@/components/BgRemoverLab";
 import { CustomAssistantLab } from "@/components/CustomAssistantLab";
+import { GameEngineStudio } from "@/components/GameEngineStudio";
 import { FileExportDialog, useFileExport } from "@/components/FileExportDialog";
 
 export type FreeRunnerKind =
@@ -158,7 +159,8 @@ export type FreeRunnerKind =
   | "unit-converter"
   | "image-compress"
   | "lorem-ipsum"
-  | "text-diff";
+  | "text-diff"
+  | "game-engine";
 
 export function FreeToolRunner({ kind, title }: { kind: FreeRunnerKind; title: string }) {
   const [status, setStatus] = useState("");
@@ -407,6 +409,7 @@ export function FreeToolRunner({ kind, title }: { kind: FreeRunnerKind; title: s
   if (kind === "build-your-tool") return <AiAppMaker />;
   if (kind === "request-tool") return <ToolRequestForm />;
   if (kind === "custom-assistant") return <CustomAssistantLab />;
+  if (kind === "game-engine") return <GameEngineStudio />;
   if (kind === "life-planner") return <DailyLifePlanner />;
   if (kind === "calendar-generator") return <CalendarGenerator />;
 
