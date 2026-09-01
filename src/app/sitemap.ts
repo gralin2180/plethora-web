@@ -27,8 +27,11 @@ const CORE: { path: string; changeFrequency: MetadataRoute.Sitemap[0]["changeFre
   { path: "/game-director", changeFrequency: "weekly", priority: 0.9 },
   { path: "/local-llms", changeFrequency: "weekly", priority: 0.92 },
   { path: "/spicy", changeFrequency: "weekly", priority: 0.88 },
+  { path: "/bots", changeFrequency: "weekly", priority: 0.88 },
+  { path: "/office", changeFrequency: "weekly", priority: 0.9 },
   { path: "/install", changeFrequency: "weekly", priority: 0.75 },
   { path: "/mcp", changeFrequency: "weekly", priority: 0.75 },
+  { path: "/infra", changeFrequency: "weekly", priority: 0.75 },
   { path: "/hardcore", changeFrequency: "monthly", priority: 0.5 },
 ];
 
@@ -96,6 +99,22 @@ export default function sitemap(): MetadataRoute.Sitemap {
           lastModified: now,
           changeFrequency: "weekly" as const,
           priority: 0.85,
+        };
+      }
+      if (t.slug === "office-suite") {
+        return {
+          url: `${base}/office`,
+          lastModified: now,
+          changeFrequency: "weekly" as const,
+          priority: 0.9,
+        };
+      }
+      if (t.slug === "office-infra") {
+        return {
+          url: `${base}/infra`,
+          lastModified: now,
+          changeFrequency: "weekly" as const,
+          priority: 0.75,
         };
       }
       if (t.slug === "mcp-setup") {

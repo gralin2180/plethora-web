@@ -34,6 +34,36 @@ const CUSTOM: Record<string, ToolHowDoc> = {
       { id: "3", label: "Result cards", detail: "Mbps + latency-style feel, not ISP-certified." },
     ],
   },
+  "internet-diagnostics": {
+    summary:
+      "One-button network suite: public IP, latency, download/upload, edge ping — plus tabs for DNS and custom host ping.",
+    steps: [
+      { id: "1", label: "Run full diagnostics", detail: "IP → latency → Cloudflare ping → speed." },
+      { id: "2", label: "Read the cards", detail: "Mbps and ms against this Plethora edge." },
+      { id: "3", label: "Dig deeper", detail: "Speed / Ping / DNS / My IP tabs for focused checks." },
+    ],
+    privacyNote: "Probes hit Plethora APIs and public hosts you choose; nothing is sold.",
+  },
+  "office-suite": {
+    summary: "Plethora Office is a workspace suite: docs, boards, rooms, flow, layout, capture, cut, connect.",
+    steps: [
+      { id: "1", label: "Pick an industry desk", detail: "IT, game, media, production, fashion, film — or all." },
+      { id: "2", label: "Open an app", detail: "Word, Boards, Rooms, Flow, Layout, Cut, Connect — or Sheets/Slides/Capture we already ship." },
+      { id: "3", label: "Ask AI or edit locally", detail: "Data stays in this browser until you export or POST your own webhook." },
+    ],
+    privacyNote: "Not Microsoft / Slack / Figma. Inspired by those jobs, not those products.",
+  },
+  "office-infra": {
+    summary:
+      "Inventory Parsec and RustDesk hosts, copy a self-host relay compose, and set org AI to capped, full scale, or custom admin quotas.",
+    steps: [
+      { id: "1", label: "Add hosts", detail: "Parsec peer name, RustDesk ID, or SSH/RDP. Clients stay those apps." },
+      { id: "2", label: "Self-host RustDesk", detail: "Copy hbbs/hbbr compose; point clients at your relay." },
+      { id: "3", label: "GPU worker", detail: "Ollama on the box; Local backends in Plethora; Parsec for the desktop." },
+      { id: "4", label: "AI scale", detail: "Admin sets PLETHORA_ORG_AI_SCALE=capped|full|custom on the server. Safety blocks still apply." },
+    ],
+    privacyNote: "We are not Parsec or RustDesk. Host list stays in this browser. Full scale is env, not a public cookie bypass.",
+  },
   "youtube-to-captions": {
     summary: "Pulls public captions or guides you when only manual / paid paths exist.",
     steps: [

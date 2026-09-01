@@ -532,6 +532,212 @@ export function DnsLookupLab() {
   );
 }
 
+/* ——— Full internet diagnostics desk ——— */
+
+type DiagTab = "overview" | "speed" | "ping" | "dns" | "ip";
+
+export function InternetDiagnosticsLab() {
+  const [tab, setTab] = useState<DiagTab>("overview");
+  const [busy, setBusy] = useState(false);
+  const [phase, setPhase] = useState("");
+  const [progress, setProgress] = useState(0);
+  const [error, setError] = useState("");
+  const [ip, setIp] = useState<string | null>(null);
+  const [online, setOnline] = useState(true);
+  const [latency, setLatency] = useState<number | null>(null);
+  const [down, setDown] = useState<number | null>(null);
+  const [up, setUp] = useState<number | null>(null);
+  const [pingAvg, setPingAvg] = useState<number | null>(null);
+  const [pingLoss, setPingLoss] = useState<number | null>(null);
+
+  async function runFull() {
+    setBusy(true);
+    setError("");
+    setProgress(5);
+    setOnline(typeof navigator !== "undefined" ? navigator.onLine : true);
+    try {
+      setPhase("Public IP…");
+      const ipRes = await fetch("/api/network/ip", { cache: "no-store" });
+      const ipJson = await ipRes.json();
+      if (ipRes.ok) setIp(ipJson.ip || null);
+      setProgress(15);
+
+      setPhase("Latency…");
+      const times: number[] = [];
+      for (let i = 0; i < 4; i++) {
+        const t0 = performance.now();
+        const r = await fetch(`/api/network/download?bytes=0&_=${Date.now()}-${i}`, {
+          cache: "no-store",
+        });
+        await r.arrayBuffer();
+        times.push(performance.now() - t0);
+      }
+      times.sort((a, b) => a - b);
+      setLatency(Math.round((times[Math.floor(times.length / 2)] ?? 0) * 10) / 10);
+      setProgress(30);
+
+      setPhase("Edge ping (cloudflare.com)…");
+      const pingRes = await fetch("/api/network/ping", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ target: "cloudflare.com", count: 4 }),
+      });
+      const pingJson = await pingRes.json();
+      if (pingRes.ok && pingJson.stats) {
+        setPingAvg(pingJson.stats.avg);
+        setPingLoss(pingJson.stats.lossPct);
+      }
+      setProgress(45);
+
+      setPhase("Download…");
+      const dl = async (bytes: number) => {
+        const t0 = performance.now();
+        const r = await fetch(`/api/network/download?bytes=${bytes}&_=${Date.now()}`, {
+          cache: "no-store",
+        });
+        const buf = await r.arrayBuffer();
+        return formatMbps(buf.byteLength, (performance.now() - t0) / 1000);
+      };
+      await dl(50_000);
+      const d1 = await dl(750_000);
+      setProgress(65);
+      const d2 = await dl(1_500_000);
+      setDown(Math.max(d1, d2));
+      setProgress(75);
+
+      setPhase("Upload…");
+      const ul = async (bytes: number) => {
+        const body = new Uint8Array(bytes);
+        let seed = 0xabcdef01;
+        for (let i = 0; i < bytes; i++) {
+          seed = (Math.imul(1664525, seed) + 1013904223) >>> 0;
+          body[i] = seed & 0xff;
+        }
+        const t0 = performance.now();
+        const r = await fetch("/api/network/upload", {
+          method: "POST",
+          headers: { "Content-Type": "application/octet-stream" },
+          body,
+          cache: "no-store",
+        });
+        if (!r.ok) throw new Error("Upload failed");
+        await r.json();
+        return formatMbps(bytes, (performance.now() - t0) / 1000);
+      };
+      const u1 = await ul(400_000);
+      setProgress(90);
+      const u2 = await ul(900_000);
+      setUp(Math.max(u1, u2));
+      setProgress(100);
+      setPhase("Done");
+      await usage("internet-diagnostics");
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Diagnostics failed");
+      setPhase("");
+    }
+    setBusy(false);
+  }
+
+  const tabs: { id: DiagTab; label: string; icon: typeof Gauge }[] = [
+    { id: "overview", label: "Full check", icon: Activity },
+    { id: "speed", label: "Speed", icon: Gauge },
+    { id: "ping", label: "Ping", icon: Radar },
+    { id: "dns", label: "DNS", icon: Network },
+    { id: "ip", label: "My IP", icon: Globe2 },
+  ];
+
+  return (
+    <div className="space-y-5">
+      <div>
+        <h2 className="text-lg font-semibold text-white">Internet diagnostics</h2>
+        <p className="mt-1 text-sm text-zinc-400">
+          Speed test, latency, public IP, DNS, and host ping — one desk. Numbers are against this
+          Plethora edge (not a lab meter).
+        </p>
+      </div>
+
+      <div className="flex flex-wrap gap-1.5">
+        {tabs.map((t) => {
+          const Icon = t.icon;
+          return (
+            <button
+              key={t.id}
+              type="button"
+              onClick={() => setTab(t.id)}
+              className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-medium ${
+                tab === t.id
+                  ? "bg-cyan-600 text-white"
+                  : "border border-white/15 text-zinc-400 hover:text-white"
+              }`}
+            >
+              <Icon className="h-3.5 w-3.5" />
+              {t.label}
+            </button>
+          );
+        })}
+      </div>
+
+      {tab === "overview" ? (
+        <div className="space-y-4">
+          <button
+            type="button"
+            disabled={busy}
+            onClick={() => void runFull()}
+            className="inline-flex items-center gap-2 rounded-xl bg-cyan-600 px-5 py-2.5 text-sm font-medium text-white hover:bg-cyan-500 disabled:opacity-50"
+          >
+            {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Activity className="h-4 w-4" />}
+            {busy ? phase || "Running…" : "Run full diagnostics"}
+          </button>
+
+          {(busy || progress > 0) && (
+            <div className="h-2 overflow-hidden rounded-full bg-white/10">
+              <div
+                className="h-full rounded-full bg-gradient-to-r from-cyan-500 to-violet-500 transition-all duration-300"
+                style={{ width: `${progress}%` }}
+              />
+            </div>
+          )}
+
+          {error ? <p className="text-sm text-red-400">{error}</p> : null}
+
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+            <StatCard label="Browser online" value={online ? "Yes" : "No"} />
+            <StatCard label="Public IP" value={ip || "—"} />
+            <StatCard
+              label="Latency"
+              value={latency != null ? String(latency) : "—"}
+              unit={latency != null ? "ms" : undefined}
+            />
+            <StatCard
+              label="Download"
+              value={down != null ? String(down) : "—"}
+              unit={down != null ? "Mbps" : undefined}
+            />
+            <StatCard
+              label="Upload"
+              value={up != null ? String(up) : "—"}
+              unit={up != null ? "Mbps" : undefined}
+            />
+            <StatCard
+              label="Edge ping avg"
+              value={pingAvg != null ? String(pingAvg) : "—"}
+              unit={pingAvg != null ? "ms" : undefined}
+            />
+          </div>
+          {pingLoss != null ? (
+            <p className="text-xs text-zinc-500">HTTP probe loss to Cloudflare: {pingLoss}%</p>
+          ) : null}
+        </div>
+      ) : null}
+
+      {tab === "speed" ? <SpeedTestLab /> : null}
+      {tab === "ping" ? <PingTestLab /> : null}
+      {tab === "dns" ? <DnsLookupLab /> : null}
+      {tab === "ip" ? <MyIpLab /> : null}
+    </div>
+  );
+}
+
 /* icons re-export for grid mapping helpers */
 export const NetworkToolMeta = {
   Activity,

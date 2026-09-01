@@ -8,6 +8,7 @@ import {
 } from "@/lib/billing-products";
 import { isFakeBillingEnabled } from "@/lib/stripe";
 import { platformChatDailyLimit } from "@/lib/ai-quota";
+import { applyOrgAiToEntitlement, orgAiIsFullScale, readOrgAiPolicyFromEnv } from "@/lib/infra-control";
 
 const COLS =
   "subscription_plan, subscription_status, premium_used_period, premium_period_start, self_limit_premium_month, trial_pack, trial_pack_ends_at, trial_pack_premium_used, trial_pack_premium_cap, stripe_customer_id, stripe_subscription_id, email";
@@ -33,8 +34,13 @@ export async function GET() {
     .eq("id", user.id)
     .maybeSingle();
 
-  const ent = resolveAiEntitlement((profile as EntitlementRow) || {});
+  const orgAi = readOrgAiPolicyFromEnv();
+  const ent = applyOrgAiToEntitlement(
+    resolveAiEntitlement((profile as EntitlementRow) || {}),
+    orgAi
+  );
   const caps = getPlanCapabilities(ent.plan);
+  const orgFull = orgAiIsFullScale(orgAi);
 
   let freeUsedToday = 0;
   try {
@@ -57,12 +63,12 @@ export async function GET() {
     entitlement: {
       plan: ent.plan,
       premiumUsed: ent.premiumUsed,
-      premiumLimit: ent.premiumEffectiveLimit,
-      premiumAllowed: ent.premiumAllowed,
-      freeDailyLimit: ent.freeDailyLimit,
+      premiumLimit: orgFull ? Number.MAX_SAFE_INTEGER : ent.premiumEffectiveLimit,
+      premiumAllowed: orgFull ? true : ent.premiumAllowed,
+      freeDailyLimit: orgFull ? Number.MAX_SAFE_INTEGER : ent.freeDailyLimit,
       freeUsedToday,
-      freeDailyPlanLimit: platformChatDailyLimit(ent.plan),
-      routeLabel: ent.routeLabel,
+      freeDailyPlanLimit: orgFull ? Number.MAX_SAFE_INTEGER : platformChatDailyLimit(ent.plan),
+      routeLabel: orgFull ? "org full scale" : ent.routeLabel,
       softWarn: ent.softWarn,
       softWarnMessage: ent.softWarnMessage,
       trialActive: ent.trialActive,
@@ -85,5 +91,6 @@ function publicProduct(p: (typeof BILLING_PRODUCTS)[keyof typeof BILLING_PRODUCT
     mode: p.mode,
     features: p.features,
     highlighted: p.highlighted,
+    family: p.family || "ai",
   };
 }

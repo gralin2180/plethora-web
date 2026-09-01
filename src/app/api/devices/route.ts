@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
-import { getPlanCapabilities, type PlanId } from "@/lib/plans";
+import { getPlanCapabilities, parsePlanId } from "@/lib/plans";
 
 /**
  * Register / heartbeat current browser as a device seat.
@@ -41,7 +41,7 @@ export async function POST(req: Request) {
     .eq("id", user.id)
     .single();
 
-  const plan = (profile?.subscription_plan as PlanId) || "free";
+  const plan = parsePlanId(profile?.subscription_plan);
   const caps = getPlanCapabilities(plan);
   const max = caps.maxDevices;
 
@@ -155,7 +155,7 @@ export async function GET() {
     .select("subscription_plan")
     .eq("id", user.id)
     .single();
-  const plan = (profile?.subscription_plan as PlanId) || "free";
+  const plan = parsePlanId(profile?.subscription_plan);
   const max = getPlanCapabilities(plan).maxDevices;
 
   const { data: devices, error } = await supabase

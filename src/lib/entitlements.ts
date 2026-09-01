@@ -2,7 +2,7 @@
  * Resolve user entitlement for AI routing (subscription + trial packs + self limits).
  */
 
-import { getPlanCapabilities, type PlanId, GUEST_FREE_AI_DAILY } from "./plans";
+import { getPlanCapabilities, parsePlanId, type PlanId, GUEST_FREE_AI_DAILY } from "./plans";
 
 export type EntitlementRow = {
   subscription_plan?: string | null;
@@ -37,8 +37,7 @@ export type AiEntitlement = {
 };
 
 function asPlan(raw: string | null | undefined): PlanId {
-  if (raw === "pro" || raw === "team" || raw === "hardcore") return raw;
-  return "free";
+  return parsePlanId(raw);
 }
 
 function periodNeedsReset(iso: string | null | undefined): boolean {

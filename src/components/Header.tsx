@@ -26,7 +26,9 @@ type NavItem = {
 /** Primary: the rooms people live in. Everything else is More. */
 const PRIMARY: NavItem[] = [
   { href: "/tools", label: "Tools", tour: "nav-tools" },
-  { href: "/chat", label: "Chat", tour: "nav-chat" },
+  { href: "/office", label: "Office", tour: "nav-office", hint: "Free suite · paid Personal/Business" },
+  { href: "/chat", label: "Chat", tour: "nav-chat", hint: "Threads, models, agents" },
+  { href: "/bots", label: "Bots", tour: "nav-bots" },
   { href: "/game-director", label: "Game Director", tour: "nav-game-director" },
   { href: "/local-llms", label: "Local", tour: "nav-backends", accent: "local" },
   { href: "/projects", label: "Projects", tour: "nav-projects" },
@@ -44,11 +46,14 @@ const MORE: NavItem[] = [
   { href: "/learn", label: "Learn AI", tour: "nav-learn", hint: "Practical lessons" },
   { href: "/settings/backends", label: "Local backends", tour: "nav-local-settings", hint: "Ollama URL on this PC", accent: "local" },
   { href: "/mcp", label: "MCP", tour: "nav-mcp", hint: "Agent tools" },
+  { href: "/infra", label: "Infra / remote", tour: "nav-infra", hint: "Parsec, RustDesk, AI scale" },
+  { href: "/office", label: "Plethora Office", tour: "nav-office-more", hint: "Word, Boards, Rooms, Cut…" },
   { href: "/tools?category=Marketing%20%26%20Ads", label: "Marketing tools", tour: "nav-marketing", hint: "Ads, email, SEO" },
   { href: "/settings/personal", label: "Personal context", tour: "nav-personal", hint: "What the assistant should know" },
   { href: "/pricing", label: "Pricing", tour: "nav-pricing" },
   { href: "/prompt-assistant", label: "Prompts", tour: "nav-prompt", hint: "Messy goal → prompt" },
   { href: "/spicy", label: "Spicy chat (18+)", tour: "nav-spicy", hint: "Adult companion landing" },
+  { href: "/bots", label: "Bots", tour: "nav-bots-more", hint: "Named companions" },
   { href: "/tools?category=Trading", label: "Trading tools", tour: "nav-trading", hint: "P&L, liq, pip, Kelly" },
 ] as NavItem[];
 

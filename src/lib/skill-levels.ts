@@ -39,6 +39,8 @@ export const PLAN_LIMITS: Record<
   { multiplier: number; unlimited: boolean }
 > = {
   free: { multiplier: 1, unlimited: false },
+  office: { multiplier: 2, unlimited: false },
+  office_biz: { multiplier: 4, unlimited: false },
   pro: { multiplier: 5, unlimited: false },
   team: { multiplier: 10, unlimited: false },
   hardcore: { multiplier: 999, unlimited: true },

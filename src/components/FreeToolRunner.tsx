@@ -38,6 +38,7 @@ import {
   MyIpLab,
   PingTestLab,
   SpeedTestLab,
+  InternetDiagnosticsLab,
 } from "@/components/NetworkTools";
 import {
   AiSummarizerLab,
@@ -90,6 +91,7 @@ import { SolidCsvLab, SolidImageFormatLab, SolidImageToPdfLab } from "@/componen
 import { BgRemoverLab } from "@/components/BgRemoverLab";
 import { CustomAssistantLab } from "@/components/CustomAssistantLab";
 import { GameEngineStudio } from "@/components/GameEngineStudio";
+import { OfficeNativeApp } from "@/components/OfficeAppLabs";
 import { FileExportDialog, useFileExport } from "@/components/FileExportDialog";
 
 export type FreeRunnerKind =
@@ -123,6 +125,7 @@ export type FreeRunnerKind =
   | "robots-txt"
   | "ping-test"
   | "speed-test"
+  | "internet-diagnostics"
   | "whats-my-ip"
   | "dns-lookup"
   | "multi-clock"
@@ -160,7 +163,14 @@ export type FreeRunnerKind =
   | "image-compress"
   | "lorem-ipsum"
   | "text-diff"
-  | "game-engine";
+  | "game-engine"
+  | "office-word"
+  | "office-boards"
+  | "office-rooms"
+  | "office-flow"
+  | "office-design"
+  | "office-cut"
+  | "office-connect";
 
 export function FreeToolRunner({ kind, title }: { kind: FreeRunnerKind; title: string }) {
   const [status, setStatus] = useState("");
@@ -402,6 +412,7 @@ export function FreeToolRunner({ kind, title }: { kind: FreeRunnerKind; title: s
   if (kind === "robots-txt") return <RobotsTxtBuilder />;
   if (kind === "ping-test") return <PingTestLab />;
   if (kind === "speed-test") return <SpeedTestLab />;
+  if (kind === "internet-diagnostics") return <InternetDiagnosticsLab />;
   if (kind === "whats-my-ip") return <MyIpLab />;
   if (kind === "dns-lookup") return <DnsLookupLab />;
   if (kind === "multi-clock") return <MultiClockLab />;
@@ -410,6 +421,13 @@ export function FreeToolRunner({ kind, title }: { kind: FreeRunnerKind; title: s
   if (kind === "request-tool") return <ToolRequestForm />;
   if (kind === "custom-assistant") return <CustomAssistantLab />;
   if (kind === "game-engine") return <GameEngineStudio />;
+  if (kind === "office-word") return <OfficeNativeApp id="word" />;
+  if (kind === "office-boards") return <OfficeNativeApp id="boards" />;
+  if (kind === "office-rooms") return <OfficeNativeApp id="rooms" />;
+  if (kind === "office-flow") return <OfficeNativeApp id="flow" />;
+  if (kind === "office-design") return <OfficeNativeApp id="design" />;
+  if (kind === "office-cut") return <OfficeNativeApp id="cut" />;
+  if (kind === "office-connect") return <OfficeNativeApp id="connect" />;
   if (kind === "life-planner") return <DailyLifePlanner />;
   if (kind === "calendar-generator") return <CalendarGenerator />;
 

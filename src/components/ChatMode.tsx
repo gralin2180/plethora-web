@@ -72,6 +72,12 @@ import {
   type SpicyAvatar,
 } from "@/lib/spicy-avatars";
 import { spicyImageUrl, spicyScenePrompt } from "@/lib/spicy-media";
+import {
+  botChatKey,
+  botSystemForChat,
+  type ChatBot,
+} from "@/lib/chat-bots";
+import { SelectModelMenu } from "@/components/SelectModelMenu";
 
 const HISTORY_KEY = "plethora.chat.history.v1";
 const SPICY_HISTORY_KEY = "plethora.spicy.history.v1";
@@ -82,12 +88,22 @@ export function ChatMode({
   onClearHistory,
   room = "main",
   companion = null,
+  bot = null,
+  historyKey,
+  hideHero = false,
+  onHistoryChange,
 }: {
   embedded?: boolean;
   initialPrompt?: string;
   onClearHistory?: () => void;
   room?: "main" | "spicy";
   companion?: SpicyAvatar | null;
+  /** Named Grok-style character bot — dedicated room history + system prompt. */
+  bot?: ChatBot | null;
+  /** Override localStorage key (LibreChat-style threads). */
+  historyKey?: string;
+  hideHero?: boolean;
+  onHistoryChange?: (messages: ChatMessage[]) => void;
 }) {
   const router = useRouter();
   const [messages, setMessages] = useState<ChatMessage[]>([]);
@@ -121,16 +137,25 @@ export function ChatMode({
   const scrollerRef = useRef<HTMLDivElement>(null);
   const stickBottom = useRef(true);
 
-  const histKey =
-    room === "spicy"
+  const histKey = bot
+    ? botChatKey(bot.id)
+    : room === "spicy"
       ? companion?.id
         ? `plethora.spicy.history.${companion.id}`
         : SPICY_HISTORY_KEY
-      : HISTORY_KEY;
-  const spicy = room === "spicy";
+      : historyKey || HISTORY_KEY;
+  const spicy = room === "spicy" || Boolean(bot?.adultOnly);
 
   function clearChat() {
-    setMessages([newMessage("assistant", openingMessage(spicy ? "spicy" : personality))]);
+    setMessages([
+      newMessage(
+        "assistant",
+        bot?.hello ||
+          (companion
+            ? `Hey — I’m ${companion.name}. ${companion.traits || "Tell me how you want me."}`
+            : openingMessage(spicy ? "spicy" : personality))
+      ),
+    ]);
     try {
       localStorage.removeItem(histKey);
     } catch {
@@ -147,8 +172,13 @@ export function ChatMode({
       /* */
     }
     try {
-      if (spicy) {
+      if (bot?.adultOnly || spicy) {
         setPersonality("spicy");
+        const adult = loadAdultSession();
+        setAdultSession(bot?.adultOnly ? true : adult);
+        if (bot?.adultOnly && !adult) saveAdultSession();
+      } else if (bot) {
+        setPersonality(null);
         setAdultSession(loadAdultSession());
       } else {
         setPersonality(loadChatPersonality());
@@ -213,15 +243,17 @@ export function ChatMode({
       const raw = localStorage.getItem(histKey);
       if (raw) setMessages(JSON.parse(raw));
       else {
-        const hello = companion
-          ? `Hey — I’m ${companion.name}. ${companion.traits || "Tell me how you want me."}`
-          : openingMessage(spicy ? "spicy" : loadChatPersonality());
+        const hello = bot
+          ? bot.hello
+          : companion
+            ? `Hey — I’m ${companion.name}. ${companion.traits || "Tell me how you want me."}`
+            : openingMessage(spicy ? "spicy" : loadChatPersonality());
         setMessages([newMessage("assistant", hello)]);
       }
     } catch {
       /* ignore */
     }
-  }, [histKey, spicy]);
+  }, [histKey, spicy, bot, companion]);
 
   useEffect(() => {
     function onWarn(e: Event) {
@@ -257,6 +289,7 @@ export function ChatMode({
       return;
     }
     if (messages.length) localStorage.setItem(histKey, JSON.stringify(messages.slice(-120)));
+    onHistoryChange?.(messages);
     if (!stickBottom.current) return;
     const el = scrollerRef.current;
     if (el) el.scrollTop = el.scrollHeight;
@@ -279,7 +312,7 @@ export function ChatMode({
     const ac = new AbortController();
     abortRef.current = ac;
     try {
-      const coach = !spicy ? coachForGoal(text) : null;
+      const coach = !spicy && !bot ? coachForGoal(text) : null;
       if (coach) {
         startCoach(coach.steps);
         setMessages((m) => [...m, newMessage("assistant", coach.reply)]);
@@ -287,7 +320,7 @@ export function ChatMode({
         return;
       }
 
-      if (!spicy && classifyChatIntent(text) === "tour") {
+      if (!spicy && !bot && classifyChatIntent(text) === "tour") {
         startProductTour();
         setMessages((m) => [...m, newMessage("assistant", TOUR_CHAT_OPENING)]);
         setLoading(false);
@@ -300,6 +333,7 @@ export function ChatMode({
       );
       const appAsk =
         !spicy &&
+        !bot &&
         (wantsMiniApp(text) ||
           (isMiniAppNudge(text) && (priorUsers.some(wantsMiniApp) || assistantDumpedCode)));
 
@@ -337,7 +371,8 @@ export function ChatMode({
         .join("\n\n");
       const reply = await generateAssistantReply(llmText, next, {
         adultConsent,
-        personality,
+        personality: bot ? null : personality,
+        customSystem: bot ? botSystemForChat(bot) : undefined,
         quality: qualityFromSmooth(qualitySmooth),
         qualitySmooth,
         signal: ac.signal,
@@ -477,7 +512,13 @@ export function ChatMode({
   }
 
   return (
-    <div className={embedded ? "flex h-full min-h-0 flex-col overflow-hidden" : "mx-auto max-w-3xl"}>
+    <div
+      className={
+        embedded || hideHero
+          ? "flex h-full min-h-0 flex-col overflow-hidden"
+          : "mx-auto max-w-3xl"
+      }
+    >
       {pending && (
         <ContentWarningDialog
           assessment={pending.assessment}
@@ -492,7 +533,7 @@ export function ChatMode({
         />
       )}
 
-      {!embedded && (
+      {!embedded && !bot && !hideHero && (
         <div className="mb-6 overflow-hidden rounded-3xl border border-white/10 bg-gradient-to-br from-violet-600/20 via-[#12121c] to-[#0a0a12] p-6 sm:p-8">
           <div className="flex items-start gap-3">
             <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-violet-600 shadow-lg shadow-violet-900/40">
@@ -545,6 +586,12 @@ export function ChatMode({
               App Maker
             </Link>
             <Link
+              href="/bots"
+              className="rounded-full border border-violet-500/40 bg-violet-500/15 px-4 py-1.5 text-sm font-medium text-violet-100 hover:bg-violet-500/25"
+            >
+              Bots
+            </Link>
+            <Link
               href="/game-director"
               className="rounded-full border border-white/15 px-4 py-1.5 text-sm text-zinc-300 hover:bg-white/5"
             >
@@ -592,54 +639,79 @@ export function ChatMode({
 
       <div
         className={`flex min-h-0 flex-col overflow-hidden rounded-3xl border border-white/10 bg-[#0b0b14] shadow-[0_24px_80px_-32px_rgba(109,40,217,0.45)] ${
-          embedded ? "min-h-0 flex-1" : "min-h-[520px]"
+          embedded || hideHero ? "h-full min-h-0 flex-1 rounded-none border-0 shadow-none sm:rounded-none" : "min-h-[520px]"
         }`}
       >
         <div className="flex items-center gap-2 overflow-x-auto border-b border-white/5 px-3 py-2 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-          <span className="shrink-0 text-[10px] font-medium uppercase tracking-wide text-zinc-500">
-            {personality && !pickingPersonality ? "Vibe" : "How I talk"}
-          </span>
-          {CHAT_PERSONALITIES.map((p) => {
-            const active = personality === p.id && !pickingPersonality;
-            return (
+          {bot ? (
+            <>
+              <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-violet-600/40 text-sm text-violet-100">
+                {bot.glyph}
+              </span>
+              <span className="shrink-0 text-sm font-medium text-white">{bot.name}</span>
+              <span className="hidden max-w-[14rem] shrink truncate text-[11px] text-zinc-500 sm:inline">
+                {bot.tagline}
+              </span>
+              {bot.adultOnly ? (
+                <span className="shrink-0 rounded-full bg-rose-600/80 px-2 py-0.5 text-[10px] text-white">
+                  18+
+                </span>
+              ) : null}
+              <Link
+                href="/bots"
+                className="shrink-0 rounded-full border border-white/10 px-2.5 py-1 text-[11px] text-zinc-400 hover:text-white"
+              >
+                All bots
+              </Link>
+            </>
+          ) : (
+            <>
+              <span className="shrink-0 text-[10px] font-medium uppercase tracking-wide text-zinc-500">
+                {personality && !pickingPersonality ? "Vibe" : "How I talk"}
+              </span>
+              {CHAT_PERSONALITIES.map((p) => {
+                const active = personality === p.id && !pickingPersonality;
+                return (
+                  <button
+                    key={p.id}
+                    type="button"
+                    title={p.tagline}
+                    onClick={() => void sendText(personalityChipText(p.id))}
+                    className={`shrink-0 rounded-full px-2.5 py-1 text-[11px] ${
+                      active
+                        ? "bg-violet-600 text-white"
+                        : "border border-white/10 bg-white/[0.03] text-zinc-400 hover:border-violet-500/40 hover:text-zinc-200"
+                    }`}
+                  >
+                    {p.chip}
+                  </button>
+                );
+              })}
               <button
-                key={p.id}
                 type="button"
-                title={p.tagline}
-                onClick={() => void sendText(personalityChipText(p.id))}
+                title={
+                  adultSession
+                    ? "18+ on — tap to turn off (or use Settings)"
+                    : "Enable 18+ adult content for this browser"
+                }
+                onClick={() => {
+                  if (adultSession) {
+                    clearAdultSession();
+                    setAdultSession(false);
+                    return;
+                  }
+                  void sendText("I want to enable nsfw on chat");
+                }}
                 className={`shrink-0 rounded-full px-2.5 py-1 text-[11px] ${
-                  active
-                    ? "bg-violet-600 text-white"
-                    : "border border-white/10 bg-white/[0.03] text-zinc-400 hover:border-violet-500/40 hover:text-zinc-200"
+                  adultSession
+                    ? "bg-amber-600 text-white"
+                    : "border border-amber-500/30 bg-amber-500/10 text-amber-100 hover:bg-amber-500/20"
                 }`}
               >
-                {p.chip}
+                {adultSession ? "18+ on" : "18+"}
               </button>
-            );
-          })}
-          <button
-            type="button"
-            title={
-              adultSession
-                ? "18+ on — tap to turn off (or use Settings)"
-                : "Enable 18+ adult content for this browser"
-            }
-            onClick={() => {
-              if (adultSession) {
-                clearAdultSession();
-                setAdultSession(false);
-                return;
-              }
-              void sendText("I want to enable nsfw on chat");
-            }}
-            className={`shrink-0 rounded-full px-2.5 py-1 text-[11px] ${
-              adultSession
-                ? "bg-amber-600 text-white"
-                : "border border-amber-500/30 bg-amber-500/10 text-amber-100 hover:bg-amber-500/20"
-            }`}
-          >
-            {adultSession ? "18+ on" : "18+"}
-          </button>
+            </>
+          )}
           <button
             type="button"
             title="Clear this chat"
@@ -765,6 +837,15 @@ export function ChatMode({
         <div className="border-t border-white/10 bg-[#08080f]/90 p-3 backdrop-blur-sm">
           <div className="mb-2 flex items-center justify-between gap-3">
             <p className="min-w-0 text-[11px] text-zinc-500">{quotaNote}</p>
+            <div className="flex shrink-0 items-center gap-2">
+              {!spicy ? (
+                <SelectModelMenu
+                  zenConfigured={zenConfigured}
+                  openrouterConfigured={openrouterConfigured}
+                  connectedLabel={subscriptionOn ? "Connected" : undefined}
+                  anchor="up"
+                />
+              ) : null}
             <QualityMenu
               value={qualitySmooth}
               open={qualityOpen}
@@ -775,6 +856,7 @@ export function ChatMode({
                 setQualityOpen(false);
               }}
             />
+            </div>
           </div>
           {signedIn === false && (
             <p className="mb-2 text-[11px] text-zinc-500">

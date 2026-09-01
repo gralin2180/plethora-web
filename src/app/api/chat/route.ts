@@ -26,6 +26,7 @@ import {
 import { recordPremiumUse } from "@/lib/billing-activate";
 import { parseChatQuality, budgetFromSmooth } from "@/lib/chat-quality";
 import { emailsFromAuthUser, envDevEmailList, isDevUnrestricted } from "@/lib/dev-access";
+import { applyOrgAiToEntitlement, orgAiIsFullScale, readOrgAiPolicyFromEnv } from "@/lib/infra-control";
 
 const ANON_COOKIE = "Plethora_anon_id";
 const PROFILE_ENT_COLS =
@@ -46,6 +47,7 @@ export async function GET() {
   } = await supabase.auth.getUser();
 
   let entitlement = resolveAiEntitlement(null, { isGuest: !user });
+  const orgAi = readOrgAiPolicyFromEnv();
   if (user) {
     const { data: profile } = await supabase
       .from("profiles")
@@ -53,7 +55,14 @@ export async function GET() {
       .eq("id", user.id)
       .maybeSingle();
     entitlement = resolveAiEntitlement((profile as EntitlementRow) || {});
+    entitlement = applyOrgAiToEntitlement(entitlement, orgAi);
   }
+  const unrestricted =
+    isDevUnrestricted({
+      email: user?.email,
+      userId: user?.id,
+      emails: emailsFromAuthUser(user),
+    }) || Boolean(user && orgAiIsFullScale(orgAi));
 
   return NextResponse.json({
     ok: true,
@@ -65,11 +74,8 @@ export async function GET() {
       openrouter: OPENROUTER_FREE_MODELS,
     },
     signedIn: Boolean(user),
-    unrestricted: isDevUnrestricted({
-      email: user?.email,
-      userId: user?.id,
-      emails: emailsFromAuthUser(user),
-    }),
+    unrestricted,
+    orgAiScale: orgAi.scale,
     devAllowlistConfigured: envDevEmailList().length > 0,
     requiresAuth: false,
     guestDailyLimit: platformChatDailyLimit("guest"),
@@ -155,11 +161,13 @@ export async function POST(request: Request) {
       data: { user },
     } = await supabase.auth.getUser();
 
-    const unrestricted = isDevUnrestricted({
-      email: user?.email,
-      userId: user?.id,
-      emails: emailsFromAuthUser(user),
-    });
+    const orgAi = readOrgAiPolicyFromEnv();
+    const unrestricted =
+      isDevUnrestricted({
+        email: user?.email,
+        userId: user?.id,
+        emails: emailsFromAuthUser(user),
+      }) || Boolean(user && orgAiIsFullScale(orgAi));
     const adultMode = adultConsent;
 
     if (!hasFreeChatProvider() && !usesOwnAi && !usesZenPublic) {
@@ -189,6 +197,7 @@ export async function POST(request: Request) {
       profileRow = (profile as EntitlementRow) || {};
       entitlement = resolveAiEntitlement(profileRow);
       plan = entitlement.plan;
+      entitlement = applyOrgAiToEntitlement(entitlement, orgAi);
     }
 
     // Free-path quota. Owner/dev bypass; everyone else stays capped.
@@ -406,7 +415,13 @@ export async function POST(request: Request) {
               usedPremium: Boolean(result.usedPremium),
               unrestricted,
               quota: unrestricted
-                ? { mode: "dev", label: "Dev — unrestricted" }
+                ? {
+                    mode: orgAiIsFullScale(orgAi) && user ? "org-full" : "dev",
+                    label:
+                      orgAiIsFullScale(orgAi) && user
+                        ? "Org — full scale"
+                        : "Dev — unrestricted",
+                  }
                 : { mode: plan, used: usedBefore + 1, limit, lane, label: laneLabel(lane) },
             });
             if (!usesOwnAi && !unrestricted && result.reply && !result.code) {
@@ -587,7 +602,11 @@ export async function POST(request: Request) {
       softWarn: Boolean(softWarnMessage),
       softWarnMessage,
       quota: unrestricted
-        ? { mode: "dev" as const, label: "Dev — unrestricted" }
+        ? {
+            mode: (orgAiIsFullScale(orgAi) && user ? "org-full" : "dev") as "org-full" | "dev",
+            label:
+              orgAiIsFullScale(orgAi) && user ? "Org — full scale" : "Dev — unrestricted",
+          }
         : copilotSessionToken
         ? { mode: "subscription" as const, label: "GitHub Copilot" }
         : codexAccessToken

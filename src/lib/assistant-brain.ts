@@ -348,6 +348,7 @@ export async function generateAssistantReply(
   opts?: {
     adultConsent?: boolean;
     personality?: ChatPersonalityId | null;
+    customSystem?: string;
     onDelta?: (chunk: string) => void;
     quality?: import("./chat-quality").ChatQuality;
     qualitySmooth?: number;
@@ -374,6 +375,7 @@ export async function generateAssistantReply(
     const llm = await tryLlm(text, history, {
       adultConsent: true,
       personality,
+      customSystem: opts?.customSystem,
       onDelta: opts?.onDelta,
       quality: opts?.quality,
       qualitySmooth: opts?.qualitySmooth,
@@ -386,11 +388,12 @@ export async function generateAssistantReply(
 
   const intent = classifyChatIntent(text);
 
-  if (intent === "tour") return websiteTour();
+  if (intent === "tour" && !opts?.customSystem) return websiteTour();
 
   const llm = await tryLlm(text, history, {
     adultConsent: opts?.adultConsent,
     personality,
+    customSystem: opts?.customSystem,
     onDelta: opts?.onDelta,
     quality: opts?.quality,
     qualitySmooth: opts?.qualitySmooth,
@@ -440,6 +443,7 @@ async function tryLlm(
   opts?: {
     adultConsent?: boolean;
     personality?: ChatPersonalityId | null;
+    customSystem?: string;
     onDelta?: (chunk: string) => void;
     quality?: import("./chat-quality").ChatQuality;
     qualitySmooth?: number;
@@ -474,6 +478,7 @@ async function tryLlm(
         learnerContext: learner,
         adultConsent: opts?.adultConsent,
         personality,
+        customSystem: opts?.customSystem,
         quality: opts?.quality,
         qualitySmooth: opts?.qualitySmooth,
         ...auth,
@@ -558,6 +563,7 @@ async function tryLlm(
       learnerContext: learner,
       adultMode: opts?.adultConsent,
       personality,
+      customSystem: opts?.customSystem,
       onDelta: opts?.onDelta,
     });
     if (r.ok && r.reply) return r.reply;

@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
-import { getPlanCapabilities, type PlanId } from "@/lib/plans";
+import { getPlanCapabilities, parsePlanId } from "@/lib/plans";
 
 export async function PATCH(request: Request) {
   const supabase = await createClient();
@@ -51,7 +51,7 @@ export async function PATCH(request: Request) {
     .eq("id", user.id)
     .maybeSingle();
 
-  const plan = (profile?.subscription_plan as PlanId) || "free";
+  const plan = parsePlanId(profile?.subscription_plan);
   const included = getPlanCapabilities(plan).premiumAiMonthlyLimit;
 
   return NextResponse.json({

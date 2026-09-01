@@ -76,7 +76,8 @@ export function PricingClient() {
           <h1 className="text-3xl font-bold text-white sm:text-4xl">Simple pricing</h1>
           <p className="mt-2 text-zinc-500">
             Free pool for unpaid use. Paid plans buy models we pay for — then a slow cheap
-            fallback, then extra usage. Same shape as Cursor / Claude.
+            fallback, then extra usage. Office is sold like a suite: free web apps, paid Personal /
+            Business. Not Microsoft 365. Chat is LibreChat-like threads — not LibreChat.
           </p>
           <div className="mt-4 flex flex-wrap justify-center gap-2">
             <Link
@@ -92,6 +93,71 @@ export function PricingClient() {
             >
               Billing & try packs
             </Link>
+          </div>
+        </div>
+
+        <div id="office" className="mx-auto mt-16 max-w-5xl scroll-mt-24">
+          <p className="text-center text-[11px] font-semibold uppercase tracking-[0.18em] text-cyan-400">
+            Plethora Office
+          </p>
+          <h2 className="mt-2 text-center text-2xl font-bold text-white">Freemium suite, Microsoft-shaped</h2>
+          <p className="mx-auto mt-2 max-w-2xl text-center text-sm text-zinc-500">
+            Same idea as Microsoft 365: use the apps free, pay when you need a commercial license and
+            more AI. Inspired by that model — we are not Microsoft, and this is not Office 365.
+          </p>
+          <div className="mt-8 grid gap-6 lg:grid-cols-3">
+            <PlanCard
+              name="Office Free"
+              price="$0"
+              period=" forever"
+              desc="Web apps on this device"
+              features={[
+                "Word, Boards, Rooms, Flow, Cut, Connect… in the browser",
+                "Personal / evaluation use",
+                "Capped free AI in Office + Chat",
+                "12 saved chat threads",
+                "BYOK always",
+              ]}
+              cta="Open Office"
+              onCta={() => {
+                window.location.href = "/office";
+              }}
+              highlighted={false}
+            />
+            <PlanCard
+              name="Office Personal"
+              price="$9"
+              period="/month"
+              desc="One person, commercial"
+              features={[
+                "Commercial license for one person",
+                "~80 paid-model msgs/mo (models we buy)",
+                "80 chat threads · 8 agents",
+                "5 devices · 8 workspaces",
+                "Pro ($19) includes this Office license + more AI",
+              ]}
+              cta={busy === "office_personal" ? "…" : "Get Office Personal"}
+              onCta={() => void checkout("office_personal")}
+              highlighted
+              disabled={busy === "office_personal"}
+            />
+            <PlanCard
+              name="Office Business"
+              price="$18"
+              period="/month"
+              desc="Studio / shop"
+              features={[
+                "Business / studio commercial license",
+                "~200 paid-model msgs/mo",
+                "200 threads · 25 agents · 15 devices",
+                "Team Rooms for production desks",
+                "Team ($49) includes this license + bigger AI budget",
+              ]}
+              cta={busy === "office_business" ? "…" : "Get Office Business"}
+              onCta={() => void checkout("office_business")}
+              highlighted={false}
+              disabled={busy === "office_business"}
+            />
           </div>
         </div>
 

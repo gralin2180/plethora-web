@@ -1,18 +1,18 @@
 import type { Metadata } from "next";
 import { SiteShell } from "@/components/SiteShell";
-import { ChatMode } from "@/components/ChatMode";
+import { ChatWorkspace } from "@/components/ChatWorkspace";
 
 export const metadata: Metadata = {
-  title: "Chat mode — Plethora",
+  title: "Chat — Plethora",
   description:
-    "Multi-turn Plethora assistant with local personalisation. Ask anything related or unrelated to the app.",
+    "Multi-thread AI chat with model pick and agents. Inspired by LibreChat — not LibreChat.",
 };
 
 export default function ChatPage() {
   return (
-    <SiteShell>
-      <div className="px-4 py-12 sm:px-6">
-        <ChatMode />
+    <SiteShell hideFooter>
+      <div className="h-[calc(100dvh-3.5rem)] sm:h-[calc(100dvh-4rem)]">
+        <ChatWorkspace />
       </div>
     </SiteShell>
   );

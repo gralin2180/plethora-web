@@ -2,7 +2,7 @@ export type Audience = "creator" | "marketer" | "developer" | "beginner" | "gene
 
 export type UserSegment = "casual" | "hardcore";
 
-export type SubscriptionPlan = "free" | "pro" | "team" | "hardcore" | "hardcore-all-access";
+export type SubscriptionPlan = "free" | "pro" | "team" | "hardcore" | "hardcore-all-access" | "office" | "office_biz";
 
 export type AiCategory =
   | "text"

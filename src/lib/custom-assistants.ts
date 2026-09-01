@@ -3,6 +3,9 @@
  * Free plan: 1 assistant. Paid: more (see plans.ts).
  */
 
+import type { PlanId } from "./plans";
+import { getPlanCapabilities } from "./plans";
+
 export type CustomAssistant = {
   id: string;
   name: string;
@@ -43,11 +46,8 @@ export function countUserAssistants(list: CustomAssistant[]): number {
   return list.filter((a) => !isPlatformAssistant(a.id)).length;
 }
 
-export function getAssistantLimit(plan: "free" | "pro" | "team" | "hardcore" = "free"): number {
-  if (plan === "free") return 1;
-  if (plan === "pro") return 15;
-  if (plan === "team") return 50;
-  return 100;
+export function getAssistantLimit(plan: PlanId = "free"): number {
+  return getPlanCapabilities(plan).maxCustomAssistants;
 }
 
 export function createAssistantDraft(fromMessage?: string): CustomAssistant {

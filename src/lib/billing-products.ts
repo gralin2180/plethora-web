@@ -9,6 +9,8 @@ export type BillingSku =
   | "pro"
   | "team"
   | "hardcore"
+  | "office_personal"
+  | "office_business"
   | "pack_hourly"
   | "pack_daily"
   | "pack_weekly";
@@ -33,6 +35,8 @@ export type BillingProduct = {
   envPriceId: string;
   features: string[];
   highlighted?: boolean;
+  /** Pricing family — Office suite vs AI budget plans */
+  family?: "ai" | "office";
 };
 
 export const BILLING_PRODUCTS: Record<BillingSku, BillingProduct> = {
@@ -54,7 +58,48 @@ export const BILLING_PRODUCTS: Record<BillingSku, BillingProduct> = {
       "Then slower cheap models; extra usage is billed — we don’t resell free trials",
       "Self usage limits + soft warnings",
       "BYOK always available",
+      "Office Personal included (commercial use of the suite)",
       "Priority support",
+    ],
+  },
+  office_personal: {
+    sku: "office_personal",
+    name: "Office Personal",
+    description:
+      "Plethora Office for one person — commercial use, more chats, modest AI. Not Microsoft 365.",
+    priceLabel: "$9",
+    periodLabel: "/month",
+    amountCents: 900,
+    mode: "subscription",
+    grantsPlan: "office",
+    envPriceId: "STRIPE_PRICE_OFFICE_PERSONAL",
+    family: "office",
+    features: [
+      "Full browser Office suite (Word, Boards, Rooms, Cut…)",
+      "Commercial use license for one person",
+      "~80 included paid-model msgs/mo for Office + Chat",
+      "80 saved chat threads · 8 custom agents",
+      "Need more AI budget? Pro includes this SKU’s Office license",
+    ],
+  },
+  office_business: {
+    sku: "office_business",
+    name: "Office Business",
+    description:
+      "Suite for a shop / studio — business license, more seats, more AI. Not Microsoft 365.",
+    priceLabel: "$18",
+    periodLabel: "/month",
+    amountCents: 1800,
+    mode: "subscription",
+    grantsPlan: "office_biz",
+    envPriceId: "STRIPE_PRICE_OFFICE_BUSINESS",
+    family: "office",
+    features: [
+      "Everything in Office Personal",
+      "Business / studio commercial license",
+      "~200 included paid-model msgs/mo",
+      "200 chat threads · 25 agents · 15 devices",
+      "Team Rooms + Connect for production desks",
     ],
   },
   team: {
@@ -71,6 +116,7 @@ export const BILLING_PRODUCTS: Record<BillingSku, BillingProduct> = {
       "Everything in Pro",
       "Higher premium AI budget",
       "25 devices · 100 workspaces",
+      "Office Business license included",
       "Shared workflows (roadmap)",
     ],
   },
@@ -89,6 +135,7 @@ export const BILLING_PRODUCTS: Record<BillingSku, BillingProduct> = {
       "Largest premium AI included budget",
       "Hardcore tools & MCP power packs",
       "40 devices · 200 workspaces",
+      "Office Business license included",
     ],
   },
   pack_hourly: {

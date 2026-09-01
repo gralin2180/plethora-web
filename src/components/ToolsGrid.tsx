@@ -13,6 +13,7 @@ import {
   Clock,
   Code,
   Compass,
+  Activity,
   Eraser,
   FileCode,
   FileImage,
@@ -82,6 +83,7 @@ import {
   Flame,
   Gamepad2,
   HardDrive,
+  Server,
   type LucideIcon,
 } from "lucide-react";
 import { PLATFORM_TOOLS, TOOL_CATEGORIES, searchTools } from "@/lib/tools-registry";
@@ -104,6 +106,7 @@ const ICONS: Record<string, LucideIcon> = {
   Bot,
   Library,
   Shield,
+  Activity,
   FileImage,
   Images,
   Files,
@@ -173,6 +176,7 @@ const ICONS: Record<string, LucideIcon> = {
   Heart,
   PlayCircle,
   Building2: Layout,
+  Server,
   UserRound,
 };
 
@@ -185,6 +189,8 @@ function toolHref(slug: string) {
   if (slug === "local-llms") return "/local-llms";
   if (slug === "mcp-setup") return "/mcp";
   if (slug === "game-engine") return "/game-director";
+  if (slug === "office-suite") return "/office";
+  if (slug === "office-infra") return "/infra";
   return `/tools/${slug}`;
 }
 

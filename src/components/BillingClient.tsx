@@ -155,7 +155,9 @@ export function BillingClient() {
 
   const ent = status?.entitlement;
   const packs = status?.products?.filter((p) => p.mode === "payment") || [];
-  const subs = status?.products?.filter((p) => p.mode === "subscription") || [];
+  const allSubs = status?.products?.filter((p) => p.mode === "subscription") || [];
+  const officeSubs = allSubs.filter((p) => p.sku.startsWith("office"));
+  const subs = allSubs.filter((p) => !p.sku.startsWith("office"));
 
   return (
     <div className="mx-auto max-w-3xl space-y-10 px-4 py-12 sm:px-6">
@@ -297,6 +299,45 @@ export function BillingClient() {
             : "Stripe keys not set yet — checkouts show setup errors until STRIPE_SECRET_KEY + price IDs are configured."}
         </p>
       )}
+
+      <section>
+        <h2 className="text-lg font-semibold text-white">Plethora Office</h2>
+        <p className="mt-1 text-sm text-zinc-500">
+          Freemium suite (not Microsoft 365). Personal $9 · Business $18. Pro / Team already include
+          the matching license.
+        </p>
+        <div className="mt-4 grid gap-4 sm:grid-cols-2">
+          {officeSubs.map((p) => (
+            <div
+              key={p.sku}
+              className="rounded-2xl border border-cyan-500/30 bg-cyan-500/5 p-4"
+            >
+              <h3 className="font-semibold text-white">{p.name}</h3>
+              <p className="mt-1 text-xs text-zinc-500">{p.description}</p>
+              <p className="mt-3">
+                <span className="text-2xl font-bold text-white">{p.priceLabel}</span>
+                <span className="text-zinc-500">{p.periodLabel}</span>
+              </p>
+              <ul className="mt-3 space-y-1">
+                {p.features.slice(0, 4).map((f) => (
+                  <li key={f} className="flex gap-1.5 text-[11px] text-zinc-400">
+                    <Check className="mt-0.5 h-3 w-3 shrink-0 text-emerald-400" />
+                    {f}
+                  </li>
+                ))}
+              </ul>
+              <button
+                type="button"
+                disabled={!status?.signedIn || busy === p.sku}
+                onClick={() => void checkout(p.sku)}
+                className="mt-4 w-full rounded-xl bg-cyan-600 py-2 text-sm font-medium text-white hover:bg-cyan-500 disabled:opacity-40"
+              >
+                {busy === p.sku ? "…" : `Get ${p.name}`}
+              </button>
+            </div>
+          ))}
+        </div>
+      </section>
 
       <section>
         <h2 className="text-lg font-semibold text-white">Subscriptions</h2>

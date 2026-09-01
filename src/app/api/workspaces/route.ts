@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
-import { getPlanCapabilities, type PlanId } from "@/lib/plans";
+import { getPlanCapabilities, parsePlanId } from "@/lib/plans";
 
 export async function GET() {
   const supabase = await createClient();
@@ -23,7 +23,7 @@ export async function GET() {
     .select("subscription_plan")
     .eq("id", user.id)
     .single();
-  const plan = (profile?.subscription_plan as PlanId) || "free";
+  const plan = parsePlanId(profile?.subscription_plan);
   const max = getPlanCapabilities(plan).maxWorkspaces;
 
   const { data: workspaces, error } = await supabase
@@ -75,7 +75,7 @@ export async function POST(req: Request) {
     .select("subscription_plan")
     .eq("id", user.id)
     .single();
-  const plan = (profile?.subscription_plan as PlanId) || "free";
+  const plan = parsePlanId(profile?.subscription_plan);
   const max = getPlanCapabilities(plan).maxWorkspaces;
 
   const { count } = await supabase

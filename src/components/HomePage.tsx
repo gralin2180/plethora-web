@@ -1,12 +1,15 @@
 import Link from "next/link";
 import {
   ArrowRight,
+  Bot,
+  Building2,
   Flame,
   Gamepad2,
   Hammer,
   HardDrive,
   MessageSquare,
   Search,
+  Server,
   Sparkles,
   Wrench,
 } from "lucide-react";
@@ -15,8 +18,11 @@ import { StickyRails } from "@/components/StickyRails";
 
 const ROOMS = [
   { href: "/chat", title: "Chat", desc: "Normal talk", icon: MessageSquare },
+  { href: "/bots", title: "Bots", desc: "Named companions", icon: Bot },
+  { href: "/office", title: "Office", desc: "AI workspace suite", icon: Building2 },
   { href: "/spicy", title: "Spicy 18+", desc: "Companion chat", icon: Flame },
   { href: "/game-director", title: "Game Director", desc: "Make games", icon: Gamepad2 },
+  { href: "/infra", title: "Infra", desc: "Parsec, RustDesk, AI scale", icon: Server },
   { href: "/local-llms", title: "Local LLMs", desc: "Your PC", icon: HardDrive },
   { href: "/tools", title: "Tools", desc: "The whole roof", icon: Wrench },
   { href: "/tools/build-your-tool", title: "App Maker", desc: "Build a web app", icon: Hammer },
