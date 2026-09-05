@@ -3,9 +3,9 @@ import { SiteShell } from "@/components/SiteShell";
 import { OfficeDownloadsHub } from "@/components/OfficeDownloadsHub";
 
 export const metadata: Metadata = {
-  title: "Plethora Office — Windows apps",
+  title: "Plethora Office — open apps",
   description:
-    "Download Plethora Slack, Taskbot, Word, and the Office suite for Windows. Mac later. Free AI pool, BYOK, or Plethora tokens.",
+    "Open Plethora Slack, Taskbot, Word, and the full Office suite in your browser. Windows installers coming soon.",
 };
 
 export default function OfficePage() {

@@ -17,6 +17,9 @@ export type OfficeDesktopApp = {
   downloadPath?: string;
   version?: string;
   sizeLabel?: string;
+  /** Set true only after the .exe is in public/downloads */
+  installerReady?: boolean;
+  featured?: boolean;
   platforms: {
     platform: DesktopPlatform;
     status: DesktopAppStatus;
@@ -38,6 +41,8 @@ export const OFFICE_DESKTOP_APPS: OfficeDesktopApp[] = [
     webHref: "/office/slack",
     version: "0.1.0-web",
     aiFunnel: true,
+    featured: true,
+    installerReady: false,
     platforms: [
       {
         platform: "windows",
@@ -63,6 +68,8 @@ export const OFFICE_DESKTOP_APPS: OfficeDesktopApp[] = [
     webHref: "/office/taskbot",
     version: "0.1.0-web",
     aiFunnel: true,
+    featured: true,
+    installerReady: false,
     platforms: [
       {
         platform: "windows",
@@ -85,6 +92,7 @@ export const OFFICE_DESKTOP_APPS: OfficeDesktopApp[] = [
     tagline: "Rich editor + Quill AI teammate. Export HTML.",
     webHref: "/office/word",
     aiFunnel: true,
+    featured: true,
     platforms: [
       {
         platform: "windows",
