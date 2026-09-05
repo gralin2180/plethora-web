@@ -24,10 +24,12 @@ export default async function OfficeAppPage({ params }: Props) {
     redirect(a.href);
   }
 
+  const wide = app === "word" || app === "slack";
+
   return (
-    <SiteShell>
-      <div className="px-4 py-10 sm:px-6">
-        <div className="mx-auto max-w-5xl">
+    <SiteShell hideFooter={wide}>
+      <div className={`px-4 sm:px-6 ${wide ? "py-4 lg:py-3" : "py-6 sm:py-10"}`}>
+        <div className={wide ? "mx-auto max-w-[96rem]" : "mx-auto max-w-5xl"}>
           <Link
             href="/office"
             className="inline-flex items-center gap-1 text-sm text-zinc-500 hover:text-white"
@@ -35,11 +37,21 @@ export default async function OfficeAppPage({ params }: Props) {
             <ArrowLeft className="h-4 w-4" />
             Plethora Office
           </Link>
-          <h1 className="mt-4 text-2xl font-semibold text-white">{a.name}</h1>
-          <p className="mt-1 text-sm text-zinc-500">
-            Like {a.like} — {a.tagline}
-          </p>
-          <div className="mt-8">
+          {!wide ? (
+            <>
+              <h1 className="mt-4 text-2xl font-semibold text-white">{a.name}</h1>
+              <p className="mt-1 text-sm text-zinc-500">
+                Like {a.like} — {a.tagline}
+              </p>
+            </>
+          ) : app === "word" ? (
+            <p className="mt-2 text-xs text-zinc-500">
+              {a.name} · {a.tagline} · pick a teammate in the right panel
+            </p>
+          ) : (
+            <p className="mt-2 text-xs text-zinc-500">{a.name} · {a.tagline}</p>
+          )}
+          <div className={wide ? "mt-4" : "mt-8"}>
             <OfficeNativeApp id={a.id} />
           </div>
         </div>

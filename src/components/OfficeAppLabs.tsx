@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState, type ReactNode } from "react";
 import Link from "next/link";
 import {
+  Bot,
   Cable,
   Clapperboard,
   FileText,
@@ -17,8 +18,13 @@ import {
   Workflow,
 } from "lucide-react";
 import { InfraControlDesk } from "@/components/InfraControlDesk";
-import { runPlatformAi } from "@/lib/platform-ai-client";
+import { OfficeWordEditor } from "@/components/OfficeWordEditor";
+import { PlethoraSlack } from "@/components/PlethoraSlack";
+import { PlethoraTaskbot } from "@/components/PlethoraTaskbot";
+import { defaultOfficeBotId, chatSystemForOfficeBot } from "@/lib/office-assistants";
+import { getBot } from "@/lib/chat-bots";
 import { trackToolUse } from "@/lib/self-learn";
+import { runPlatformAi } from "@/lib/platform-ai-client";
 
 async function usage(id: string) {
   try {
@@ -91,58 +97,10 @@ function AiBar({
 }
 
 export function OfficeWordLab() {
-  const [title, setTitle] = usePersisted("plethora.office.word.title", "Untitled");
-  const [body, setBody] = usePersisted("plethora.office.word.body", "");
-  const [busy, setBusy] = useState(false);
-
-  async function run(q: string) {
-    setBusy(true);
-    await usage("office-word");
-    const reply = await ai(
-      `Document title: ${title}\n\nCurrent draft:\n${body.slice(0, 6000)}\n\nUser ask: ${q}`,
-      "You are Plethora Word. Return the full revised document body only (plain text). No preamble."
-    );
-    setBody(reply);
-    setBusy(false);
-  }
-
-  function exportTxt() {
-    const blob = new Blob([`${title}\n\n${body}`], { type: "text/plain" });
-    const a = document.createElement("a");
-    a.href = URL.createObjectURL(blob);
-    a.download = `${title.replace(/\s+/g, "-") || "doc"}.txt`;
-    a.click();
-    URL.revokeObjectURL(a.href);
-  }
-
-  return (
-    <div className="space-y-4">
-      <p className="text-xs text-zinc-500">
-        Inspired by Word — not Microsoft Word. Export .txt; paste into Word/Docs if you need .docx.
-      </p>
-      <input
-        value={title}
-        onChange={(e) => setTitle(e.target.value)}
-        className="w-full rounded-xl border border-white/15 bg-zinc-900 px-3 py-2 text-lg font-medium text-white"
-      />
-      <AiBar placeholder="Draft a one-pager… rewrite tighter… fashion lookbook copy…" onGo={run} busy={busy} />
-      <textarea
-        value={body}
-        onChange={(e) => setBody(e.target.value)}
-        rows={16}
-        className="w-full rounded-2xl border border-white/10 bg-black/40 px-3 py-3 text-sm leading-relaxed text-zinc-200"
-        placeholder="Type here, or ask AI to draft."
-      />
-      <button
-        type="button"
-        onClick={exportTxt}
-        className="rounded-xl border border-white/15 px-3 py-2 text-sm text-zinc-300"
-      >
-        Download .txt
-      </button>
-    </div>
-  );
+  return <OfficeWordEditor />;
 }
+
+// legacy — use OfficeWordEditor
 
 type Card = { id: string; title: string };
 type Col = { id: string; name: string; cards: Card[] };
@@ -240,7 +198,18 @@ export function OfficeBoardsLab() {
       <AiBar placeholder="Break “summer lookbook shoot” into cards…" onGo={breakDown} busy={busy} />
       <div className="grid gap-3 md:grid-cols-4">
         {cols.map((col, ci) => (
-          <div key={col.id} className="rounded-2xl border border-white/10 bg-white/[0.03] p-3">
+          <div
+            key={col.id}
+            className={`rounded-2xl border p-3 ${
+              ci === 0
+                ? "border-zinc-500/30 bg-zinc-500/5"
+                : ci === 1
+                  ? "border-cyan-500/30 bg-cyan-500/5"
+                  : ci === 2
+                    ? "border-amber-500/30 bg-amber-500/5"
+                    : "border-emerald-500/30 bg-emerald-500/5"
+            }`}
+          >
             <p className="text-xs font-medium uppercase tracking-wide text-zinc-500">{col.name}</p>
             <ul className="mt-2 space-y-2">
               {col.cards.map((card) => (
@@ -296,7 +265,9 @@ export function OfficeRoomsLab() {
   const [active, setActive] = useState("general");
   const [input, setInput] = useState("");
   const [busy, setBusy] = useState(false);
+  const [botId, setBotId] = useState(defaultOfficeBotId("rooms"));
   const ch = channels.find((c) => c.id === active) || channels[0];
+  const bot = getBot(botId);
 
   function addChannel() {
     const name = window.prompt("Channel name?");
@@ -318,8 +289,8 @@ export function OfficeRoomsLab() {
       `Channel #${ch.name}\n${history
         .slice(-8)
         .map((m) => `${m.role}: ${m.text}`)
-        .join("\n")}\n\nReply as a helpful teammate.`,
-      "You are a teammate in Plethora Rooms (Slack-like, not Slack). Short. No product dump."
+        .join("\n")}\n\nReply as ${bot?.name || "teammate"}.`,
+      chatSystemForOfficeBot(botId, "rooms")
     );
     setChannels((all) =>
       all.map((c) =>
@@ -330,8 +301,9 @@ export function OfficeRoomsLab() {
   }
 
   return (
-    <div className="flex min-h-[420px] flex-col gap-3 sm:flex-row">
-      <aside className="w-full shrink-0 space-y-1 sm:w-40">
+    <div className="flex min-h-[480px] flex-col overflow-hidden rounded-2xl border border-white/10 lg:flex-row">
+      <div className="flex min-h-0 min-w-0 flex-1 flex-col gap-3 p-1 sm:flex-row">
+      <aside className="w-full shrink-0 space-y-1 sm:w-44">
         <p className="text-[11px] uppercase tracking-wide text-zinc-500">Channels</p>
         {channels.map((c) => (
           <button
@@ -348,9 +320,30 @@ export function OfficeRoomsLab() {
         <button type="button" onClick={addChannel} className="text-xs text-violet-300">
           + channel
         </button>
+        <div className="mt-3 border-t border-white/10 pt-3">
+          <label className="text-[10px] uppercase text-zinc-500">AI teammate</label>
+          <select
+            value={botId}
+            onChange={(e) => setBotId(e.target.value)}
+            className="mt-1 w-full rounded-lg border border-white/15 bg-zinc-900 px-2 py-1.5 text-xs text-white"
+          >
+            {["echo", "sage", "nova", "kira", "quill", "ledger"].map((id) => {
+              const b = getBot(id);
+              if (!b) return null;
+              return (
+                <option key={id} value={id}>
+                  {b.glyph} {b.name}
+                </option>
+              );
+            })}
+          </select>
+          {bot ? <p className="mt-1 text-[10px] text-zinc-600">{bot.tagline}</p> : null}
+        </div>
       </aside>
       <div className="flex min-h-0 min-w-0 flex-1 flex-col rounded-2xl border border-white/10 bg-black/30 p-3">
-        <p className="text-xs text-zinc-500">#{ch?.name} · inspired by Slack, local only</p>
+        <p className="text-xs text-zinc-500">
+          #{ch?.name} · {bot ? `${bot.glyph} ${bot.name}` : "teammate"} · local only
+        </p>
         <div className="mt-2 min-h-[220px] flex-1 space-y-2 overflow-auto">
           {ch?.msgs.map((m, i) => (
             <p
@@ -383,6 +376,7 @@ export function OfficeRoomsLab() {
             Send
           </button>
         </div>
+      </div>
       </div>
     </div>
   );
@@ -687,6 +681,8 @@ export function OfficeConnectLab() {
 export function OfficeNativeApp({ id }: { id: string }) {
   const map: Record<string, { icon: typeof FileText; node: ReactNode }> = {
     word: { icon: FileText, node: <OfficeWordLab /> },
+    slack: { icon: MessageSquare, node: <PlethoraSlack /> },
+    taskbot: { icon: Bot, node: <PlethoraTaskbot /> },
     boards: { icon: Layout, node: <OfficeBoardsLab /> },
     rooms: { icon: MessageSquare, node: <OfficeRoomsLab /> },
     flow: { icon: Workflow, node: <OfficeFlowLab /> },

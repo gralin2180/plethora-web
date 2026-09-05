@@ -1,18 +1,18 @@
 import type { Metadata } from "next";
 import { SiteShell } from "@/components/SiteShell";
-import { OfficeSuite } from "@/components/OfficeSuite";
+import { OfficeDownloadsHub } from "@/components/OfficeDownloadsHub";
 
 export const metadata: Metadata = {
-  title: "Plethora Office — AI workspace suite",
+  title: "Plethora Office — Windows apps",
   description:
-    "AI-driven Word, Boards, Rooms, Flow, layout, capture, cut, and Sheets. Free web apps; Personal/Business for commercial use. Not Microsoft 365.",
+    "Download Plethora Slack, Taskbot, Word, and the Office suite for Windows. Mac later. Free AI pool, BYOK, or Plethora tokens.",
 };
 
 export default function OfficePage() {
   return (
     <SiteShell>
-      <div className="px-4 py-12 sm:px-6">
-        <OfficeSuite />
+      <div className="px-4 py-10 sm:px-6">
+        <OfficeDownloadsHub />
       </div>
     </SiteShell>
   );

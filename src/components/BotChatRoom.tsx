@@ -78,6 +78,29 @@ export function BotChatRoom({ id }: { id: string }) {
   return (
     <div className="px-4 py-8 sm:px-6">
       <div className="mx-auto max-w-3xl">
+        <div className="mb-6 flex items-start gap-4 rounded-2xl border border-white/10 bg-gradient-to-br from-violet-900/30 via-black/20 to-transparent p-5">
+          <span className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-black/40 text-3xl ring-1 ring-white/10">
+            {bot.glyph}
+          </span>
+          <div className="min-w-0">
+            <div className="flex flex-wrap items-center gap-2">
+              <h1 className="text-2xl font-semibold text-white">{bot.name}</h1>
+              <span className="rounded-full bg-white/10 px-2 py-0.5 text-[10px] uppercase tracking-wide text-zinc-400">
+                {bot.category}
+              </span>
+              {bot.officeRole ? (
+                <Link
+                  href="/office/word"
+                  className="rounded-full bg-cyan-600/30 px-2 py-0.5 text-[10px] text-cyan-200 hover:bg-cyan-600/50"
+                >
+                  Office · {bot.officeRole}
+                </Link>
+              ) : null}
+            </div>
+            <p className="mt-1 text-sm text-zinc-400">{bot.tagline}</p>
+            <p className="mt-2 text-sm italic text-zinc-500">“{bot.hello}”</p>
+          </div>
+        </div>
         <ChatMode bot={bot} room={bot.adultOnly ? "spicy" : "main"} />
       </div>
     </div>
