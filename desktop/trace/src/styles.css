@@ -1,0 +1,30 @@
+@import "../../shared/app-styles.css";
+
+.trace-timeline { display: flex; flex-direction: column; gap: 12px; }
+.trace-step { display: flex; gap: 16px; align-items: flex-start; }
+.trace-step-num {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: var(--app-accent);
+  color: #fff;
+  font-weight: 800;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  margin-top: 4px;
+}
+.trace-step-body { flex: 1; min-width: 0; }
+.trace-step-actions { display: flex; flex-direction: column; gap: 4px; flex-shrink: 0; }
+.trace-mermaid {
+  margin: 12px 0 0;
+  padding: 14px;
+  border-radius: var(--radius-sm);
+  background: var(--bg);
+  border: 1px solid var(--border);
+  font-size: 12px;
+  line-height: 1.5;
+  overflow-x: auto;
+  color: var(--text);
+}

@@ -1,8 +1,8 @@
 {
-  "name": "plethora-slack",
-  "productName": "Plethora Slack",
+  "name": "relay",
+  "productName": "Plethora Chat",
   "version": "0.1.0",
-  "description": "Plethora Slack — Windows team chat with AI (Slack-inspired, not Slack).",
+  "description": "Plethora Chat — team messaging with AI teammates.",
   "main": "dist-electron/main.js",
   "author": "Plethora",
   "private": true,
@@ -16,8 +16,8 @@
     "postinstall": "node node_modules/electron/install.js"
   },
   "build": {
-    "appId": "com.plethora.slack",
-    "productName": "Plethora Slack",
+    "appId": "com.plethora.relay",
+    "productName": "Plethora Chat",
     "directories": {
       "output": "release"
     },
@@ -34,12 +34,13 @@
           ]
         }
       ],
-      "artifactName": "Plethora-Slack-Setup-${version}.${ext}"
+      "artifactName": "Relay-Setup-${version}.${ext}",
+      "icon": "build/icon.png"
     },
     "nsis": {
       "oneClick": false,
       "allowToChangeInstallationDirectory": true,
-      "artifactName": "Plethora-Slack-Setup-${version}.exe"
+      "artifactName": "Relay-Setup-${version}.exe"
     }
   },
   "devDependencies": {

@@ -1,23 +1,37 @@
 # Plethora Office — Windows desktop apps
 
-**Order:** Windows native apps first → web copies later.
+| App | Folder | Port | Role |
+|-----|--------|------|------|
+| **Relay** | `desktop/slack/` | 5173 | Team chat + Echo AI |
+| **Scout** | `desktop/scout/` | 5174 | Tasks from Relay |
+| **Draft** | `desktop/draft/` | 5175 | Documents + Quill AI |
+| **Grid** | `desktop/grid/` | 5176 | Kanban boards |
+| **Trace** | `desktop/trace/` | 5177 | Flow / Mermaid |
+| **Nook** | `desktop/nook/` | 5178 | Light channels + bots |
+| **Mail** | `desktop/mail/` | 5179 | Inbox & compose + AI drafts |
 
-| App | Folder | Status |
-|-----|--------|--------|
-| **Slack** | `desktop/slack/` | **Start here** — Electron Windows app |
-| **Taskbot** | `desktop/taskbot/` | After Slack is solid |
+Shared: `desktop/shared/` — AI client, theme, Plethora Bots panel  
+Data: `%APPDATA%\Plethora\Office\` (syncs across all Office apps)
 
-## Slack on your PC
+## Install everything
 
 ```powershell
-cd desktop/slack
-npm install
-npm run build:electron
-npm run dev
+cd desktop
+.\setup-all.ps1
 ```
 
-Second terminal: `npm run desktop`
+## Run one app
 
-Build `.exe`: `npm run build:win`
+```powershell
+cd desktop/draft   # or grid, trace, nook, slack, scout
+npm run build:renderer
+npm run build:electron
+npm run start
+```
 
-See `desktop/slack/README.md`.
+## Build Windows installer
+
+```powershell
+npm run build:win
+# Output: release/Draft-Setup-0.1.0.exe (etc.)
+```

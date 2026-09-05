@@ -1,0 +1,57 @@
+{
+  "name": "scout",
+  "productName": "Scout",
+  "version": "0.1.0",
+  "description": "Scout — Plethora task capture from Relay chat.",
+  "main": "dist-electron/main.js",
+  "author": "Plethora",
+  "private": true,
+  "scripts": {
+    "dev": "vite",
+    "build:renderer": "vite build",
+    "build:electron": "tsc -p tsconfig.electron.json",
+    "build:win": "npm run build:renderer && npm run build:electron && electron-builder --win --x64",
+    "desktop": "npm run build:electron && electron .",
+    "start": "electron .",
+    "postinstall": "node node_modules/electron/install.js"
+  },
+  "build": {
+    "appId": "com.plethora.scout",
+    "productName": "Scout",
+    "directories": {
+      "output": "release"
+    },
+    "files": [
+      "dist/**/*",
+      "dist-electron/**/*"
+    ],
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "artifactName": "Scout-Setup-${version}.${ext}",
+      "icon": "build/icon.png"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "artifactName": "Scout-Setup-${version}.exe"
+    }
+  },
+  "devDependencies": {
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "@vitejs/plugin-react": "^4.3.4",
+    "electron": "^34.0.0",
+    "electron-builder": "^25.1.8",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "typescript": "^5",
+    "vite": "^6.0.0"
+  }
+}

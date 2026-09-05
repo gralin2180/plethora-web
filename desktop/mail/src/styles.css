@@ -1,0 +1,63 @@
+@import "../../shared/app-styles.css";
+
+.mail-layout { flex: 1; min-height: 0; }
+.mail-sidebar {
+  width: 180px;
+  border-right: 1px solid var(--border);
+  padding: 12px;
+  background: var(--panel);
+  flex-shrink: 0;
+}
+.mail-folder {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  padding: 10px 12px;
+  margin-bottom: 4px;
+  border: none;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--text);
+  font-size: 14px;
+  font-weight: 600;
+  text-align: left;
+}
+.mail-folder.active { background: color-mix(in srgb, var(--app-accent) 18%, transparent); color: var(--heading); }
+.mail-count { font-size: 11px; color: var(--muted); background: var(--panel-2); padding: 2px 8px; border-radius: 99px; }
+
+.mail-list {
+  width: 300px;
+  border-right: 1px solid var(--border);
+  overflow-y: auto;
+  flex-shrink: 0;
+  background: var(--bg);
+}
+.mail-row {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  width: 100%;
+  padding: 14px 16px;
+  border: none;
+  border-bottom: 1px solid var(--border);
+  background: transparent;
+  text-align: left;
+  gap: 4px;
+}
+.mail-row:hover { background: var(--panel-2); }
+.mail-row.active { background: color-mix(in srgb, var(--app-accent) 12%, transparent); border-left: 3px solid var(--app-accent); }
+.mail-row.unread .mail-row-subject { font-weight: 700; color: var(--heading); }
+.mail-row-from { font-size: 12px; color: var(--muted); }
+.mail-row-subject { font-size: 14px; color: var(--text); }
+.mail-row-preview { font-size: 12px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
+
+.mail-read { flex: 1; margin: 16px; overflow: auto; min-width: 0; }
+.mail-read-subject { margin: 0 0 8px; font-size: 22px; color: var(--heading); letter-spacing: -0.02em; }
+.mail-read-meta { margin: 0 0 20px; font-size: 12px; color: var(--muted); }
+.mail-read-body { font-size: 15px; line-height: 1.6; color: var(--text); }
+.mail-read-body p { margin: 0 0 12px; }
+
+.mail-compose label { display: block; margin-top: 12px; font-size: 12px; font-weight: 600; color: var(--muted); }
+.mail-compose .text-input { margin-top: 6px; }
+.mail-compose textarea.text-input { resize: vertical; }

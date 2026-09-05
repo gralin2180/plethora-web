@@ -13,6 +13,7 @@ import {
   Trash2,
 } from "lucide-react";
 import { OfficeAiBillingStrip } from "@/components/OfficeAiBillingStrip";
+import { OFFICE_APP_NAMES } from "@/lib/office-app-names";
 import {
   itemsForTab,
   loadTaskbot,
@@ -25,6 +26,9 @@ import {
 } from "@/lib/taskbot";
 import { loadSlackProfile, loadSlackWorkspace } from "@/lib/plethora-slack";
 import { trackToolUse } from "@/lib/self-learn";
+
+const relay = OFFICE_APP_NAMES.relay;
+const scout = OFFICE_APP_NAMES.scout;
 
 type Tab = "all" | "tasks" | "notes" | "screenshots" | "mentions";
 
@@ -139,23 +143,22 @@ export function PlethoraTaskbot() {
   }
 
   if (!state) {
-    return <p className="text-sm text-zinc-500">Loading Taskbot…</p>;
+    return <p className="text-sm text-zinc-500">Loading {scout.name}…</p>;
   }
 
   return (
     <div className="space-y-4">
-      <OfficeAiBillingStrip appName="Taskbot" />
+      <OfficeAiBillingStrip appName={scout.name} />
 
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div>
           <p className="text-xs text-zinc-500">
             Watches{" "}
-            <Link href="/office/slack" className="text-violet-300 hover:underline">
-              Plethora Slack
+            <Link href={relay.webHref} className="text-violet-300 hover:underline">
+              {relay.name}
             </Link>{" "}
             — tasks, notes, screenshots, and{" "}
-            <span className="text-amber-200">@{profile.handle}</span> mentions. Inspired by Slack +
-            AI capture — not those products.
+            <span className="text-amber-200">@{profile.handle}</span> mentions.
           </p>
           {state.lastScanAt ? (
             <p className="mt-1 text-[10px] text-zinc-600">
@@ -179,7 +182,7 @@ export function PlethoraTaskbot() {
             className="inline-flex items-center gap-1 rounded-xl bg-amber-600 px-4 py-2 text-sm font-medium text-white disabled:opacity-40"
           >
             {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
-            Scan Slack now
+            Scan {relay.name} now
           </button>
         </div>
       </div>
@@ -218,8 +221,7 @@ export function PlethoraTaskbot() {
       {tab === "mentions" ? (
         <p className="text-xs text-zinc-500">
           Everything where someone @mentioned{" "}
-          <strong className="text-amber-200">@{profile.handle}</strong> in Slack, plus AI-assigned
-          items for you. Change handle in Slack profile settings.
+          <strong className="text-amber-200">@{profile.handle}</strong> in {relay.name}.
         </p>
       ) : null}
 
@@ -227,8 +229,8 @@ export function PlethoraTaskbot() {
         {items.length === 0 ? (
           <li className="rounded-2xl border border-dashed border-white/10 py-12 text-center text-sm text-zinc-500">
             {tab === "mentions"
-              ? `No @${profile.handle} mentions yet — post in Slack with @${profile.handle}.`
-              : "Nothing captured yet. Chat in Slack or run Scan."}
+              ? `No @${profile.handle} mentions yet — post in ${relay.name} with @${profile.handle}.`
+              : `Nothing captured yet. Chat in ${relay.name} or run Scan.`}
           </li>
         ) : (
           items.map((item) => (
@@ -251,7 +253,7 @@ export function PlethoraTaskbot() {
       </ul>
 
       <p className="text-[10px] text-zinc-600">
-        Desktop Taskbot tray app:{" "}
+        Desktop {scout.name} app:{" "}
         <Link href="/office" className="text-cyan-400 hover:underline">
           Windows download
         </Link>

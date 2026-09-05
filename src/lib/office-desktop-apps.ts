@@ -1,23 +1,22 @@
 /**
  * Plethora Office desktop apps — Windows first, Mac later.
- * Web apps ship first; installers land under /public/downloads when ready.
  */
+
+import { OFFICE_APP_NAMES, type OfficeAppId } from "./office-app-names";
 
 export type DesktopPlatform = "windows" | "mac" | "linux";
 
 export type DesktopAppStatus = "available" | "beta" | "coming_soon";
 
 export type OfficeDesktopApp = {
-  id: string;
+  id: OfficeAppId | string;
   name: string;
   like: string;
   tagline: string;
   webHref: string;
-  /** Relative path under /public or absolute https URL */
   downloadPath?: string;
   version?: string;
   sizeLabel?: string;
-  /** Set true only after the .exe is in public/downloads */
   installerReady?: boolean;
   featured?: boolean;
   platforms: {
@@ -33,13 +32,12 @@ export type OfficeDesktopApp = {
 
 export const OFFICE_DESKTOP_APPS: OfficeDesktopApp[] = [
   {
-    id: "slack",
-    name: "Plethora Slack",
-    like: "Slack",
-    tagline:
-      "Team chat with AI teammate, @mentions, threads, and Taskbot sync. Free models + BYOK + Plethora tokens.",
-    webHref: "/office/slack",
-    version: "0.1.0-web",
+    id: "relay",
+    name: OFFICE_APP_NAMES.relay.name,
+    like: OFFICE_APP_NAMES.relay.inspiredBy,
+    tagline: OFFICE_APP_NAMES.relay.tagline + " Free models + BYOK + Plethora tokens.",
+    webHref: OFFICE_APP_NAMES.relay.webHref,
+    version: "0.1.0",
     aiFunnel: true,
     featured: true,
     installerReady: false,
@@ -47,26 +45,21 @@ export const OFFICE_DESKTOP_APPS: OfficeDesktopApp[] = [
       {
         platform: "windows",
         status: "beta",
-        downloadPath: "/downloads/Plethora-Slack-Setup-0.1.0.exe",
+        downloadPath: "/downloads/Plethora-Chat-Setup-0.1.0.exe",
         version: "0.1.0-beta",
         sizeLabel: "~85 MB",
-        notes: "Preview installer — syncs with web workspace on this device. Mac build next.",
+        notes: `Native app in ${OFFICE_APP_NAMES.relay.desktopFolder}/`,
       },
-      {
-        platform: "mac",
-        status: "coming_soon",
-        notes: "Apple Silicon + Intel — after Windows beta stabilizes.",
-      },
+      { platform: "mac", status: "coming_soon" },
     ],
   },
   {
-    id: "taskbot",
-    name: "Taskbot",
-    like: "Slack + AI task capture",
-    tagline:
-      "Watches Plethora Slack chats — tasks, notes, screenshots, and an @you inbox from mentions.",
-    webHref: "/office/taskbot",
-    version: "0.1.0-web",
+    id: "scout",
+    name: OFFICE_APP_NAMES.scout.name,
+    like: OFFICE_APP_NAMES.scout.inspiredBy,
+    tagline: OFFICE_APP_NAMES.scout.tagline,
+    webHref: OFFICE_APP_NAMES.scout.webHref,
+    version: "0.1.0",
     aiFunnel: true,
     featured: true,
     installerReady: false,
@@ -74,67 +67,82 @@ export const OFFICE_DESKTOP_APPS: OfficeDesktopApp[] = [
       {
         platform: "windows",
         status: "beta",
-        downloadPath: "/downloads/Plethora-Taskbot-Setup-0.1.0.exe",
+        downloadPath: "/downloads/Plethora-Tasks-Setup-0.1.0.exe",
         version: "0.1.0-beta",
         sizeLabel: "~72 MB",
-        notes: "Pairs with Plethora Slack. Standalone tray app coming in same bundle.",
+        notes: `Pairs with ${OFFICE_APP_NAMES.relay.name}. ${OFFICE_APP_NAMES.scout.desktopFolder}/`,
       },
-      {
-        platform: "mac",
-        status: "coming_soon",
-      },
+      { platform: "mac", status: "coming_soon" },
     ],
   },
   {
-    id: "word",
-    name: "Plethora Word",
-    like: "Microsoft Word",
-    tagline: "Rich editor + Quill AI teammate. Export HTML.",
-    webHref: "/office/word",
+    id: "draft",
+    name: OFFICE_APP_NAMES.draft.name,
+    like: OFFICE_APP_NAMES.draft.inspiredBy,
+    tagline: OFFICE_APP_NAMES.draft.tagline,
+    webHref: OFFICE_APP_NAMES.draft.webHref,
     aiFunnel: true,
     featured: true,
     platforms: [
+      { platform: "windows", status: "coming_soon" },
+      { platform: "mac", status: "coming_soon" },
+    ],
+  },
+  {
+    id: "grid",
+    name: OFFICE_APP_NAMES.grid.name,
+    like: OFFICE_APP_NAMES.grid.inspiredBy,
+    tagline: OFFICE_APP_NAMES.grid.tagline,
+    webHref: OFFICE_APP_NAMES.grid.webHref,
+    aiFunnel: true,
+    platforms: [
+      { platform: "windows", status: "coming_soon" },
+      { platform: "mac", status: "coming_soon" },
+    ],
+  },
+  {
+    id: "trace",
+    name: OFFICE_APP_NAMES.trace.name,
+    like: OFFICE_APP_NAMES.trace.inspiredBy,
+    tagline: OFFICE_APP_NAMES.trace.tagline,
+    webHref: OFFICE_APP_NAMES.trace.webHref,
+    aiFunnel: true,
+    platforms: [
+      { platform: "windows", status: "coming_soon" },
+      { platform: "mac", status: "coming_soon" },
+    ],
+  },
+  {
+    id: "nook",
+    name: OFFICE_APP_NAMES.nook.name,
+    like: OFFICE_APP_NAMES.nook.inspiredBy,
+    tagline: OFFICE_APP_NAMES.nook.tagline,
+    webHref: OFFICE_APP_NAMES.nook.webHref,
+    aiFunnel: true,
+    platforms: [
+      { platform: "windows", status: "coming_soon" },
+      { platform: "mac", status: "coming_soon" },
+    ],
+  },
+  {
+    id: "mail",
+    name: OFFICE_APP_NAMES.mail.name,
+    like: OFFICE_APP_NAMES.mail.inspiredBy,
+    tagline: OFFICE_APP_NAMES.mail.tagline,
+    webHref: OFFICE_APP_NAMES.mail.webHref,
+    version: "0.1.0",
+    aiFunnel: true,
+    featured: true,
+    installerReady: false,
+    platforms: [
       {
         platform: "windows",
-        status: "coming_soon",
-        notes: "Desktop shell wraps the web editor with offline cache.",
+        status: "beta",
+        downloadPath: "/downloads/Plethora-Mail-Setup-0.1.0.exe",
+        version: "0.1.0-beta",
+        sizeLabel: "~70 MB",
+        notes: `Local inbox in ${OFFICE_APP_NAMES.mail.desktopFolder}/`,
       },
-      { platform: "mac", status: "coming_soon" },
-    ],
-  },
-  {
-    id: "boards",
-    name: "Plethora Boards",
-    like: "Trello",
-    tagline: "Kanban for IT, production, fashion drops, film units.",
-    webHref: "/office/boards",
-    aiFunnel: true,
-    platforms: [
-      { platform: "windows", status: "coming_soon" },
-      { platform: "mac", status: "coming_soon" },
-    ],
-  },
-  {
-    id: "rooms",
-    name: "Plethora Rooms",
-    like: "Slack (light)",
-    tagline: "Simple channels on this device — superseded by Plethora Slack desktop.",
-    webHref: "/office/rooms",
-    aiFunnel: true,
-    platforms: [
-      { platform: "windows", status: "coming_soon" },
-      { platform: "mac", status: "coming_soon" },
-    ],
-  },
-  {
-    id: "flow",
-    name: "Plethora Flow",
-    like: "Lucidchart / Miro",
-    tagline: "Process and pipeline flow from a brief.",
-    webHref: "/office/flow",
-    aiFunnel: true,
-    platforms: [
-      { platform: "windows", status: "coming_soon" },
       { platform: "mac", status: "coming_soon" },
     ],
   },
