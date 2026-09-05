@@ -319,6 +319,14 @@ export const AI_PROVIDERS: AiProviderDef[] = [
   },
 ];
 
+import { EXTENDED_AI_PROVIDERS } from "./ai-provider-catalog";
+
+/** Full OpenCode-style catalog — popular + extended hosts */
+export const ALL_AI_PROVIDERS: AiProviderDef[] = [
+  ...AI_PROVIDERS,
+  ...(EXTENDED_AI_PROVIDERS as AiProviderDef[]),
+];
+
 export function getProvider(id: ConnectedAiId): AiProviderDef {
   return AI_PROVIDERS.find((p) => p.id === id) || AI_PROVIDERS[0];
 }

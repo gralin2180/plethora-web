@@ -64,6 +64,21 @@ export const OPENCODE_ZEN_FREE_MODELS: FreeModelDef[] = [
     context: ZEN_CONTEXT_LABEL,
     note: "Zero-retention stealth model",
   },
+  {
+    id: "muse-spark-1.3-contributor-free",
+    name: "Muse Spark 1.3",
+    source: "zen",
+    badge: "Free",
+    context: ZEN_CONTEXT_LABEL,
+    zenApi: "responses",
+  },
+  {
+    id: "ling-3.0-flash-fin-free",
+    name: "Ling 3.0 Flash Fin",
+    source: "zen",
+    badge: "Free",
+    context: ZEN_CONTEXT_LABEL,
+  },
   { id: "mimo-v2.5-free", name: "MiMo V2.5", source: "zen", badge: "Free", context: ZEN_CONTEXT_LABEL },
   { id: "big-pickle", name: "Big Pickle", source: "zen", badge: "Free", context: ZEN_CONTEXT_LABEL },
   {

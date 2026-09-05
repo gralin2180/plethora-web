@@ -17,6 +17,7 @@ import {
 import { SubscriptionAiClient } from "@/components/SubscriptionAiClient";
 import {
   AI_PROVIDERS,
+  ALL_AI_PROVIDERS,
   clearCopilotAuth,
   getProvider,
   hasCopilotSubscription,
@@ -33,7 +34,13 @@ import { hasCodexSubscription, loadCodexAuth, clearCodexAuth } from "@/lib/subsc
 
 type Screen = "list" | "methods" | "connect" | "connected";
 
-export function GetStartedAiClient() {
+export function GetStartedAiClient({
+  embedded = false,
+  onClose,
+}: {
+  embedded?: boolean;
+  onClose?: () => void;
+} = {}) {
   const params = useSearchParams();
   const [screen, setScreen] = useState<Screen>("list");
   const [query, setQuery] = useState("");
@@ -43,7 +50,7 @@ export function GetStartedAiClient() {
 
   useEffect(() => {
     const p = params.get("provider") as ConnectedAiId | null;
-    if (p && AI_PROVIDERS.some((x) => x.id === p)) {
+    if (p && ALL_AI_PROVIDERS.some((x) => x.id === p)) {
       const def = getProvider(p);
       setPicked(p);
       if (def.methods.length === 1) {
@@ -63,8 +70,8 @@ export function GetStartedAiClient() {
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
     const list = !q
-      ? AI_PROVIDERS
-      : AI_PROVIDERS.filter(
+      ? ALL_AI_PROVIDERS
+      : ALL_AI_PROVIDERS.filter(
           (p) =>
             p.name.toLowerCase().includes(q) ||
             p.tagline.toLowerCase().includes(q) ||
@@ -79,7 +86,7 @@ export function GetStartedAiClient() {
   const store = loadConnectedAi();
   const chatgptOn = hasCodexSubscription();
   const copilotOn = hasCopilotSubscription();
-  const connectedList = AI_PROVIDERS.filter((p) => {
+  const connectedList = ALL_AI_PROVIDERS.filter((p) => {
     if (p.id === "chatgpt") return chatgptOn;
     if (p.id === "github-copilot") return copilotOn;
     return Boolean(store.accounts[p.id]?.apiKey);
@@ -90,7 +97,7 @@ export function GetStartedAiClient() {
   }
 
   return (
-    <div className="mx-auto max-w-lg px-4 py-10 sm:px-6" data-refresh={tick}>
+    <div className={embedded ? "" : "mx-auto max-w-lg px-4 py-10 sm:px-6"} data-refresh={tick}>
       <div className="overflow-hidden rounded-2xl border border-white/10 bg-[#161616] shadow-2xl shadow-black/50">
         <div className="flex items-center justify-between border-b border-white/10 px-4 py-3">
           {screen === "methods" || screen === "connect" ? (
@@ -119,13 +126,24 @@ export function GetStartedAiClient() {
                 ? `Connect ${provider?.name ?? ""}`
                 : "Connect provider"}
           </h1>
-          <Link
-            href="/chat"
-            className="rounded-lg p-1.5 text-zinc-500 hover:bg-white/5 hover:text-white"
-            aria-label="Close"
-          >
-            <X className="h-4 w-4" />
-          </Link>
+          {embedded && onClose ? (
+            <button
+              type="button"
+              onClick={onClose}
+              className="rounded-lg p-1.5 text-zinc-500 hover:bg-white/5 hover:text-white"
+              aria-label="Close"
+            >
+              <X className="h-4 w-4" />
+            </button>
+          ) : (
+            <Link
+              href="/chat"
+              className="rounded-lg p-1.5 text-zinc-500 hover:bg-white/5 hover:text-white"
+              aria-label="Close"
+            >
+              <X className="h-4 w-4" />
+            </Link>
+          )}
         </div>
 
         {screen === "list" && (
@@ -303,13 +321,24 @@ export function GetStartedAiClient() {
               >
                 Add another
               </button>
-              <Link
-                href="/chat"
-                className="flex flex-1 items-center justify-center gap-1 rounded-lg bg-white py-2 text-sm font-medium text-black hover:bg-zinc-200"
-              >
-                <Sparkles className="h-3.5 w-3.5" />
-                Chat
-              </Link>
+              {embedded && onClose ? (
+                <button
+                  type="button"
+                  onClick={onClose}
+                  className="flex flex-1 items-center justify-center gap-1 rounded-lg bg-white py-2 text-sm font-medium text-black hover:bg-zinc-200"
+                >
+                  <Sparkles className="h-3.5 w-3.5" />
+                  Done
+                </button>
+              ) : (
+                <Link
+                  href="/chat"
+                  className="flex flex-1 items-center justify-center gap-1 rounded-lg bg-white py-2 text-sm font-medium text-black hover:bg-zinc-200"
+                >
+                  <Sparkles className="h-3.5 w-3.5" />
+                  Chat
+                </Link>
+              )}
             </div>
           </div>
         )}
@@ -327,7 +356,7 @@ function ProviderGroup({
   onPick,
 }: {
   title: string;
-  items: typeof AI_PROVIDERS;
+  items: typeof ALL_AI_PROVIDERS;
   onPick: (id: ConnectedAiId) => void;
 }) {
   if (!items.length) return null;

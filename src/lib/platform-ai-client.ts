@@ -80,6 +80,24 @@ export async function collectChatAuth(): Promise<{
 
   if (!usedConnected && !byokKey) {
     try {
+      const { loadSelectedChatModel } = await import("./free-models");
+      const sel = loadSelectedChatModel();
+      if (sel.kind === "connected") {
+        /* resolveConnectedChatAuth handles connected path above */
+      } else if (sel.kind === "zen") {
+        preferredModel = sel.id;
+        preferredSource = "zen";
+      } else if (sel.kind === "openrouter") {
+        preferredModel = sel.id;
+        preferredSource = "openrouter";
+      }
+    } catch {
+      /* */
+    }
+  }
+
+  if (!usedConnected && !byokKey && !preferredModel) {
+    try {
       const { loadByok } = await import("./byok");
       const b = loadByok();
       if (b?.apiKey) {
