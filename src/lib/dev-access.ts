@@ -1,5 +1,8 @@
 import type { User } from "@supabase/supabase-js";
 
+/** Production allowlist — also set PLETHORA_DEV_EMAILS on Vercel for ops without redeploy. */
+const STATIC_DEV_ALLOWLIST = ["rosalin.lenka2005@gmail.com"];
+
 function splitEmails(raw: string | undefined): string[] {
   return (raw || "")
     .split(/[,;\s]+/)
@@ -9,6 +12,7 @@ function splitEmails(raw: string | undefined): string[] {
 
 export function envDevEmailList(): string[] {
   return [
+    ...STATIC_DEV_ALLOWLIST,
     ...splitEmails(process.env.PLETHORA_DEV_EMAILS),
     ...splitEmails(process.env.PLETHORA_DEV_EMAIL),
     ...splitEmails(process.env.DEV_EMAIL),
